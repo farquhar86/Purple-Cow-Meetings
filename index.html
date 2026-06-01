@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The March to 100,000 Herd Members — Quarterly Worksheet</title>
+<style>
+  :root{
+    --purple:#6a2c8f; --purple-dark:#4e1f6b; --purple-light:#8e4fb8;
+    --lilac:#f3eafb; --lilac-2:#e9d9f7; --ink:#221531; --muted:#6b5e78;
+    --line:#e3d6ef; --green:#2e9e6b; --amber:#e0a32e; --red:#d8533b;
+    --bg:#faf7fd; --card:#ffffff; --shadow:0 2px 14px rgba(80,30,110,.08);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;}
+  a{color:var(--purple)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px 80px;}
+
+  /* Login landing */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));}
+  .login-card{background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);padding:34px 30px;width:100%;max-width:400px;text-align:center;}
+  .login-title{font-size:26px;font-weight:800;color:var(--purple-dark);margin:16px 0 4px;}
+  .login-sub{font-size:14px;color:var(--muted);margin:0 0 20px;}
+  .login-card input{width:100%;text-align:center;font-size:15px;padding:11px;margin-bottom:4px;}
+  .login-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:18px 0;}
+  .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  /* Manager access button */
+  .mgr-fab{position:fixed;top:12px;right:14px;z-index:250;}
+  .mgr-fab .btn{box-shadow:0 4px 16px rgba(34,21,49,.35);border:1px solid rgba(255,255,255,.4);}
+  .modal-ov{position:fixed;inset:0;background:rgba(34,21,49,.55);display:none;align-items:center;justify-content:center;z-index:400;padding:18px;}
+  .modal-ov.show{display:flex;}
+  .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
+  .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
+  .modal .lockicon{font-size:30px;}
+  .modal input{width:100%;margin-top:14px;text-align:center;}
+  .modal-actions{display:flex;gap:8px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+  .lock-err{color:var(--red);font-size:13px;margin-top:8px;min-height:16px;}
+
+  /* Hero */
+  header.hero{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:34px 0 30px;}
+  .hero-inner{max-width:1080px;margin:0 auto;padding:0 18px;}
+  .brand{display:flex;align-items:center;gap:12px;font-weight:700;letter-spacing:.3px;opacity:.95;}
+  .brand .dot{width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-size:20px;}
+  h1.hero-title{font-size:34px;line-height:1.15;margin:16px 0 6px;font-weight:800;}
+  .hero-sub{font-size:16px;opacity:.92;max-width:760px;margin:0;}
+  .goal-pill{display:inline-block;margin-top:14px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:7px 14px;border-radius:999px;font-size:13.5px;}
+  .quarter-chip{display:inline-block;margin-top:14px;margin-left:8px;background:rgba(255,255,255,.92);color:var(--purple-dark);padding:7px 14px;border-radius:999px;font-size:13px;font-weight:700;}
+
+  /* Toolbar */
+  .toolbar{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--line);box-shadow:0 1px 8px rgba(80,30,110,.06);}
+  .toolbar-inner{max-width:1080px;margin:0 auto;padding:10px 18px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;}
+  .who{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:1;min-width:260px;}
+  .who label{font-size:12px;color:var(--muted);font-weight:600;}
+  input,select,textarea{font-family:inherit;font-size:14px;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:#fff;}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple-light);box-shadow:0 0 0 3px rgba(142,79,184,.15);}
+  .who input{width:150px;}
+  .nav{display:flex;gap:6px;flex-wrap:wrap;}
+  .nav a{font-size:13px;text-decoration:none;color:var(--purple-dark);background:var(--lilac);padding:6px 11px;border-radius:7px;font-weight:600;}
+  .nav a:hover{background:var(--lilac-2);}
+
+  /* Buttons */
+  .btn{cursor:pointer;border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:600;background:var(--purple);color:#fff;transition:.15s;}
+  .btn:hover{background:var(--purple-dark);}
+  .btn.ghost{background:#fff;color:var(--purple-dark);border:1px solid var(--line);}
+  .btn.ghost:hover{background:var(--lilac);}
+  .btn.sm{padding:6px 11px;font-size:12.5px;}
+  .btn.danger{background:#fff;color:var(--red);border:1px solid #f0cabf;}
+  .btn.danger:hover{background:#fde9e4;}
+
+  /* Sections */
+  section.block{margin-top:34px;}
+  .block-head{display:flex;align-items:baseline;gap:10px;border-bottom:2px solid var(--lilac-2);padding-bottom:8px;margin-bottom:6px;}
+  .block-head h2{font-size:22px;margin:0;color:var(--purple-dark);}
+  .block-head .step{background:var(--purple);color:#fff;font-size:12px;font-weight:700;border-radius:6px;padding:3px 9px;}
+  .block-desc{color:var(--muted);font-size:14px;margin:4px 0 16px;max-width:820px;}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:18px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+  @media(max-width:780px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  .quad-title{font-weight:700;font-size:15px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+  .quad-hint{font-size:12.5px;color:var(--muted);margin:0 0 10px;}
+  .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:5px;}
+  .t-s{background:#e4f4ec;color:var(--green);} .t-w{background:#fdeede;color:var(--amber);}
+  .t-o{background:#e7eefb;color:#3a5bb8;} .t-t{background:#fbe6e1;color:var(--red);}
+  .t-start{background:#e4f4ec;color:var(--green);} .t-stop{background:#fbe6e1;color:var(--red);} .t-keep{background:#e7eefb;color:#3a5bb8;}
+
+  .add-row{display:flex;gap:8px;margin-top:10px;}
+  .add-row input{flex:1;}
+  ul.items{list-style:none;margin:12px 0 0;padding:0;}
+  ul.items li{display:flex;align-items:flex-start;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;background:#fff;}
+  ul.items li .txt{flex:1;font-size:14px;}
+  ul.items li .by{font-size:11px;color:var(--muted);display:block;margin-top:2px;}
+  .x{cursor:pointer;color:var(--muted);font-weight:700;border:none;background:none;font-size:16px;line-height:1;padding:2px 4px;}
+  .x:hover{color:var(--red);}
+  .empty{font-size:13px;color:var(--muted);font-style:italic;padding:6px 2px;}
+
+  /* Priorities form */
+  .prio-form label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 4px;}
+  .prio-form input[type=text],.prio-form textarea{width:100%;}
+  .prio-form textarea{min-height:60px;resize:vertical;}
+  .done-line{display:flex;gap:8px;margin-bottom:6px;}
+  .done-line input{flex:1;}
+  .impact-opts{display:flex;gap:8px;flex-wrap:wrap;}
+  .impact-opts label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;margin:0;}
+  .impact-opts input{accent-color:var(--purple);}
+  .prio-card{border-left:5px solid var(--purple);}
+  .prio-card h4{margin:0 0 4px;font-size:17px;color:var(--purple-dark);}
+  .prio-card .why{font-size:13.5px;color:var(--muted);margin:0 0 10px;}
+  .done-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin:0 0 4px;}
+  ul.done{margin:0 0 10px;padding-left:18px;}
+  ul.done li{font-size:13.5px;margin-bottom:3px;}
+  .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px;}
+  .b-high{background:#e4f4ec;color:var(--green);} .b-med{background:#fdeede;color:var(--amber);} .b-low{background:#eee;color:#666;}
+  .prio-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;}
+
+  .note{font-size:13px;color:var(--muted);background:var(--lilac);border:1px solid var(--lilac-2);border-radius:10px;padding:12px 14px;margin-top:10px;}
+  .req{color:var(--red);font-weight:700;}
+  .theme-reminder{color:var(--purple-dark);background:var(--lilac);border:1px solid var(--lilac-2);border-left:4px solid var(--purple);margin:0 0 16px;font-size:13.5px;}
+  .invalid{border-color:var(--red) !important;box-shadow:0 0 0 3px rgba(216,83,59,.15) !important;}
+  .validation{background:#fdece7;border:1px solid #f0cabf;color:#9e3320;border-radius:10px;padding:12px 16px;text-align:left;display:inline-block;max-width:480px;}
+  .validation ul{margin:6px 0 0;padding-left:20px;} .validation li{margin-bottom:3px;}
+  .success{background:#e4f4ec;border:1px solid #b8e3cd;color:#1d7a4f;border-radius:10px;padding:14px 18px;font-weight:600;display:inline-block;}
+  .step-flow ol{margin:6px 0 0;padding-left:20px;} .step-flow li{margin-bottom:3px;}
+  footer{margin-top:50px;text-align:center;color:var(--muted);font-size:12.5px;}
+
+  /* ===== Dashboard ===== */
+  .dash-top{background:linear-gradient(135deg,var(--purple-dark),var(--purple));color:#fff;padding:20px 0;}
+  .dash-top .hero-inner{display:flex;flex-wrap:wrap;align-items:center;gap:12px 16px;}
+  .dash-top h1{font-size:22px;margin:0;font-weight:800;flex:1;min-width:220px;}
+  .dash-top .sub{width:100%;font-size:13.5px;opacity:.9;margin:2px 0 0;}
+  .dash-acts{display:flex;gap:8px;flex-wrap:wrap;}
+  .dash-acts .btn{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);}
+  .dash-acts .btn:hover{background:rgba(255,255,255,.28);}
+  .dash-bar{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40;}
+  .dash-bar-inner{max-width:1080px;margin:0 auto;padding:12px 18px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;}
+  .mgroup{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .mgroup .lbl{font-size:11px;font-weight:700;color:var(--purple-dark);text-transform:uppercase;letter-spacing:.4px;}
+  .mgroup select{font-weight:700;color:var(--purple-dark);}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px;}
+  .tabs button{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--purple-dark);font-weight:700;font-size:14px;padding:9px 16px;border-radius:10px;}
+  .tabs button.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px;}
+  .filters .fl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+  .filters select{min-width:150px;}
+  .count{font-size:12.5px;color:var(--muted);}
+  .dept-group{margin-bottom:24px;}
+  .dept-group > h3{font-size:15px;color:#fff;background:var(--purple);display:inline-block;padding:6px 14px;border-radius:8px;margin:0 0 12px;}
+  .dept-group .dcount{font-weight:400;opacity:.85;font-size:13px;}
+  .rev-card{border-left:6px solid var(--purple);margin-bottom:14px;}
+  .rev-card h4{margin:0 0 4px;font-size:18px;color:var(--purple-dark);}
+  .meta-line{font-size:12px;color:var(--muted);margin:2px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .notes-wrap{margin-top:12px;background:var(--lilac);border:1px dashed var(--purple-light);border-radius:10px;padding:12px;}
+  .notes-wrap .nlabel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+  .notes-area{width:100%;min-height:60px;resize:vertical;background:#fff;}
+  .saved-flash{font-size:11px;color:var(--green);font-weight:600;opacity:0;transition:opacity .2s;} .saved-flash.show{opacity:1;}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap;}
+  table.dash-tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  table.dash-tbl th{background:var(--lilac);color:var(--purple-dark);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;}
+  table.dash-tbl td{padding:10px 12px;border-top:1px solid var(--line);font-size:14px;vertical-align:top;}
+  body.presenting .mgr-fab,body.presenting .dash-bar,body.presenting .filters,body.presenting .tabs,body.presenting .dash-acts,body.presenting .row-actions,body.presenting .commit-row{display:none !important;}
+  body.presenting{background:#fff;}
+
+  /* commit + size */
+  .b-commit{background:#e4f4ec;color:var(--green);}
+  .b-size{background:var(--lilac-2);color:var(--purple-dark);}
+  .commit-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
+  .sizesel{font-size:12px;font-weight:700;color:var(--muted);display:inline-flex;gap:6px;align-items:center;text-transform:uppercase;letter-spacing:.4px;}
+  .sizesel select{padding:5px 9px;font-weight:700;}
+  .committed-card{border-left-color:var(--green) !important;}
+  .prio-link{cursor:pointer;}
+  .prio-link:hover{text-decoration:underline;}
+
+  /* modal form fields */
+  .modal label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 4px;text-align:left;}
+  .modal select,.modal textarea{width:100%;margin-top:0;}
+  .modal textarea{min-height:64px;resize:vertical;}
+  #mgrPw{text-align:center;}
+  .modal-scroll{max-height:88vh;overflow:auto;max-width:780px;}
+  .pm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
+  .pm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px;}
+  .pctbar{height:10px;background:var(--lilac-2);border-radius:6px;overflow:hidden;}
+  .pctbar-fill{height:10px;background:var(--green);border-radius:6px;transition:width .2s;}
+  .pct-chip{font-size:11px;font-weight:700;color:var(--green);}
+
+  /* Gantt */
+  .sched-tbl{width:100%;border-collapse:collapse;margin-top:8px;}
+  .sched-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:6px 8px;}
+  .sched-tbl td{padding:6px 8px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle;}
+  .sched-tbl input[type=date]{padding:6px 8px;}
+  .gantt{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff;}
+  .gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .g-label{width:38%;font-size:12.5px;color:var(--ink);}
+  .g-track{flex:1;position:relative;height:22px;background:var(--lilac);border-radius:6px;}
+  .g-bar{position:absolute;top:0;height:22px;background:var(--purple);border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;overflow:hidden;white-space:nowrap;min-width:20px;}
+  .g-none{font-size:11px;color:var(--muted);font-style:italic;padding-left:6px;line-height:22px;}
+  .gantt-axis{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px;margin-left:calc(38% + 10px);}
+  .sched-summary{font-size:12px;color:var(--muted);margin-top:6px;}
+  /* roadmap (combined gantt) */
+  .roadmap{margin-top:10px;}
+  .rm-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+  .rm-row .g-label{width:34%;font-size:13px;}
+  .rm-head{margin-bottom:12px;}
+  .rm-axis{position:relative;height:16px;background:transparent !important;}
+  .rm-tick{position:absolute;top:0;font-size:10px;color:var(--muted);transform:translateX(-2px);border-left:1px solid var(--line);padding-left:3px;white-space:nowrap;}
+  .roadmap .g-bar{cursor:pointer;}
+  .roadmap .g-bar:hover{background:var(--purple-dark);}
+  .g-fill{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.55);border-radius:6px 0 0 6px;}
+  .g-bar span{position:relative;z-index:1;}
+  .rm-toggle{cursor:pointer;border:none;background:none;color:var(--purple-dark);font-weight:700;font-size:13px;padding:0 4px 0 0;}
+  .rm-sub .g-label{width:34%;font-size:12px;color:var(--muted);padding-left:18px;}
+  .rm-sub .g-track{height:16px;background:var(--lilac);}
+  .rm-sub .g-bar{height:16px;font-size:9px;background:var(--purple-light);}
+  .rm-pm{font-size:11px;color:var(--muted);font-weight:600;}
+  .rm-group{font-size:13px;font-weight:700;color:var(--purple-dark);background:var(--lilac);padding:6px 12px;border-radius:7px;margin:16px 0 8px;display:inline-block;}
+  .rm-sortbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+  .rm-sortbar select{padding:6px 9px;font-size:13px;}
+
+  @media print{
+    .mgr-fab,.dash-bar,.filters,.tabs,.dash-acts,.row-actions,.add-row,.prio-form,.toolbar,.note.no-print{display:none !important;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<div class="mgr-fab no-print"><button class="btn" id="mgrBtn" onclick="fabClick()">🔒 Manager</button></div>
+
+<!-- ====================== SCREEN: LOGIN LANDING ====================== -->
+<div id="screen-login">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="brand" style="justify-content:center;color:var(--purple-dark);"><span class="dot" style="background:var(--purple);">🐄</span> Purple Cow Internet</div>
+      <h1 class="login-title">Quarterly Planning</h1>
+      <p class="login-sub">Log in to the backend dashboard to review priorities, set the roadmap, and track progress.</p>
+      <input type="password" id="loginPw" placeholder="Manager password" onkeydown="if(event.key==='Enter')submitMgr()" />
+      <div class="lock-err" id="loginErr"></div>
+      <button class="btn" style="width:100%;font-size:16px;padding:12px;" onclick="submitMgr()">Log in</button>
+      <div class="login-divider"><span>or</span></div>
+      <button class="btn ghost" style="width:100%;" onclick="gotoForm()">📝 I'm here to fill out the intake form →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm / info modal -->
+<div class="modal-ov no-print" id="confirmModal" onclick="if(event.target===this)closeConfirm()">
+  <div class="modal" style="text-align:center;">
+    <div class="lockicon">⚠️</div>
+    <h3 id="confirmTitle">Please confirm</h3>
+    <p class="block-desc" id="confirmMsg" style="margin:2px auto 0;"></p>
+    <div class="modal-actions">
+      <button class="btn danger" id="confirmOk" onclick="confirmProceed()">Confirm</button>
+      <button class="btn ghost" id="confirmCancel" onclick="closeConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit text modal -->
+<div class="modal-ov no-print" id="editModal" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal" style="text-align:left;">
+    <h3 id="editModalTitle" style="text-align:center;">Edit</h3>
+    <textarea id="editModalInput" style="width:100%;min-height:90px;margin-top:10px;" onkeydown="if(event.key==='Enter'&&(event.metaKey||event.ctrlKey))saveEditModal()"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveEditModal()">Save</button>
+      <button class="btn ghost" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- New / edit quarter modal -->
+<div class="modal-ov no-print" id="meetingModal" onclick="if(event.target===this)closeMeetingModal()">
+  <div class="modal" style="text-align:left;max-width:460px;">
+    <h3 id="mmTitle" style="text-align:center;">New quarter</h3>
+    <div style="display:flex;gap:10px;">
+      <div style="flex:1;"><label>Quarter</label>
+        <select id="mm-q"><option>Q1</option><option>Q2</option><option>Q3</option><option>Q4</option></select>
+      </div>
+      <div style="flex:1;"><label>Year</label>
+        <select id="mm-year"></select>
+      </div>
+    </div>
+    <label>Theme title</label>
+    <input type="text" id="mm-theme" placeholder="e.g. The March to 100,000 Herd Members" />
+    <label>Theme description / quarterly goal</label>
+    <textarea id="mm-goal" placeholder="What this quarter is about and what success looks like…"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveMeetingModal()">Save quarter</button>
+      <button class="btn ghost" onclick="closeMeetingModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ====================== SCREEN: INTAKE FORM ====================== -->
+<div id="screen-form" style="display:none;">
+<header class="hero">
+  <div class="hero-inner">
+    <div class="brand"><span class="dot">🐄</span> Purple Cow Internet</div>
+    <h1 class="hero-title" id="heroTitle">The March to 100,000 Herd Members</h1>
+    <p class="hero-sub">An intake form for each team to capture what's working, what isn't, and the priorities for the quarter. Fill it in together — your manager reviews everything in the backend.</p>
+    <span class="goal-pill" id="goalPill">🎯 Quarterly goal</span>
+    <span class="quarter-chip" id="quarterChip">Quarter</span>
+  </div>
+</header>
+
+<div class="toolbar">
+  <div class="toolbar-inner">
+    <div class="who">
+      <label for="dept">Team / Dept <span class="req">*</span></label>
+      <select id="dept">
+        <option value="">Select…</option>
+        <option>Sales</option><option>HR</option><option>Operations</option><option>Customer Service</option><option>Finance</option>
+      </select>
+      <label for="member">Your name <span class="req">*</span></label>
+      <input id="member" placeholder="e.g. Alex" />
+      <span class="count" id="whoNote" style="color:var(--purple);font-weight:600;"></span>
+    </div>
+    <nav class="nav">
+      <a href="#swot">SWOT</a>
+      <a href="#ssk">Start / Stop / Keep</a>
+      <a href="#prio">Priorities</a>
+    </nav>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="note no-print" style="margin-top:22px;">
+    <strong>How to use this form:</strong>
+    <div class="step-flow">
+      <ol>
+        <li>Pick your team and add your name — every item you add is tagged with your name.</li>
+        <li>Work through the three sections together as a team.</li>
+        <li>Your manager logs in to the backend dashboard to review, sort, add notes, and finalize priorities.</li>
+      </ol>
+    </div>
+  </div>
+
+  <!-- SWOT -->
+  <section class="block" id="swot">
+    <div class="block-head"><span class="step">Part 1</span><h2>SWOT — where do we stand?</h2></div>
+    <p class="block-desc">An honest look at our position. Keep entries short and specific — one idea per line. <span class="req">Add at least 2 items.</span></p>
+    <div class="grid-2">
+      <div class="card">
+        <p class="quad-title"><span class="tag t-s">Strengths</span></p>
+        <p class="quad-hint">What we're genuinely good at today that helps grow the herd.</p>
+        <div class="add-row"><input id="in-strength" placeholder="Add a strength…" /><button class="btn sm" onclick="addItem('strength','in-strength')">Add</button></div>
+        <ul class="items" id="list-strength"></ul>
+      </div>
+      <div class="card">
+        <p class="quad-title"><span class="tag t-w">Weaknesses</span></p>
+        <p class="quad-hint">Internal gaps slowing us down or capping how many members we serve well.</p>
+        <div class="add-row"><input id="in-weakness" placeholder="Add a weakness…" /><button class="btn sm" onclick="addItem('weakness','in-weakness')">Add</button></div>
+        <ul class="items" id="list-weakness"></ul>
+      </div>
+      <div class="card">
+        <p class="quad-title"><span class="tag t-o">Opportunities</span></p>
+        <p class="quad-hint">Outside trends or moves we could seize to accelerate growth.</p>
+        <div class="add-row"><input id="in-opportunity" placeholder="Add an opportunity…" /><button class="btn sm" onclick="addItem('opportunity','in-opportunity')">Add</button></div>
+        <ul class="items" id="list-opportunity"></ul>
+      </div>
+      <div class="card">
+        <p class="quad-title"><span class="tag t-t">Threats</span></p>
+        <p class="quad-hint">Competitors, risks, or external forces that could stall the march.</p>
+        <div class="add-row"><input id="in-threat" placeholder="Add a threat…" /><button class="btn sm" onclick="addItem('threat','in-threat')">Add</button></div>
+        <ul class="items" id="list-threat"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Start Stop Keep -->
+  <section class="block" id="ssk">
+    <div class="block-head"><span class="step">Part 2</span><h2>Start / Stop / Keep</h2></div>
+    <p class="block-desc">Concrete actions — what to begin, quit, and protect to free up energy for the march to 100,000. <span class="req">Add at least 2 items.</span></p>
+    <div class="grid-3">
+      <div class="card">
+        <p class="quad-title"><span class="tag t-start">Start</span></p>
+        <p class="quad-hint">New things worth beginning.</p>
+        <div class="add-row"><input id="in-start" placeholder="Start doing…" /><button class="btn sm" onclick="addItem('start','in-start')">Add</button></div>
+        <ul class="items" id="list-start"></ul>
+      </div>
+      <div class="card">
+        <p class="quad-title"><span class="tag t-stop">Stop</span></p>
+        <p class="quad-hint">Things draining time with little payoff.</p>
+        <div class="add-row"><input id="in-stop" placeholder="Stop doing…" /><button class="btn sm" onclick="addItem('stop','in-stop')">Add</button></div>
+        <ul class="items" id="list-stop"></ul>
+      </div>
+      <div class="card">
+        <p class="quad-title"><span class="tag t-keep">Keep</span></p>
+        <p class="quad-hint">What's working — don't lose it.</p>
+        <div class="add-row"><input id="in-keep" placeholder="Keep doing…" /><button class="btn sm" onclick="addItem('keep','in-keep')">Add</button></div>
+        <ul class="items" id="list-keep"></ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- Priorities -->
+  <section class="block" id="prio">
+    <div class="block-head"><span class="step">Part 3</span><h2>Priorities — what we'd commit to</h2></div>
+    <p class="block-desc">The few things this team believes matter most this quarter. For each one, nail down <strong>what "done" looks like</strong> in plain, measurable terms. <span class="req">Add at least 1 priority.</span></p>
+    <div class="note theme-reminder" id="prioThemeNote"></div>
+    <div class="card prio-form">
+      <label for="p-title">Priority</label>
+      <input type="text" id="p-title" placeholder="e.g. Cut install wait time so we can onboard more members" />
+      <label for="p-why">Why it matters for the march to 100,000</label>
+      <textarea id="p-why" placeholder="What does this unlock? Why now?"></textarea>
+      <label>What does "done" look like? <span style="font-weight:400;color:var(--muted)">— add a few measurable bullet points</span></label>
+      <div id="done-lines">
+        <div class="done-line"><input type="text" class="done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine()">＋</button></div>
+      </div>
+      <label>Gut-feel impact</label>
+      <div class="impact-opts">
+        <label><input type="radio" name="impact" value="High" checked> High</label>
+        <label><input type="radio" name="impact" value="Medium"> Medium</label>
+        <label><input type="radio" name="impact" value="Low"> Low</label>
+      </div>
+      <div style="margin-top:16px;"><button class="btn" onclick="addPriority()">Add priority</button></div>
+    </div>
+    <div id="list-priority" style="margin-top:16px;"></div>
+  </section>
+
+  <section class="block" id="submit">
+    <div class="card" style="text-align:center;">
+      <h2 style="color:var(--purple-dark);margin:0 0 6px;">Ready to submit?</h2>
+      <p class="block-desc" id="submitHint" style="margin:0 auto 16px;">When your team has filled everything out, submit it for your manager to review. You can keep editing and submit again any time.</p>
+      <button class="btn" style="font-size:16px;padding:13px 30px;" onclick="submitForm()">✅ Submit to manager</button>
+      <div id="submitMsg" style="margin-top:16px;"></div>
+    </div>
+  </section>
+
+  <footer>Purple Cow Internet · Quarterly planning · <span id="footerTheme">The March to 100,000 Herd Members</span> 🐄</footer>
+</div>
+</div>
+
+<!-- ====================== SCREEN: BACKEND DASHBOARD ====================== -->
+<div id="screen-dash" style="display:none;">
+  <div class="dash-top">
+    <div class="hero-inner">
+      <h1>📊 Backend dashboard — <span id="dashQuarter">Quarter</span></h1>
+      <div class="dash-acts no-print">
+        <button class="btn" onclick="gotoForm()">📝 View intake form</button>
+        <button class="btn" onclick="togglePresent()" id="presentBtn">▶ Presentation mode</button>
+        <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
+        <button class="btn" onclick="logout()">Log out</button>
+      </div>
+      <p class="sub"><span id="dashTheme"></span> · <span id="dashGoal"></span></p>
+    </div>
+  </div>
+
+  <div class="dash-bar no-print">
+    <div class="dash-bar-inner">
+      <div class="mgroup">
+        <span class="lbl">📅 Quarter</span>
+        <select id="meetingSel" onchange="switchMeeting(this.value)"></select>
+        <button class="btn sm" onclick="openMeetingModal('new')">+ New</button>
+        <button class="btn ghost sm" onclick="openMeetingModal('edit')">Edit theme &amp; goal</button>
+        <button class="btn danger sm" onclick="deleteMeeting()">Delete</button>
+      </div>
+      <div class="mgroup" style="margin-left:auto;">
+        <button class="btn sm" onclick="exportData()">⬇ Export</button>
+        <label class="btn ghost sm" style="cursor:pointer;margin:0;">⬆ Combine file
+          <input type="file" accept=".json" style="display:none" onchange="importData(event)">
+        </label>
+        <button class="btn danger sm" onclick="resetAll()">Clear quarter</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="tabs no-print">
+      <button id="tab-priority" class="active" onclick="setTab('priority')">⭐ All priorities</button>
+      <button id="tab-committed" onclick="setTab('committed')">✅ This quarter</button>
+      <button id="tab-roadmap" onclick="setTab('roadmap')">🗓 Roadmap</button>
+      <button id="tab-swot" onclick="setTab('swot')">SWOT</button>
+      <button id="tab-ssk" onclick="setTab('ssk')">Start / Stop / Keep</button>
+    </div>
+
+    <div class="filters no-print">
+      <span class="fl">Department</span>
+      <select id="f-dept" onchange="renderDashBody()"><option value="">All</option></select>
+      <span class="fl">Contributor</span>
+      <select id="f-contrib" onchange="renderDashBody()"><option value="">All</option></select>
+      <span class="fl" id="sortLbl">Sort</span>
+      <select id="f-sort" onchange="renderDashBody()">
+        <option value="impact">Impact (high → low)</option>
+        <option value="dept">Department A–Z</option>
+        <option value="contrib">Contributor A–Z</option>
+        <option value="new">Newest first</option>
+      </select>
+      <span class="count" id="dash-count"></span>
+    </div>
+
+    <div id="dash-body"></div>
+    <footer>Purple Cow Internet · Backend · <span id="footerTheme2">The March to 100,000 Herd Members</span> 🐄</footer>
+  </div>
+</div>
+
+<!-- ====================== SCREEN: PRIORITY DETAIL ====================== -->
+<div id="screen-prio" style="display:none;">
+  <div class="dash-top">
+    <div class="hero-inner">
+      <h1>⭐ Priority detail</h1>
+      <div class="dash-acts no-print">
+        <button class="btn" onclick="gotoDash()">← Back to dashboard</button>
+        <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
+        <button class="btn" onclick="logout()">Log out</button>
+      </div>
+      <p class="sub"><span id="prioCrumb"></span></p>
+    </div>
+  </div>
+  <div class="wrap" style="padding-top:24px;">
+    <div id="prio-body"></div>
+    <footer>Purple Cow Internet · Backend · <span id="footerTheme3">The March to 100,000 Herd Members</span> 🐄</footer>
+  </div>
+</div>
+
+<script>
+  const KEY = 'pc_herd100k_meetings_v2';
+  const OLD_KEY = 'pc_herd100k_worksheet_v1';
+  const SIMPLE_TYPES = ['strength','weakness','opportunity','threat','start','stop','keep'];
+  const SWOT_TYPES = [['strength','Strengths','t-s'],['weakness','Weaknesses','t-w'],['opportunity','Opportunities','t-o'],['threat','Threats','t-t']];
+  const SSK_TYPES = [['start','Start','t-start'],['stop','Stop','t-stop'],['keep','Keep','t-keep']];
+  const DEFAULT_THEME = 'The March to 100,000 Herd Members';
+  const DEFAULT_GOAL = 'Do the things now that set us up to reach 100,000 herd members';
+  const REVIEW_PW = 'purplecow';
+  const DEPARTMENTS = ['Sales','HR','Operations','Customer Service','Finance'];
+  const PROJECT_MANAGERS = ['Joe','Rei','Holly','Krystina','Bradley'];
+
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function defaultQuarterName(){ const d=new Date(); return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(); }
+  function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  let reviewUnlocked = false;
+  try{ if(sessionStorage.getItem(KEY+'_unlocked')==='1') reviewUnlocked=true; }catch(e){}
+  let screen = 'form';
+  let dashTab = 'priority';
+
+  /* ---------- store ---------- */
+  let store = loadStore();
+  function loadStore(){
+    try{ const r=localStorage.getItem(KEY); if(r){ const s=JSON.parse(r); if(s&&s.meetings&&s.meetings.length) return s; } }catch(e){}
+    let entries=[];
+    try{ const old=localStorage.getItem(OLD_KEY); if(old){ const o=JSON.parse(old); if(o&&o.entries) entries=o.entries; } }catch(e){}
+    const m={ id:uid(), name:defaultQuarterName(), theme:DEFAULT_THEME, goal:DEFAULT_GOAL, entries };
+    return { activeId:m.id, meetings:[m] };
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} }
+  function cur(){ let m=store.meetings.find(x=>x.id===store.activeId); if(!m){ m=store.meetings[0]; store.activeId=m.id; } return m; }
+  function isManager(){ return reviewUnlocked; }
+
+  /* ---------- identity ---------- */
+  const deptEl=document.getElementById('dept'), memEl=document.getElementById('member');
+  try{ deptEl.value=localStorage.getItem(KEY+'_dept')||''; memEl.value=localStorage.getItem(KEY+'_mem')||''; }catch(e){}
+  function whoNote(){ const m=memEl.value.trim(),d=deptEl.value.trim(); document.getElementById('whoNote').textContent = m?('Adding as '+m+(d?' · '+d:'')):''; }
+  deptEl.addEventListener('change',()=>{try{localStorage.setItem(KEY+'_dept',deptEl.value)}catch(e){};deptEl.classList.remove('invalid');whoNote()});
+  memEl.addEventListener('input',()=>{try{localStorage.setItem(KEY+'_mem',memEl.value)}catch(e){};memEl.classList.remove('invalid');whoNote()});
+  whoNote();
+  function who(){ const m=memEl.value.trim()||'Unnamed', d=deptEl.value.trim(); return d?(m+' ('+d+')'):m; }
+
+  /* ---------- intake actions ---------- */
+  function addItem(type, inputId){
+    const el=document.getElementById(inputId); const v=el.value.trim(); if(!v) return;
+    cur().entries.push({ id:uid(), type, text:v, by:who(), dept:deptEl.value.trim(), t:Date.now() });
+    el.value=''; save(); render(); el.focus();
+  }
+  function addDoneLine(){
+    const wrap=document.getElementById('done-lines'); const div=document.createElement('div'); div.className='done-line';
+    div.innerHTML='<input type="text" class="done-input" placeholder="Another measure of done…" /><button class="btn danger sm" onclick="this.parentNode.remove()">✕</button>';
+    wrap.appendChild(div); div.querySelector('input').focus();
+  }
+  function addPriority(){
+    const title=document.getElementById('p-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
+    const why=document.getElementById('p-why').value.trim();
+    const done=[...document.querySelectorAll('.done-input')].map(i=>i.value.trim()).filter(Boolean);
+    const impact=(document.querySelector('input[name=impact]:checked')||{}).value||'Medium';
+    cur().entries.push({ id:uid(), type:'priority', title, why, done, impact, notes:'', by:who(), dept:deptEl.value.trim(), t:Date.now() });
+    document.getElementById('p-title').value=''; document.getElementById('p-why').value='';
+    document.getElementById('done-lines').innerHTML='<div class="done-line"><input type="text" class="done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine()">＋</button></div>';
+    save(); render(); document.getElementById('prio').scrollIntoView({behavior:'smooth'});
+  }
+
+  function countTypes(types){ return cur().entries.filter(e=>types.includes(e.type)).length; }
+  function validateForm(){
+    const p=[];
+    if(!deptEl.value.trim()) p.push('Select your Team / Department');
+    if(!memEl.value.trim()) p.push('Enter your name');
+    if(countTypes(['strength','weakness','opportunity','threat'])<2) p.push('Add at least 2 SWOT items');
+    if(countTypes(['start','stop','keep'])<2) p.push('Add at least 2 Start / Stop / Keep items');
+    if(countTypes(['priority'])<1) p.push('Add at least 1 priority');
+    return p;
+  }
+  function submitForm(){
+    const probs=validateForm(); const box=document.getElementById('submitMsg');
+    deptEl.classList.toggle('invalid', !deptEl.value.trim());
+    memEl.classList.toggle('invalid', !memEl.value.trim());
+    if(probs.length){
+      box.innerHTML='<div class="validation"><strong>Almost there — please complete:</strong><ul>'+probs.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div>';
+    } else {
+      box.innerHTML='<div class="success">✅ Submitted! Your manager can now review this in the dashboard. Thank you — you can keep editing and submit again any time.</div>';
+    }
+  }
+
+  function remove(id){ cur().entries=cur().entries.filter(e=>e.id!==id); save(); render(); }
+  function edit(id, field){
+    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    const curVal = field==='done' ? (e.done||[]).join('\n') : (e[field]||'');
+    const label = field==='done' ? 'Edit "done" measures (one per line)' : ('Edit '+field);
+    editModal(label, curVal, (v)=>{
+      if(field==='done'){ e.done=v.split('\n').map(s=>s.trim()).filter(Boolean); } else { e[field]=v.trim(); }
+      save(); render();
+    });
+  }
+  function saveNote(id, val){
+    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val; save();
+    const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
+  }
+
+  /* ---------- meeting management ---------- */
+  function applyTheme(){
+    const m=cur();
+    document.getElementById('heroTitle').textContent=m.theme||DEFAULT_THEME;
+    document.getElementById('goalPill').innerHTML='🎯 Quarterly goal: '+esc(m.goal||DEFAULT_GOAL);
+    document.getElementById('quarterChip').textContent='📅 '+m.name;
+    document.getElementById('dashQuarter').textContent=m.name;
+    document.getElementById('dashTheme').textContent=m.theme||DEFAULT_THEME;
+    document.getElementById('dashGoal').textContent='🎯 '+(m.goal||DEFAULT_GOAL);
+    document.title=(m.theme||DEFAULT_THEME)+' — '+m.name;
+    ['footerTheme','footerTheme2','footerTheme3'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=m.theme||DEFAULT_THEME;});
+    const pn=document.getElementById('prioThemeNote');
+    if(pn) pn.innerHTML='🐄 <strong>Keep the theme front of mind:</strong> “'+esc(m.theme||DEFAULT_THEME)+'.” Pick priorities that move us toward — '+esc(m.goal||DEFAULT_GOAL)+'.';
+  }
+  function renderMeetingSel(){
+    document.getElementById('meetingSel').innerHTML = store.meetings.map(m=>`<option value="${m.id}" ${m.id===store.activeId?'selected':''}>${esc(m.name)}</option>`).join('');
+  }
+  function switchMeeting(id){ if(!isManager()) return; store.activeId=id; save(); ['f-dept','f-contrib'].forEach(i=>{const el=document.getElementById(i); if(el) el.value='';}); applyTheme(); renderMeetingSel(); render(); }
+  function deleteMeeting(){
+    if(!isManager()) return;
+    if(store.meetings.length<=1){ infoModal('This is your only quarter — create another before deleting this one.'); return; }
+    const m=cur();
+    confirmModal(`Delete "${m.name}" and all of its data? Export a copy first if you want to keep it.`, ()=>{
+      store.meetings=store.meetings.filter(x=>x.id!==m.id); store.activeId=store.meetings[0].id; save(); applyTheme(); renderMeetingSel(); render();
+    }, 'Delete quarter');
+  }
+
+  /* ---------- access / screens ---------- */
+  function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
+  function openMgr(){ showScreen('login'); const p=document.getElementById('loginPw'); if(p){ p.value=''; setTimeout(()=>p.focus(),60); } const er=document.getElementById('loginErr'); if(er) er.textContent=''; window.scrollTo({top:0}); }
+  function submitMgr(){
+    if(document.getElementById('loginPw').value===REVIEW_PW){
+      reviewUnlocked=true; try{ sessionStorage.setItem(KEY+'_unlocked','1'); }catch(e){}
+      document.getElementById('loginPw').value='';
+      gotoDash();
+    } else { document.getElementById('loginErr').textContent='Incorrect password. Try again.'; }
+  }
+  function logout(){ reviewUnlocked=false; try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); prioOpenId=null; showScreen('login'); window.scrollTo({top:0}); }
+  function updateFab(){
+    const fab=document.querySelector('.mgr-fab'); const b=document.getElementById('mgrBtn');
+    if(fab) fab.style.display = (screen==='login') ? 'none' : 'block';
+    if(b) b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard');
+  }
+  function showScreen(name){ screen=name;
+    document.getElementById('screen-login').style.display=name==='login'?'block':'none';
+    document.getElementById('screen-form').style.display=name==='form'?'block':'none';
+    document.getElementById('screen-dash').style.display=name==='dash'?'block':'none';
+    document.getElementById('screen-prio').style.display=name==='prio'?'block':'none';
+    updateFab();
+  }
+  function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
+  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
+  function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); document.getElementById('presentBtn').textContent= on?'✕ Exit presentation':'▶ Presentation mode'; }
+
+  /* ---------- render: master ---------- */
+  function render(){ applyTheme(); renderForm(); if(screen==='dash' && reviewUnlocked) renderDash(); }
+
+  /* ---------- render: intake form lists ---------- */
+  function renderForm(){
+    SIMPLE_TYPES.forEach(t=>{
+      const ul=document.getElementById('list-'+t); if(!ul) return;
+      const rows=cur().entries.filter(e=>e.type===t);
+      ul.innerHTML = rows.length ? rows.map(e=>`
+        <li><span class="txt">${esc(e.text)}<span class="by">— ${esc(e.by)}</span></span>
+        <button class="x" title="Edit" onclick="edit('${e.id}','text')">✎</button>
+        <button class="x" title="Remove" onclick="remove('${e.id}')">×</button></li>`).join('') : '<li class="empty">Nothing here yet.</li>';
+    });
+    const pr=cur().entries.filter(e=>e.type==='priority'); const box=document.getElementById('list-priority');
+    box.innerHTML = pr.length ? pr.map(e=>{
+      const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
+      const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+      return `<div class="card prio-card" style="margin-bottom:14px;">
+        <div class="prio-meta"><h4>${esc(e.title)}</h4><span class="badge ${cls}">${esc(e.impact)} impact</span></div>
+        ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
+        <p class="done-label">Definition of done</p>${done}
+        <div class="prio-meta"><span class="by" style="font-size:12px;color:var(--muted)">— ${esc(e.by)}</span>
+          <button class="x" title="Remove" onclick="remove('${e.id}')">×</button></div>
+      </div>`; }).join('') : '<div class="card"><p class="empty">No priorities added yet.</p></div>';
+  }
+
+  /* ---------- render: dashboard ---------- */
+  function renderDash(){
+    renderMeetingSel(); applyTheme();
+    // populate filters
+    const ents=cur().entries;
+    const extra=[...new Set(ents.map(e=>e.dept).filter(d=>d&&!DEPARTMENTS.includes(d)))];
+    const depts=[...DEPARTMENTS, ...extra];
+    const people=[...new Set(ents.map(e=>e.by))].sort();
+    const dSel=document.getElementById('f-dept'), cSel=document.getElementById('f-contrib');
+    const dCur=dSel.value, cCur=cSel.value;
+    dSel.innerHTML='<option value="">All departments</option>'+depts.map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join('');
+    cSel.innerHTML='<option value="">All contributors</option>'+people.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
+    if(depts.includes(dCur)) dSel.value=dCur; if(people.includes(cCur)) cSel.value=cCur;
+    // tab buttons
+    const showSort=(dashTab==='priority'||dashTab==='committed');
+    ['priority','committed','roadmap','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
+    document.getElementById('sortLbl').style.display = showSort?'inline':'none';
+    document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
+    renderDashBody();
+  }
+
+  function dashFilter(e){
+    const d=document.getElementById('f-dept').value, c=document.getElementById('f-contrib').value;
+    return (!d || (e.dept||'Unassigned')===d) && (!c || e.by===c);
+  }
+
+  function renderDashBody(){
+    const body=document.getElementById('dash-body'); const rank={High:0,Medium:1,Low:2};
+    let items=cur().entries.filter(dashFilter);
+    if(dashTab==='roadmap'){ renderRoadmap(); return; }
+    if(dashTab==='priority' || dashTab==='committed'){
+      let pr=items.filter(e=>e.type==='priority');
+      if(dashTab==='committed') pr=pr.filter(e=>e.committed);
+      const sort=document.getElementById('f-sort').value;
+      if(sort==='impact') pr.sort((a,b)=>(rank[a.impact]??1)-(rank[b.impact]??1));
+      else if(sort==='dept') pr.sort((a,b)=>(a.dept||'~').localeCompare(b.dept||'~'));
+      else if(sort==='contrib') pr.sort((a,b)=>(a.by||'').localeCompare(b.by||''));
+      else if(sort==='new') pr.sort((a,b)=>(b.t||0)-(a.t||0));
+      document.getElementById('dash-count').textContent = pr.length+' priorit'+(pr.length===1?'y':'ies');
+      if(!pr.length){
+        const msg = dashTab==='committed'
+          ? 'No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong> to add it here.'
+          : 'No priorities match. They appear here as teams submit them.';
+        body.innerHTML='<div class="card"><p class="empty">'+msg+'</p></div>'; return;
+      }
+      const ctrl = '<div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost sm" onclick="expandAllCards(true)">▾ Expand all</button><button class="btn ghost sm" onclick="expandAllCards(false)">▸ Collapse all</button></div>';
+      const intro = ctrl + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
+      if(sort==='dept'){
+        const groups={}; pr.forEach(e=>{const d=e.dept||'Unassigned';(groups[d]=groups[d]||[]).push(e);});
+        body.innerHTML=intro+Object.keys(groups).sort().map(d=>`<div class="dept-group"><h3>${esc(d)} <span class="dcount">· ${groups[d].length}</span></h3>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
+      } else { body.innerHTML=intro+pr.map(dashPrioCard).join(''); }
+    } else if(dashTab==='swot'){
+      renderSimpleTab(body, items, SWOT_TYPES);
+    } else {
+      renderSimpleTab(body, items, SSK_TYPES);
+    }
+  }
+
+  function renderSimpleTab(body, items, types){
+    let total=0; const html=types.map(([type,label,cls])=>{
+      const rows=items.filter(e=>e.type===type); total+=rows.length;
+      const list = rows.length ? rows.map(dashItemRow).join('') : '<p class="empty">Nothing here.</p>';
+      return `<div class="card" style="margin-bottom:16px;"><p class="quad-title"><span class="tag ${cls}">${label}</span> <span class="count">(${rows.length})</span></p>${list}</div>`;
+    }).join('');
+    document.getElementById('dash-count').textContent = total+' item'+(total===1?'':'s');
+    body.innerHTML=html;
+  }
+
+  function dashItemRow(e){
+    return `<div style="display:flex;gap:8px;align-items:flex-start;padding:9px 10px;border:1px solid var(--line);border-radius:9px;margin-bottom:7px;">
+      <div style="flex:1;font-size:14px;">${esc(e.text)}<div class="meta-line">${e.dept?`<span class="tag t-keep">${esc(e.dept)}</span>`:''}<span>— ${esc(e.by)}</span></div></div>
+      <div class="row-actions"><button class="btn ghost sm" onclick="edit('${e.id}','text')">Edit</button><button class="btn danger sm" onclick="remove('${e.id}')">Remove</button></div>
+    </div>`;
+  }
+
+  function dashPrioCard(e){
+    const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
+    const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+    const dept=e.dept?esc(e.dept):'Unassigned';
+    const pct=prioPct(e);
+    const badges = (e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
+    const sched = scheduleSummary(e);
+    const exp = !!cardExpanded[e.id];
+    const detail = exp ? `
+      ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
+      <p class="done-label">Definition of done</p>${done}
+      <div class="notes-wrap">
+        <div class="nlabel">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></div>
+        <textarea class="notes-area" oninput="saveNote('${e.id}', this.value)" placeholder="Notes from the review — clarifications, decisions, what 'done' really means, who owns it…">${esc(e.notes||'')}</textarea>
+      </div>
+      <div class="commit-row">
+        <button class="btn sm" onclick="openPrio('${e.id}')">Open priority · commit, size, schedule &amp; edit →</button>
+      </div>` : '';
+    return `<div class="card prio-card rev-card ${e.committed?'committed-card':''}" style="${exp?'':'padding:14px 18px;'}">
+      <div class="prio-meta">
+        <span style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          <button class="rm-toggle" onclick="toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button>
+          <h4 class="prio-link" onclick="openPrio('${e.id}')" title="Open this priority's page" style="margin:0;">${esc(e.title)} <span style="font-size:13px;">↗</span></h4>
+        </span>
+        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${badges}</span>
+      </div>
+      <div class="meta-line"><span class="tag t-keep">${dept}</span>${e.pm?`<span class="rm-pm">👤 PM: ${esc(e.pm)}</span>`:''}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}<span class="pct-chip">${pct}% done</span></div>
+      <div class="pctbar" style="margin:2px 0 ${exp?'8px':'0'};"><div class="pctbar-fill" style="width:${pct}%"></div></div>
+      ${detail}
+    </div>`;
+  }
+
+  function scheduleSummary(e){
+    const plan=e.plan||[]; const dated=plan.filter(p=>p&&p.start&&p.end);
+    if(!dated.length) return '';
+    let min=null,max=null;
+    dated.forEach(p=>{ const s=parseD(p.start),en=parseD(p.end); if(s&&(!min||s<min))min=s; if(en&&(!max||en>max))max=en; });
+    if(!min||!max) return '';
+    return '📅 '+fmtShort(toISO(min))+' → '+fmtShort(toISO(max));
+  }
+
+  function setTab(t){ dashTab=t; renderDash(); }
+
+  /* ---------- reusable modals (confirm / info / edit) ---------- */
+  let _confirmCb=null;
+  function confirmModal(msg, cb, okLabel, hideCancel){
+    _confirmCb=cb||null;
+    document.getElementById('confirmTitle').textContent = hideCancel?'Heads up':'Please confirm';
+    document.getElementById('confirmMsg').textContent=msg;
+    document.getElementById('confirmOk').textContent=okLabel||'Confirm';
+    document.getElementById('confirmCancel').style.display=hideCancel?'none':'';
+    document.getElementById('confirmModal').classList.add('show');
+  }
+  function infoModal(msg){ confirmModal(msg, null, 'OK', true); }
+  function closeConfirm(){ document.getElementById('confirmModal').classList.remove('show'); _confirmCb=null; }
+  function confirmProceed(){ const cb=_confirmCb; closeConfirm(); if(cb) cb(); }
+
+  let _editCb=null;
+  function editModal(label, value, cb){
+    _editCb=cb||null;
+    document.getElementById('editModalTitle').textContent=label;
+    document.getElementById('editModalInput').value=value||'';
+    document.getElementById('editModal').classList.add('show');
+    setTimeout(()=>document.getElementById('editModalInput').focus(),60);
+  }
+  function closeEditModal(){ document.getElementById('editModal').classList.remove('show'); _editCb=null; }
+  function saveEditModal(){ const v=document.getElementById('editModalInput').value; const cb=_editCb; closeEditModal(); if(cb) cb(v); }
+  function confirmRemovePriority(id){ confirmModal('Remove this priority entirely? This cannot be undone.', ()=>{ remove(id); gotoDash(); }, 'Remove priority'); }
+
+  /* ---------- roadmap: combined Gantt of committed priorities ---------- */
+  function prioRange(e){
+    const plan=e.plan||[]; const dated=plan.filter(p=>p&&p.start&&p.end&&parseD(p.start)&&parseD(p.end)&&parseD(p.end)>=parseD(p.start));
+    if(!dated.length) return null;
+    let min=parseD(dated[0].start), max=parseD(dated[0].end);
+    dated.forEach(p=>{ const s=parseD(p.start),en=parseD(p.end); if(s<min)min=s; if(en>max)max=en; });
+    return {min,max};
+  }
+  let cardExpanded={};
+  function toggleCard(id){ cardExpanded[id]=!cardExpanded[id]; renderDashBody(); }
+  function expandAllCards(b){ if(b){ cur().entries.forEach(e=>{ if(e.type==='priority') cardExpanded[e.id]=true; }); } else { cardExpanded={}; } renderDashBody(); }
+  let roadmapExpanded={};
+  let roadmapSort='start';
+  function toggleRoadmapRow(id){ roadmapExpanded[id]=!roadmapExpanded[id]; renderRoadmap(); }
+  function setRoadmapSort(v){ roadmapSort=v; renderRoadmap(); }
+  function renderRoadmap(){
+    const body=document.getElementById('dash-body');
+    const pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
+    document.getElementById('dash-count').textContent = pr.length+' committed';
+    if(!pr.length){ body.innerHTML='<div class="card"><p class="empty">No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong>, then add start &amp; end dates to see it on the roadmap.</p></div>'; return; }
+    const withRange=[], noDates=[];
+    pr.forEach(e=>{ const r=prioRange(e); if(r) withRange.push({e, min:r.min, max:r.max}); else noDates.push(e); });
+    const sortSel=`<div class="rm-sortbar no-print"><span class="fl" style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Sort by</span>
+      <select onchange="setRoadmapSort(this.value)">
+        <option value="start" ${roadmapSort==='start'?'selected':''}>Start date</option>
+        <option value="pm" ${roadmapSort==='pm'?'selected':''}>Project manager</option>
+        <option value="impact" ${roadmapSort==='impact'?'selected':''}>Impact</option>
+        <option value="size" ${roadmapSort==='size'?'selected':''}>Size</option>
+      </select></div>`;
+    let html='';
+    if(withRange.length){
+      let min=withRange[0].min, max=withRange[0].max;
+      withRange.forEach(o=>{ if(o.min<min)min=o.min; if(o.max>max)max=o.max; });
+      const total=Math.max(1, daysBetween(min,max)+1);
+      let ticks=''; let d=new Date(min.getFullYear(),min.getMonth(),1);
+      while(d<=max){ const left=Math.max(0,daysBetween(min,d)/total*100); ticks+=`<span class="rm-tick" style="left:${left}%">${d.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</span>`; d.setMonth(d.getMonth()+1); }
+      const rank={High:0,Medium:1,Low:2}, sz={S:0,M:1,L:2};
+      if(roadmapSort==='pm') withRange.sort((a,b)=>(a.e.pm||'~').localeCompare(b.e.pm||'~')||(a.min-b.min));
+      else if(roadmapSort==='impact') withRange.sort((a,b)=>(rank[a.e.impact]??1)-(rank[b.e.impact]??1)||(a.min-b.min));
+      else if(roadmapSort==='size') withRange.sort((a,b)=>((sz[a.e.size]??9)-(sz[b.e.size]??9))||(a.min-b.min));
+      else withRange.sort((a,b)=>a.min-b.min);
+      function rowHTML(o){
+        const e=o.e, pct=prioPct(e), exp=!!roadmapExpanded[e.id];
+        const left=daysBetween(min,o.min)/total*100;
+        const width=Math.max(3,(daysBetween(o.min,o.max)+1)/total*100);
+        const meta=[e.size?'Size '+esc(e.size):'', '👤 PM: '+(e.pm?esc(e.pm):'Unassigned')].join(' · ');
+        let row=`<div class="rm-row">
+          <div class="g-label">
+            <button class="rm-toggle" onclick="toggleRoadmapRow('${e.id}')" title="Show / hide pieces">${exp?'▾':'▸'}</button>
+            <span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span>
+            <div class="rm-pm">${meta}</div>
+          </div>
+          <div class="g-track"><div class="g-bar" style="left:${left}%;width:${width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
+        </div>`;
+        if(exp){
+          (e.done||[]).forEach((dn,i)=>{
+            const p=(e.plan&&e.plan[i])||{}; const ip=Number(p.pct)||0;
+            if(p.start&&p.end&&parseD(p.start)&&parseD(p.end)&&parseD(p.end)>=parseD(p.start)){
+              const s=parseD(p.start),en=parseD(p.end);
+              const l=daysBetween(min,s)/total*100, w=Math.max(2,(daysBetween(s,en)+1)/total*100);
+              row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><div class="g-bar" style="left:${l}%;width:${w}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+            } else {
+              row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><span class="g-none">not scheduled</span></div></div>`;
+            }
+          });
+        }
+        return row;
+      }
+      let rows='';
+      if(roadmapSort==='pm'){
+        let lastPm=null;
+        withRange.forEach(o=>{ const pm=o.e.pm||'Unassigned'; if(pm!==lastPm){ rows+=`<div class="rm-group">👤 ${esc(pm)}</div>`; lastPm=pm; } rows+=rowHTML(o); });
+      } else { rows=withRange.map(rowHTML).join(''); }
+      html+=`<div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — committed priorities for ${esc(cur().name)}</p>${sortSel}</div>
+        <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${ticks}</div></div>${rows}</div>
+        <p class="sched-summary">▸ click the arrow to expand a priority into its pieces. Lighter fill shows % complete. Click a bar to open the priority.</p></div>`;
+    } else {
+      html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)}</p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
+    }
+    if(noDates.length){
+      html+=`<div class="card" style="margin-top:16px;"><p class="done-label">Committed, not yet scheduled</p>`+noDates.map(e=>`<div style="padding:5px 0;font-size:14px;"><span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${prioPct(e)}%</span> <span class="rm-pm">👤 ${e.pm?esc(e.pm):'Unassigned'}</span> — add start &amp; end dates to place it on the roadmap.</div>`).join('')+`</div>`;
+    }
+    body.innerHTML=html;
+  }
+
+  /* ---------- commit / size / generic field ---------- */
+  function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
+  function setSize(id,v){ setField(id,'size',v); }
+  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
+
+  /* ---------- date helpers ---------- */
+  function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
+  function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+  function toISO(d){ const z=new Date(d.getTime()-d.getTimezoneOffset()*60000); return z.toISOString().slice(0,10); }
+  function fmtShort(iso){ const d=parseD(iso); return d?d.toLocaleDateString('en-US',{month:'short',day:'numeric'}):''; }
+
+  /* ---------- priority detail + Gantt ---------- */
+  let prioOpenId=null;
+  function openPrio(id){ if(!reviewUnlocked) return; prioOpenId=id; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); }
+  function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
+  function syncPlan(e){
+    e.done=e.done||[]; const old=e.plan||[]; const np=[];
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0} : {start:'',end:'',pct:0}); });
+    e.plan=np;
+  }
+  function prioPct(e){
+    const done=e.done||[], plan=e.plan||[];
+    if(!done.length) return 0;
+    let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
+    return Math.round(sum/done.length);
+  }
+  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } save(); refreshPrio(); }
+  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); save(); refreshPrio(); }
+  function editDoneText(id,i,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done[i]=val; save(); refreshPrio(); }
+  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); save(); refreshPrio(); }
+  function renderPrioPage(){
+    const e=cur().entries.find(x=>x.id===prioOpenId);
+    const body=document.getElementById('prio-body');
+    document.getElementById('prioCrumb').textContent = cur().name+' · '+(cur().theme||'');
+    if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to dashboard</button></div>'; return; }
+    syncPlan(e);
+    const deptOpts=['',...DEPARTMENTS].map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
+    const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
+    const pct=prioPct(e);
+    const doneRows = e.done.length ? e.done.map((d,i)=>`
+      <tr>
+        <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Definition of done item…" style="width:100%;"></td>
+        <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
+        <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
+        <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
+        <td><button class="btn danger sm" title="Remove item" onclick="removeDone('${e.id}',${i})">✕</button></td>
+      </tr>`).join('') : '<tr><td colspan="5" class="empty">No items yet. Click “+ Add item” to start building the list.</td></tr>';
+    body.innerHTML = `
+      <div class="card" style="margin-bottom:16px;">
+        <div class="pm-head">
+          <div style="flex:1;"><label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;"></div>
+          <button class="btn ${e.committed?'':'ghost'}" onclick="toggleCommit('${e.id}')">${e.committed?'✓ Committed this quarter':'Commit to this quarter'}</button>
+        </div>
+        <div class="pm-grid">
+          <div><label>Department</label><select onchange="setField('${e.id}','dept',this.value)">${deptOpts}</select></div>
+          <div><label>Impact</label><select onchange="setField('${e.id}','impact',this.value)">
+            <option ${e.impact==='High'?'selected':''}>High</option>
+            <option ${e.impact==='Medium'?'selected':''}>Medium</option>
+            <option ${e.impact==='Low'?'selected':''}>Low</option></select></div>
+          <div><label>Size (scoping team)</label><select onchange="setField('${e.id}','size',this.value)">
+            <option value="" ${!e.size?'selected':''}>—</option>
+            <option ${e.size==='S'?'selected':''}>S — small</option>
+            <option ${e.size==='M'?'selected':''}>M — medium</option>
+            <option ${e.size==='L'?'selected':''}>L — large</option></select></div>
+          <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${pmOpts}</select></div>
+        </div>
+        <label style="margin-top:14px;">Why it matters</label>
+        <textarea onchange="setField('${e.id}','why',this.value)" style="width:100%;min-height:60px;">${esc(e.why||'')}</textarea>
+        <div style="margin-top:12px;">
+          <div class="pctbar"><div class="pctbar-fill" style="width:${pct}%"></div></div>
+          <div class="sched-summary"><strong>${pct}% complete</strong> overall · PM: ${e.pm?esc(e.pm):'unassigned'} · Added by ${esc(e.by)}</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <p class="done-label">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></p>
+        <textarea class="notes-area" oninput="saveNote('${e.id}',this.value)" style="width:100%;min-height:70px;" placeholder="Notes from the review — decisions, clarifications, who owns it…">${esc(e.notes||'')}</textarea>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <p class="done-label" style="margin:0;">Definition of done — task list</p>
+          <button class="btn sm" onclick="addDone('${e.id}')">+ Add item</button>
+        </div>
+        <table class="sched-tbl"><thead><tr><th>Item</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
+      </div>
+
+      <div class="card">
+        <p class="done-label">Timeline (Gantt)</p>
+        ${ganttHTML(e)}
+        <p class="sched-summary">As things slip, change the dates above — the timeline updates automatically.</p>
+        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn ghost" onclick="gotoDash()">← Back to dashboard</button>
+          <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">Remove priority</button>
+        </div>
+      </div>
+    `;
+  }
+  function ganttHTML(e){
+    const done=e.done||[], plan=e.plan||[];
+    const tasks=done.map((d,i)=>({label:d, start:plan[i]&&plan[i].start, end:plan[i]&&plan[i].end, pct:(plan[i]&&Number(plan[i].pct))||0}));
+    const dated=tasks.filter(t=>t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start));
+    if(!dated.length) return '<div class="gantt"><p class="empty" style="margin:0;">Set start and end dates above to see the timeline.</p></div>';
+    let min=parseD(dated[0].start), max=parseD(dated[0].end);
+    dated.forEach(t=>{ const s=parseD(t.start),en=parseD(t.end); if(s<min)min=s; if(en>max)max=en; });
+    const total=Math.max(1, daysBetween(min,max)+1);
+    const rows=tasks.map(t=>{
+      if(!(t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start)))
+        return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track"><span class="g-none">not scheduled</span></div></div>`;
+      const s=parseD(t.start),en=parseD(t.end);
+      const left=daysBetween(min,s)/total*100;
+      const width=Math.max(3,(daysBetween(s,en)+1)/total*100);
+      return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track"><div class="g-bar" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
+    }).join('');
+    return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
+  }
+
+  /* ---------- new / edit quarter modal ---------- */
+  let meetingMode='new';
+  function openMeetingModal(mode){
+    if(!isManager()) return;
+    meetingMode=mode;
+    const y=new Date().getFullYear();
+    document.getElementById('mm-year').innerHTML=[y-1,y,y+1,y+2,y+3].map(yr=>`<option>${yr}</option>`).join('');
+    document.getElementById('mmTitle').textContent= mode==='new'?'New quarter':'Edit quarter';
+    if(mode==='edit'){
+      const m=cur(); const mm=(m.name||'').match(/Q([1-4])\s*(\d{4})/i);
+      document.getElementById('mm-q').value= mm?('Q'+mm[1]):'Q1';
+      if(mm) document.getElementById('mm-year').value=mm[2];
+      document.getElementById('mm-theme').value=m.theme||'';
+      document.getElementById('mm-goal').value=m.goal||'';
+    } else {
+      document.getElementById('mm-q').value='Q'+(Math.floor(new Date().getMonth()/3)+1);
+      document.getElementById('mm-year').value=y;
+      document.getElementById('mm-theme').value=DEFAULT_THEME;
+      document.getElementById('mm-goal').value='';
+    }
+    document.getElementById('meetingModal').classList.add('show');
+  }
+  function closeMeetingModal(){ document.getElementById('meetingModal').classList.remove('show'); }
+  function saveMeetingModal(){
+    const name=document.getElementById('mm-q').value+' '+document.getElementById('mm-year').value;
+    const theme=document.getElementById('mm-theme').value.trim()||DEFAULT_THEME;
+    const goal=document.getElementById('mm-goal').value.trim();
+    if(meetingMode==='new'){ const m={id:uid(),name,theme,goal,entries:[]}; store.meetings.push(m); store.activeId=m.id; }
+    else { const m=cur(); m.name=name; m.theme=theme; m.goal=goal; }
+    save(); applyTheme(); renderMeetingSel(); render(); closeMeetingModal();
+  }
+
+  /* ---------- export / import / reset ---------- */
+  function exportData(){
+    const m=cur(); const payload={ meeting:{name:m.name,theme:m.theme,goal:m.goal}, entries:m.entries };
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}); const a=document.createElement('a');
+    const q=(m.name||'quarter').replace(/[^a-z0-9]/gi,'-').toLowerCase();
+    a.href=URL.createObjectURL(blob); a.download=`herd-${q}.json`; a.click();
+  }
+  function importData(ev){
+    const file=ev.target.files[0]; if(!file) return; const r=new FileReader();
+    r.onload=()=>{ try{
+      const incoming=JSON.parse(r.result); const arr=incoming.entries||[]; const target=cur();
+      const existing=new Set(target.entries.map(e=>e.id)); let added=0;
+      arr.forEach(e=>{ if(!existing.has(e.id)){ target.entries.push(e); added++; } });
+      save(); render(); infoModal(`Combined ${added} new item(s) from ${file.name} into "${target.name}".`);
+    }catch(e){ infoModal('Could not read that file — make sure it was exported from this worksheet.'); } ev.target.value=''; };
+    r.readAsText(file);
+  }
+  function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ cur().entries=[]; save(); render(); }, 'Clear quarter'); }
+
+  /* ---------- init ---------- */
+  applyTheme(); renderForm();
+  if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+</script>
+</body>
+</html>
