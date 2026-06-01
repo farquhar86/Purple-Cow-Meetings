@@ -165,6 +165,7 @@
 
   /* commit + size */
   .b-commit{background:#e4f4ec;color:var(--green);}
+  .b-review{background:#e7eefb;color:#3a5bb8;}
   .b-size{background:var(--lilac-2);color:var(--purple-dark);}
   .commit-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
   .sizesel{font-size:12px;font-weight:700;color:var(--muted);display:inline-flex;gap:6px;align-items:center;text-transform:uppercase;letter-spacing:.4px;}
@@ -487,6 +488,7 @@
         <option value="contrib">Contributor A–Z</option>
         <option value="new">Newest first</option>
       </select>
+      <label class="fl" id="reviewedFilterLbl" style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;"><input type="checkbox" id="f-reviewed" onchange="renderDashBody()"> ✓ Reviewed only</label>
       <span class="count" id="dash-count"></span>
     </div>
 
@@ -667,7 +669,7 @@
   }
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
   function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
-  function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); document.getElementById('presentBtn').textContent= on?'✕ Exit presentation':'▶ Presentation mode'; }
+  function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); presenting=on; document.getElementById('presentBtn').textContent= on?'✕ Exit presentation (showing reviewed only)':'▶ Presentation mode'; if(screen==='dash') renderDashBody(); }
 
   /* ---------- render: master ---------- */
   function render(){ applyTheme(); renderForm(); if(screen==='dash' && reviewUnlocked) renderDash(); }
@@ -710,9 +712,11 @@
     if(depts.includes(dCur)) dSel.value=dCur; if(people.includes(cCur)) cSel.value=cCur;
     // tab buttons
     const showSort=(dashTab==='priority'||dashTab==='committed');
+    const showReviewed=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap');
     ['priority','committed','roadmap','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
+    document.getElementById('reviewedFilterLbl').style.display = showReviewed?'flex':'none';
     renderDashBody();
   }
 
@@ -728,6 +732,7 @@
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
+      if(reviewedOnly()) pr=pr.filter(e=>e.reviewed);
       const sort=document.getElementById('f-sort').value;
       if(sort==='impact') pr.sort((a,b)=>(rank[a.impact]??1)-(rank[b.impact]??1));
       else if(sort==='dept') pr.sort((a,b)=>(a.dept||'~').localeCompare(b.dept||'~'));
@@ -775,7 +780,7 @@
     const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
-    const badges = (e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
+    const badges = (e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
     const sched = scheduleSummary(e);
     const exp = !!cardExpanded[e.id];
     const detail = exp ? `
@@ -856,7 +861,8 @@
   function setRoadmapSort(v){ roadmapSort=v; renderRoadmap(); }
   function renderRoadmap(){
     const body=document.getElementById('dash-body');
-    const pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
+    let pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
+    if(reviewedOnly()) pr=pr.filter(e=>e.reviewed);
     document.getElementById('dash-count').textContent = pr.length+' committed';
     if(!pr.length){ body.innerHTML='<div class="card"><p class="empty">No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong>, then add start &amp; end dates to see it on the roadmap.</p></div>'; return; }
     const withRange=[], noDates=[];
@@ -926,7 +932,10 @@
   }
 
   /* ---------- commit / size / generic field ---------- */
+  let presenting=false;
   function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
+  function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
+  function reviewedOnly(){ const c=document.getElementById('f-reviewed'); return presenting || (c && c.checked); }
   function setSize(id,v){ setField(id,'size',v); }
   function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
 
@@ -976,7 +985,10 @@
       <div class="card" style="margin-bottom:16px;">
         <div class="pm-head">
           <div style="flex:1;"><label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;"></div>
-          <button class="btn ${e.committed?'':'ghost'}" onclick="toggleCommit('${e.id}')">${e.committed?'✓ Committed this quarter':'Commit to this quarter'}</button>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <button class="btn ${e.reviewed?'':'ghost'}" onclick="toggleReviewed('${e.id}')">${e.reviewed?'✓ Manager reviewed':'Mark manager-reviewed'}</button>
+            <button class="btn ${e.committed?'':'ghost'}" onclick="toggleCommit('${e.id}')">${e.committed?'✓ Committed this quarter':'Commit to this quarter'}</button>
+          </div>
         </div>
         <div class="pm-grid">
           <div><label>Department</label><select onchange="setField('${e.id}','dept',this.value)">${deptOpts}</select></div>
