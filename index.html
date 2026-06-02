@@ -439,6 +439,7 @@
     <div class="hero-inner">
       <h1>📊 Backend dashboard — <span id="dashQuarter">Quarter</span></h1>
       <div class="dash-acts no-print">
+        <button class="btn" onclick="refreshData()" title="Reload the latest shared data">↻ Refresh</button>
         <button class="btn" onclick="gotoForm()">📝 View intake form</button>
         <button class="btn" onclick="togglePresent()" id="presentBtn">▶ Presentation mode</button>
         <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
@@ -516,6 +517,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const KEY = 'pc_herd100k_meetings_v2';
   const OLD_KEY = 'pc_herd100k_worksheet_v1';
@@ -527,6 +529,14 @@
   const REVIEW_PW = 'purplecow';
   const DEPARTMENTS = ['Sales','HR','Operations','Customer Service','Finance'];
   const PROJECT_MANAGERS = ['Joe','Rei','Holly','Krystina','Bradley'];
+
+  /* ===== Supabase (shared database) =====
+     Paste your project's values below to turn on shared data across the whole team.
+     Until both are filled in, the app keeps working with this browser's local storage. */
+  const SUPABASE_URL = 'https://pabuedfwiinvlhvmrslm.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_OVguZFResdKPD8Un4E9j3w_RH3WFlZS';
+  const USE_DB = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+  const sb = USE_DB ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function defaultQuarterName(){ const d=new Date(); return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(); }
@@ -546,9 +556,46 @@
     const m={ id:uid(), name:defaultQuarterName(), theme:DEFAULT_THEME, goal:DEFAULT_GOAL, entries };
     return { activeId:m.id, meetings:[m] };
   }
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} scheduleSync(); }
   function cur(){ let m=store.meetings.find(x=>x.id===store.activeId); if(!m){ m=store.meetings[0]; store.activeId=m.id; } return m; }
   function isManager(){ return reviewUnlocked; }
+
+  /* ---------- Supabase sync (no-op when USE_DB is false) ---------- */
+  function dbDeleteEntry(id){ if(!USE_DB) return; sb.from('entries').delete().eq('id',id).then(r=>{ if(r.error) console.warn('entry delete',r.error); }); }
+  function dbDeleteMeeting(id){ if(!USE_DB) return; sb.from('meetings').delete().eq('id',id).then(r=>{ if(r.error) console.warn('meeting delete',r.error); }); }
+  function dbDeleteEntriesForMeeting(mid){ if(!USE_DB) return; sb.from('entries').delete().eq('meeting_id',mid).then(r=>{ if(r.error) console.warn('entries delete',r.error); }); }
+  let _syncT=null;
+  function scheduleSync(){ if(!USE_DB) return; clearTimeout(_syncT); _syncT=setTimeout(syncActive,500); }
+  async function syncActive(){
+    if(!USE_DB) return; const m=cur();
+    try{
+      await sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}});
+      if(m.entries.length) await sb.from('entries').upsert(m.entries.map(e=>({id:e.id,meeting_id:m.id,data:e})));
+    }catch(err){ console.warn('sync',err); }
+  }
+  async function dbLoad(){
+    const [mr,er]=await Promise.all([ sb.from('meetings').select('id,data'), sb.from('entries').select('id,meeting_id,data') ]);
+    if(mr.error) throw mr.error; if(er.error) throw er.error;
+    const ms=mr.data||[];
+    if(ms.length===0){
+      // first run against an empty database — seed it from this browser's data
+      for(const m of store.meetings){
+        await sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}});
+        if(m.entries.length) await sb.from('entries').upsert(m.entries.map(e=>({id:e.id,meeting_id:m.id,data:e})));
+      }
+      return;
+    }
+    const meetings=ms.map(r=>({id:r.id,name:r.data&&r.data.name,theme:r.data&&r.data.theme,goal:r.data&&r.data.goal,entries:[]}));
+    const byId={}; meetings.forEach(m=>byId[m.id]=m);
+    (er.data||[]).forEach(r=>{ const m=byId[r.meeting_id]; if(m&&r.data) m.entries.push(r.data); });
+    store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
+  }
+  async function refreshData(){
+    if(!USE_DB) return;
+    try{ await dbLoad(); applyTheme(); renderMeetingSel();
+      if(screen==='dash') renderDash(); else if(screen==='form') renderForm(); else if(screen==='prio') renderPrioPage();
+    }catch(e){ console.warn('refresh',e); }
+  }
 
   /* ---------- identity ---------- */
   const deptEl=document.getElementById('dept'), memEl=document.getElementById('member');
@@ -602,7 +649,7 @@
     }
   }
 
-  function remove(id){ cur().entries=cur().entries.filter(e=>e.id!==id); save(); render(); }
+  function remove(id){ cur().entries=cur().entries.filter(e=>e.id!==id); save(); render(); dbDeleteEntry(id); }
   function edit(id, field){
     const e=cur().entries.find(x=>x.id===id); if(!e) return;
     const curVal = field==='done' ? (e.done||[]).join('\n') : (e[field]||'');
@@ -640,7 +687,8 @@
     if(store.meetings.length<=1){ infoModal('This is your only quarter — create another before deleting this one.'); return; }
     const m=cur();
     confirmModal(`Delete "${m.name}" and all of its data? Export a copy first if you want to keep it.`, ()=>{
-      store.meetings=store.meetings.filter(x=>x.id!==m.id); store.activeId=store.meetings[0].id; save(); applyTheme(); renderMeetingSel(); render();
+      const delId=m.id;
+      store.meetings=store.meetings.filter(x=>x.id!==delId); store.activeId=store.meetings[0].id; save(); applyTheme(); renderMeetingSel(); render(); dbDeleteMeeting(delId);
     }, 'Delete quarter');
   }
 
@@ -1103,11 +1151,14 @@
     }catch(e){ infoModal('Could not read that file — make sure it was exported from this worksheet.'); } ev.target.value=''; };
     r.readAsText(file);
   }
-  function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ cur().entries=[]; save(); render(); }, 'Clear quarter'); }
+  function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ const mid=cur().id; cur().entries=[]; save(); render(); dbDeleteEntriesForMeeting(mid); }, 'Clear quarter'); }
 
   /* ---------- init ---------- */
-  applyTheme(); renderForm();
-  if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+  (async function init(){
+    if(USE_DB){ try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); } }
+    applyTheme(); renderForm();
+    if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+  })();
 </script>
 </body>
 </html>
