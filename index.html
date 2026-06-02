@@ -250,7 +250,7 @@
   <div class="modal" style="text-align:center;">
     <div class="lockicon">⚠️</div>
     <h3 id="confirmTitle">Please confirm</h3>
-    <p class="block-desc" id="confirmMsg" style="margin:2px auto 0;"></p>
+    <p class="block-desc" id="confirmMsg" style="margin:2px auto 0;white-space:pre-wrap;word-break:break-word;"></p>
     <div class="modal-actions">
       <button class="btn danger" id="confirmOk" onclick="confirmProceed()">Confirm</button>
       <button class="btn ghost" id="confirmCancel" onclick="closeConfirm()">Cancel</button>
@@ -456,6 +456,7 @@
         <select id="meetingSel" onchange="switchMeeting(this.value)"></select>
         <button class="btn sm" onclick="openMeetingModal('new')">+ New</button>
         <button class="btn ghost sm" onclick="openMeetingModal('edit')">Edit theme &amp; goal</button>
+        <button class="btn sm" onclick="copyFormLink()">🔗 Copy form link</button>
         <button class="btn danger sm" onclick="deleteMeeting()">Delete</button>
       </div>
       <div class="mgroup" style="margin-left:auto;">
@@ -1153,11 +1154,34 @@
   }
   function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ const mid=cur().id; cur().entries=[]; save(); render(); dbDeleteEntriesForMeeting(mid); }, 'Clear quarter'); }
 
-  /* ---------- init ---------- */
+  /* ---------- routing + init ---------- */
+  function parseHash(){
+    const h=(location.hash||'').replace(/^#/,'');
+    if(h==='form' || h.indexOf('form=')===0 || h.indexOf('form/')===0){
+      return { form:true, id: h.split(/[=/]/)[1] || '' };
+    }
+    return {};
+  }
+  function applyRoute(){
+    const r=parseHash();
+    if(r.form){
+      if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id;
+      applyTheme(); renderForm(); showScreen('form');
+    } else {
+      applyTheme(); renderForm();
+      if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+    }
+  }
+  function copyFormLink(){
+    const url=location.origin+location.pathname+'#form='+cur().id;
+    const done=()=>infoModal('Shareable form link for “'+cur().name+'”:\n\n'+url+'\n\nSend this to the team — it opens straight to this quarter\'s intake form.');
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(done); } else { done(); }
+  }
+  window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
+
   (async function init(){
     if(USE_DB){ try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); } }
-    applyTheme(); renderForm();
-    if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+    applyRoute();
   })();
 </script>
 </body>
