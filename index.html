@@ -491,7 +491,14 @@
         <option value="contrib">Contributor A–Z</option>
         <option value="new">Newest first</option>
       </select>
-      <label class="fl" id="reviewedFilterLbl" style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;"><input type="checkbox" id="f-reviewed" onchange="renderDashBody()"> ✓ Reviewed only</label>
+      <span id="reviewedFilterLbl" style="display:flex;align-items:center;gap:6px;">
+        <span class="fl">Review</span>
+        <select id="f-review" onchange="renderDashBody()">
+          <option value="all">All</option>
+          <option value="reviewed">✓ Reviewed only</option>
+          <option value="unreviewed">Not yet reviewed</option>
+        </select>
+      </span>
       <span class="count" id="dash-count"></span>
     </div>
 
@@ -796,7 +803,7 @@
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
-      if(reviewedOnly()) pr=pr.filter(e=>e.reviewed);
+      pr=pr.filter(passReview);
       const sort=document.getElementById('f-sort').value;
       if(sort==='impact') pr.sort((a,b)=>(rank[a.impact]??1)-(rank[b.impact]??1));
       else if(sort==='dept') pr.sort((a,b)=>(a.dept||'~').localeCompare(b.dept||'~'));
@@ -926,7 +933,7 @@
   function renderRoadmap(){
     const body=document.getElementById('dash-body');
     let pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
-    if(reviewedOnly()) pr=pr.filter(e=>e.reviewed);
+    pr=pr.filter(passReview);
     document.getElementById('dash-count').textContent = pr.length+' committed';
     if(!pr.length){ body.innerHTML='<div class="card"><p class="empty">No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong>, then add start &amp; end dates to see it on the roadmap.</p></div>'; return; }
     const withRange=[], noDates=[];
@@ -999,7 +1006,8 @@
   let presenting=false;
   function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
   function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
-  function reviewedOnly(){ const c=document.getElementById('f-reviewed'); return presenting || (c && c.checked); }
+  function reviewFilterMode(){ if(presenting) return 'reviewed'; const s=document.getElementById('f-review'); return (s && s.value) || 'all'; }
+  function passReview(e){ const m=reviewFilterMode(); if(m==='reviewed') return !!e.reviewed; if(m==='unreviewed') return !e.reviewed; return true; }
   function setSize(id,v){ setField(id,'size',v); }
   function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
 
