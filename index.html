@@ -235,8 +235,9 @@
     <div class="login-card">
       <div class="brand" style="justify-content:center;color:var(--purple-dark);"><span class="dot" style="background:var(--purple);">🐄</span> Purple Cow Internet</div>
       <h1 class="login-title">Quarterly Planning</h1>
-      <p class="login-sub">Log in to the backend dashboard to review priorities, set the roadmap, and track progress.</p>
-      <input type="password" id="loginPw" placeholder="Manager password" onkeydown="if(event.key==='Enter')submitMgr()" />
+      <p class="login-sub">Sign in with your account to review priorities, set the roadmap, and track progress.</p>
+      <input type="email" id="loginEmail" placeholder="Email" autocomplete="username" onkeydown="if(event.key==='Enter')submitMgr()" />
+      <input type="password" id="loginPw" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitMgr()" />
       <div class="lock-err" id="loginErr"></div>
       <button class="btn" style="width:100%;font-size:16px;padding:12px;" onclick="submitMgr()">Log in</button>
       <div class="login-divider"><span>or</span></div>
@@ -696,14 +697,28 @@
   /* ---------- access / screens ---------- */
   function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
   function openMgr(){ showScreen('login'); const p=document.getElementById('loginPw'); if(p){ p.value=''; setTimeout(()=>p.focus(),60); } const er=document.getElementById('loginErr'); if(er) er.textContent=''; window.scrollTo({top:0}); }
-  function submitMgr(){
-    if(document.getElementById('loginPw').value===REVIEW_PW){
-      reviewUnlocked=true; try{ sessionStorage.setItem(KEY+'_unlocked','1'); }catch(e){}
-      document.getElementById('loginPw').value='';
-      gotoDash();
-    } else { document.getElementById('loginErr').textContent='Incorrect password. Try again.'; }
+  async function submitMgr(){
+    const err=document.getElementById('loginErr');
+    if(USE_DB){
+      const email=(document.getElementById('loginEmail').value||'').trim();
+      const pw=document.getElementById('loginPw').value;
+      if(!email||!pw){ err.textContent='Enter your email and password.'; return; }
+      err.textContent='Signing in…';
+      try{
+        const {error}=await sb.auth.signInWithPassword({email,password:pw});
+        if(error){ err.textContent=error.message||'Sign-in failed.'; return; }
+        reviewUnlocked=true; err.textContent='';
+        document.getElementById('loginPw').value='';
+        gotoDash();
+      }catch(e){ err.textContent='Sign-in failed — check your connection.'; }
+    } else {
+      if(document.getElementById('loginPw').value===REVIEW_PW){
+        reviewUnlocked=true; try{ sessionStorage.setItem(KEY+'_unlocked','1'); }catch(e){}
+        document.getElementById('loginPw').value=''; gotoDash();
+      } else { err.textContent='Incorrect password. Try again.'; }
+    }
   }
-  function logout(){ reviewUnlocked=false; try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); prioOpenId=null; showScreen('login'); window.scrollTo({top:0}); }
+  function logout(){ reviewUnlocked=false; try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
   function updateFab(){
     const fab=document.querySelector('.mgr-fab'); const b=document.getElementById('mgrBtn');
     if(fab) fab.style.display = (screen==='login') ? 'none' : 'block';
@@ -1180,7 +1195,10 @@
   window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
 
   (async function init(){
-    if(USE_DB){ try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); } }
+    if(USE_DB){
+      try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); }catch(e){ reviewUnlocked=false; }
+      try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); }
+    }
     applyRoute();
   })();
 </script>
