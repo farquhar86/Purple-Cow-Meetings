@@ -660,10 +660,13 @@
   function who(){ const m=memEl.value.trim()||'Unnamed', d=deptEl.value.trim(); return d?(m+' ('+d+')'):m; }
 
   /* ---------- intake actions ---------- */
+  let formDraft=[]; // this person's in-progress submission — private, not shared until Submit
+  function draftRemove(id){ formDraft=formDraft.filter(e=>e.id!==id); renderForm(); }
+  function draftEditText(id){ const e=formDraft.find(x=>x.id===id); if(!e) return; editModal('Edit', e.text||'', v=>{ e.text=v.trim(); renderForm(); }); }
   function addItem(type, inputId){
     const el=document.getElementById(inputId); const v=el.value.trim(); if(!v) return;
-    cur().entries.push({ id:uid(), type, text:v, by:who(), dept:deptEl.value.trim(), t:Date.now() });
-    el.value=''; save(); render(); el.focus();
+    formDraft.push({ id:uid(), type, text:v, by:who(), dept:deptEl.value.trim(), t:Date.now() });
+    el.value=''; renderForm(); el.focus();
   }
   function addDoneLine(){
     const wrap=document.getElementById('done-lines'); const div=document.createElement('div'); div.className='done-line';
@@ -675,13 +678,13 @@
     const why=document.getElementById('p-why').value.trim();
     const done=[...document.querySelectorAll('.done-input')].map(i=>i.value.trim()).filter(Boolean);
     const impact=(document.querySelector('input[name=impact]:checked')||{}).value||'Medium';
-    cur().entries.push({ id:uid(), type:'priority', title, why, done, impact, notes:'', by:who(), dept:deptEl.value.trim(), t:Date.now() });
+    formDraft.push({ id:uid(), type:'priority', title, why, done, impact, notes:'', by:who(), dept:deptEl.value.trim(), t:Date.now() });
     document.getElementById('p-title').value=''; document.getElementById('p-why').value='';
     document.getElementById('done-lines').innerHTML='<div class="done-line"><input type="text" class="done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine()">＋</button></div>';
-    save(); render(); document.getElementById('prio').scrollIntoView({behavior:'smooth'});
+    renderForm(); document.getElementById('prio').scrollIntoView({behavior:'smooth'});
   }
 
-  function countTypes(types){ return cur().entries.filter(e=>types.includes(e.type)).length; }
+  function countTypes(types){ return formDraft.filter(e=>types.includes(e.type)).length; }
   function validateForm(){
     const p=[];
     if(!deptEl.value.trim()) p.push('Select your Team / Department');
@@ -691,15 +694,22 @@
     if(countTypes(['priority'])<1) p.push('Add at least 1 priority');
     return p;
   }
-  function submitForm(){
+  async function submitForm(){
     const probs=validateForm(); const box=document.getElementById('submitMsg');
     deptEl.classList.toggle('invalid', !deptEl.value.trim());
     memEl.classList.toggle('invalid', !memEl.value.trim());
     if(probs.length){
       box.innerHTML='<div class="validation"><strong>Almost there — please complete:</strong><ul>'+probs.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div>';
-    } else {
-      box.innerHTML='<div class="success">✅ Submitted! Your manager can now review this in the dashboard. Thank you — you can keep editing and submit again any time.</div>';
+      return;
     }
+    box.innerHTML='<div class="note">Submitting…</div>';
+    const m=cur();
+    try{
+      if(USE_DB){ const {error}=await sb.from('entries').insert(formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}))); if(error) throw error; }
+      else { formDraft.forEach(en=>m.entries.push(en)); save(); }
+    }catch(err){ box.innerHTML='<div class="validation">Could not submit — please try again.'+(err&&err.message?' ('+esc(err.message)+')':'')+'</div>'; return; }
+    formDraft=[]; renderForm();
+    box.innerHTML='<div class="success">✅ Submitted! Thank you — your input has been sent to your manager. You can close this page now.</div>';
   }
 
   function remove(id){ cur().entries=cur().entries.filter(e=>e.id!==id); save(); render(); dbDeleteEntry(id); }
@@ -818,13 +828,13 @@
   function renderForm(){
     SIMPLE_TYPES.forEach(t=>{
       const ul=document.getElementById('list-'+t); if(!ul) return;
-      const rows=cur().entries.filter(e=>e.type===t);
+      const rows=formDraft.filter(e=>e.type===t);
       ul.innerHTML = rows.length ? rows.map(e=>`
-        <li><span class="txt">${esc(e.text)}<span class="by">— ${esc(e.by)}</span></span>
-        <button class="x" title="Edit" onclick="edit('${e.id}','text')">✎</button>
-        <button class="x" title="Remove" onclick="remove('${e.id}')">×</button></li>`).join('') : '<li class="empty">Nothing here yet.</li>';
+        <li><span class="txt">${esc(e.text)}</span>
+        <button class="x" title="Edit" onclick="draftEditText('${e.id}')">✎</button>
+        <button class="x" title="Remove" onclick="draftRemove('${e.id}')">×</button></li>`).join('') : '<li class="empty">Nothing added yet.</li>';
     });
-    const pr=cur().entries.filter(e=>e.type==='priority'); const box=document.getElementById('list-priority');
+    const pr=formDraft.filter(e=>e.type==='priority'); const box=document.getElementById('list-priority');
     box.innerHTML = pr.length ? pr.map(e=>{
       const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
       const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
@@ -832,8 +842,7 @@
         <div class="prio-meta"><h4>${esc(e.title)}</h4><span class="badge ${cls}">${esc(e.impact)} impact</span></div>
         ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
         <p class="done-label">Definition of done</p>${done}
-        <div class="prio-meta"><span class="by" style="font-size:12px;color:var(--muted)">— ${esc(e.by)}</span>
-          <button class="x" title="Remove" onclick="remove('${e.id}')">×</button></div>
+        <div class="prio-meta"><span></span><button class="x" title="Remove" onclick="draftRemove('${e.id}')">×</button></div>
       </div>`; }).join('') : '<div class="card"><p class="empty">No priorities added yet.</p></div>';
   }
 
@@ -1199,12 +1208,13 @@
     const pct=prioPct(e);
     const doneRows = e.done.length ? e.done.map((d,i)=>`
       <tr>
+        <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
         <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Definition of done item…" style="width:100%;"></td>
         <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
         <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
         <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
         <td><button class="btn danger sm" title="Remove item" onclick="removeDone('${e.id}',${i})">✕</button></td>
-      </tr>`).join('') : '<tr><td colspan="5" class="empty">No items yet. Click “+ Add item” to start building the list.</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="6" class="empty">No items yet. Click “+ Add item” to start building the list.</td></tr>';
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
         ${stepperFor(e)}
@@ -1217,9 +1227,9 @@
             <option ${e.impact==='Low'?'selected':''}>Low</option></select></div>
           <div><label>Size (scoping team)</label><select onchange="setField('${e.id}','size',this.value)">
             <option value="" ${!e.size?'selected':''}>—</option>
-            <option ${e.size==='S'?'selected':''}>S — small</option>
-            <option ${e.size==='M'?'selected':''}>M — medium</option>
-            <option ${e.size==='L'?'selected':''}>L — large</option></select></div>
+            <option value="S" ${e.size==='S'?'selected':''}>S — small</option>
+            <option value="M" ${e.size==='M'?'selected':''}>M — medium</option>
+            <option value="L" ${e.size==='L'?'selected':''}>L — large</option></select></div>
           <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${pmOpts}</select></div>
         </div>
         <label style="margin-top:14px;">Why it matters</label>
@@ -1240,7 +1250,7 @@
           <p class="done-label" style="margin:0;">Definition of done — task list</p>
           <button class="btn sm" onclick="addDone('${e.id}')">+ Add item</button>
         </div>
-        <table class="sched-tbl"><thead><tr><th>Item</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
+        <table class="sched-tbl"><thead><tr><th>✓</th><th>Item</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
       </div>
 
       <div class="card">
@@ -1350,10 +1360,23 @@
   }
   window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
 
+  async function dbLoadMeetingsOnly(){
+    const mr=await sb.from('meetings').select('id,data'); if(mr.error) throw mr.error;
+    const ms=mr.data||[]; if(!ms.length) return;
+    const meetings=ms.map(r=>({id:r.id,name:r.data&&r.data.name,theme:r.data&&r.data.theme,goal:r.data&&r.data.goal,entries:[]}));
+    const byId={}; meetings.forEach(m=>byId[m.id]=m);
+    store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
+  }
   (async function init(){
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); }catch(e){ reviewUnlocked=false; }
-      try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); }
+      const r=parseHash();
+      if(r.form && !reviewUnlocked){
+        // someone filling out the intake form: only load the quarter info, never other people's entries
+        try{ await dbLoadMeetingsOnly(); }catch(e){ console.warn('meetings load failed', e); }
+      } else {
+        try{ await dbLoad(); }catch(e){ console.warn('DB load failed — using local cache', e); }
+      }
     }
     applyRoute();
   })();
