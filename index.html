@@ -795,6 +795,7 @@
         if(error){ err.textContent=error.message||'Sign-in failed.'; return; }
         reviewUnlocked=true; err.textContent='';
         document.getElementById('loginPw').value='';
+        try{ await dbLoad(); }catch(e){ console.warn('post-login load', e); }
         gotoDash();
       }catch(e){ err.textContent='Sign-in failed — check your connection.'; }
     } else {
