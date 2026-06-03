@@ -189,7 +189,10 @@
   #mgrPw{text-align:center;}
   .modal-scroll{max-height:88vh;overflow:auto;max-width:780px;}
   .pm-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;}
-  .pm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px;}
+  .pm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-top:10px;align-items:end;}
+  .pm-grid > div{display:flex;flex-direction:column;}
+  .pm-grid label{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:0 0 4px;}
+  .pm-grid select{width:100%;}
   .pctbar{height:10px;background:var(--lilac-2);border-radius:6px;overflow:hidden;}
   .pctbar-fill{height:10px;background:var(--green);border-radius:6px;transition:width .2s;}
   .pct-chip{font-size:11px;font-weight:700;color:var(--green);}
@@ -507,8 +510,6 @@
 
   <div class="wrap">
     <div class="tabs no-print">
-      <button id="tab-priority" class="active" onclick="setTab('priority')">⭐ All priorities</button>
-      <button id="tab-committed" onclick="setTab('committed')">✅ This quarter</button>
       <button id="tab-roadmap" onclick="setTab('roadmap')">🗓 Roadmap</button>
       <button id="tab-load" onclick="setTab('load')">📊 Load</button>
       <span class="tab-spacer"></span>
@@ -852,7 +853,7 @@
     // tab buttons
     const showSort=(dashTab==='priority'||dashTab==='committed');
     const showReviewed=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap');
-    ['priority','committed','roadmap','load','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
+    ['roadmap','load','swot','ssk'].forEach(t=>{const b=document.getElementById('tab-'+t); if(b) b.classList.toggle('active',dashTab===t);});
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
     document.getElementById('stageFilterLbl').style.display = showReviewed?'flex':'none';
@@ -910,7 +911,7 @@
       return `<div class="card" style="margin-bottom:16px;"><p class="quad-title"><span class="tag ${cls}">${label}</span> <span class="count">(${rows.length})</span></p>${list}</div>`;
     }).join('');
     document.getElementById('dash-count').textContent = total+' item'+(total===1?'':'s');
-    body.innerHTML=html;
+    body.innerHTML=backLink()+html;
   }
 
   function dashItemRow(e){
@@ -962,6 +963,7 @@
   }
 
   function setTab(t){ dashTab=t; renderDash(); }
+  function backLink(){ return '<button class="btn ghost sm no-print" style="margin-bottom:12px;" onclick="setTab(\'priority\')">← Back to priorities</button>'; }
 
   /* ---------- reusable modals (confirm / info / edit) ---------- */
   let _confirmCb=null;
@@ -1019,7 +1021,7 @@
       return `<div class="card" style="margin-bottom:16px;"><p class="done-label">${label}</p>
         <table class="dash-tbl"><thead><tr><th>${headLabel}</th><th>Priorities</th><th>S</th><th>M</th><th>L</th><th>No size</th><th>Load pts</th></tr></thead><tbody>${rows}</tbody></table></div>`;
     }
-    body.innerHTML = '<div class="note no-print" style="margin-bottom:14px;">Load = committed priorities by owner. <strong>Load pts</strong> weights each by size (S=1, M=2, L=3) so you can spot who\'s carrying the most before you lock the quarter. ⚠ flags at-risk items.</div>'
+    body.innerHTML = backLink() + '<div class="note no-print" style="margin-bottom:14px;">Load = committed priorities by owner. <strong>Load pts</strong> weights each by size (S=1, M=2, L=3) so you can spot who\'s carrying the most before you lock the quarter. ⚠ flags at-risk items.</div>'
       + tableFor(e=>e.pm,'By project manager','Project manager')
       + tableFor(e=>e.dept,'By department','Department');
   }
@@ -1099,7 +1101,7 @@
     if(noDates.length){
       html+=`<div class="card" style="margin-top:16px;"><p class="done-label">Committed, not yet scheduled</p>`+noDates.map(e=>`<div style="padding:5px 0;font-size:14px;"><span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${prioPct(e)}%</span> <span class="rm-pm">👤 ${e.pm?esc(e.pm):'Unassigned'}</span> — add start &amp; end dates to place it on the roadmap.</div>`).join('')+`</div>`;
     }
-    body.innerHTML=html;
+    body.innerHTML=backLink()+html;
   }
 
   /* ---------- commit / size / generic field ---------- */
