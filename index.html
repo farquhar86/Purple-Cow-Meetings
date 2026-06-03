@@ -188,6 +188,18 @@
   .pctbar{height:10px;background:var(--lilac-2);border-radius:6px;overflow:hidden;}
   .pctbar-fill{height:10px;background:var(--green);border-radius:6px;transition:width .2s;}
   .pct-chip{font-size:11px;font-weight:700;color:var(--green);}
+  .stage-stepper{display:flex;align-items:center;gap:4px;flex-wrap:wrap;margin-bottom:16px;}
+  .stage-step{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--muted);font-size:12.5px;font-weight:700;padding:6px 12px;border-radius:999px;white-space:nowrap;transition:.12s;}
+  .stage-step.done{background:#e4f4ec;color:var(--green);border-color:#bfe6d0;}
+  .stage-step.current{background:var(--purple);color:#fff;border-color:var(--purple);box-shadow:0 2px 8px rgba(106,44,143,.3);}
+  .stage-step.todo{opacity:.65;}
+  .stage-step:hover{filter:brightness(.96);}
+  .stage-arrow{color:var(--line);font-weight:700;}
+  @media(max-width:600px){.stage-arrow{display:none;}}
+  .stage-bar{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px;}
+  .stage-pill{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--purple-dark);font-size:13px;font-weight:700;padding:8px 14px;border-radius:999px;transition:.12s;}
+  .stage-pill:hover{background:var(--lilac);}
+  .stage-pill.active{background:var(--purple);color:#fff;border-color:var(--purple);}
 
   /* Gantt */
   .sched-tbl{width:100%;border-collapse:collapse;margin-top:8px;}
@@ -852,7 +864,8 @@
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
-      setReviewCounts(pr);
+      const baseList=pr.slice();
+      setReviewCounts(baseList);
       pr=pr.filter(passReview);
       const sort=document.getElementById('f-sort').value;
       if(sort==='impact') pr.sort((a,b)=>(rank[a.impact]??1)-(rank[b.impact]??1));
@@ -860,16 +873,17 @@
       else if(sort==='contrib') pr.sort((a,b)=>(a.by||'').localeCompare(b.by||''));
       else if(sort==='new') pr.sort((a,b)=>(b.t||0)-(a.t||0));
       document.getElementById('dash-count').textContent = pr.length+' priorit'+(pr.length===1?'y':'ies');
+      const stageBar = stageBarHTML(baseList);
       if(!pr.length){
         const msg = dashTab==='committed'
           ? 'No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong> to add it here.'
-          : 'No priorities match. They appear here as teams submit them.';
-        body.innerHTML='<div class="card"><p class="empty">'+msg+'</p></div>'; return;
+          : (stageVal()!=='all' ? 'No priorities in this stage right now.' : 'No priorities match. They appear here as teams submit them.');
+        body.innerHTML=stageBar+'<div class="card"><p class="empty">'+msg+'</p></div>'; return;
       }
       const ctrl = '<div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost sm" onclick="expandAllCards(true)">▾ Expand all</button><button class="btn ghost sm" onclick="expandAllCards(false)">▸ Collapse all</button></div>';
       const riskN = pr.filter(isAtRisk).length;
       const riskBanner = riskN ? '<div class="risk-banner">⚠ '+riskN+' priorit'+(riskN===1?'y is':'ies are')+' at risk — has an overdue task. Open to reschedule or update progress.</div>' : '';
-      const intro = ctrl + riskBanner + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
+      const intro = stageBar + ctrl + riskBanner + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
       if(sort==='dept'){
         const groups={}; pr.forEach(e=>{const d=e.dept||'Unassigned';(groups[d]=groups[d]||[]).push(e);});
         body.innerHTML=intro+Object.keys(groups).sort().map(d=>`<div class="dept-group"><h3>${esc(d)} <span class="dcount">· ${groups[d].length}</span></h3>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
@@ -1085,7 +1099,7 @@
   function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
   function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
   function isScheduled(e){ return !!prioRange(e); }
-  function isComplete(e){ return (e.done && e.done.length>0) && prioPct(e)===100; }
+  function isComplete(e){ return e.completed===true || ((e.done && e.done.length>0) && prioPct(e)===100); }
   function stageOf(e){
     if(isComplete(e)) return 'complete';
     if(isScheduled(e)) return 'scheduled';
@@ -1101,6 +1115,15 @@
   const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
   function passReview(e){ if(presenting && !e.reviewed) return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
+  function stageBarHTML(list){
+    const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
+    const cv=stageVal();
+    return '<div class="stage-bar no-print">'+STAGE_DEFS.map(([v,lbl])=>{
+      const n=(v==='all')?list.length:(counts[v]||0);
+      return '<button class="stage-pill'+(cv===v?' active':'')+'" onclick="setStageFilter(\''+v+'\')">'+lbl+' ('+n+')</button>';
+    }).join('')+'</div>';
+  }
+  function setStageFilter(v){ const s=document.getElementById('f-stage'); if(s) s.value=v; renderDashBody(); }
   function setReviewCounts(list){
     const sel=document.getElementById('f-stage'); if(!sel) return;
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
@@ -1109,6 +1132,25 @@
     sel.value=keep;
   }
   function setSize(id,v){ setField(id,'size',v); }
+  const STAGE_ORDER=['new','reviewed','sized','committed','scheduled','complete'];
+  const STAGE_ICON={new:['🆕','New'],reviewed:['✅','Reviewed'],sized:['📏','Sized'],committed:['🎯','Committed'],scheduled:['🗓','Scheduled'],complete:['✔','Complete']};
+  function stepperFor(e){
+    const cidx=STAGE_ORDER.indexOf(stageOf(e));
+    return '<div class="stage-stepper">'+STAGE_ORDER.map((k,i)=>{
+      const cls=i<cidx?'done':(i===cidx?'current':'todo'); const d=STAGE_ICON[k];
+      return '<button class="stage-step '+cls+'" onclick="setStageClick(\''+e.id+'\',\''+k+'\')" title="Set to '+d[1]+'">'+d[0]+' '+d[1]+'</button>';
+    }).join('<span class="stage-arrow">›</span>')+'</div>';
+  }
+  function setStageClick(id,key){
+    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    if(key==='new'){ e.reviewed=false; e.committed=false; e.completed=false; }
+    else if(key==='reviewed'){ e.reviewed=true; e.committed=false; e.completed=false; }
+    else if(key==='sized'){ e.reviewed=true; e.completed=false; if(!e.size){ save(); refreshPrio(); infoModal('Pick a size (S / M / L) in the “Size (scoping team)” dropdown to reach the Sized stage.'); return; } }
+    else if(key==='committed'){ e.reviewed=true; e.committed=true; e.completed=false; }
+    else if(key==='scheduled'){ e.reviewed=true; e.committed=true; e.completed=false; if(!isScheduled(e)){ save(); refreshPrio(); infoModal('Add start & end dates to the tasks below to reach the Scheduled stage.'); return; } }
+    else if(key==='complete'){ e.reviewed=true; e.committed=true; e.completed=true; }
+    save(); refreshPrio();
+  }
   function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
 
   /* ---------- date helpers ---------- */
@@ -1155,13 +1197,8 @@
       </tr>`).join('') : '<tr><td colspan="5" class="empty">No items yet. Click “+ Add item” to start building the list.</td></tr>';
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
-        <div class="pm-head">
-          <div style="flex:1;"><label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;"></div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <button class="btn ${e.reviewed?'':'ghost'}" onclick="toggleReviewed('${e.id}')">${e.reviewed?'✓ Manager reviewed':'Mark manager-reviewed'}</button>
-            <button class="btn ${e.committed?'':'ghost'}" onclick="toggleCommit('${e.id}')">${e.committed?'✓ Committed this quarter':'Commit to this quarter'}</button>
-          </div>
-        </div>
+        ${stepperFor(e)}
+        <label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;">
         <div class="pm-grid">
           <div><label>Department</label><select onchange="setField('${e.id}','dept',this.value)">${deptOpts}</select></div>
           <div><label>Impact</label><select onchange="setField('${e.id}','impact',this.value)">
