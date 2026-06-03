@@ -166,7 +166,10 @@
   /* commit + size */
   .b-commit{background:#e4f4ec;color:var(--green);}
   .b-review{background:#e7eefb;color:#3a5bb8;}
+  .b-risk{background:#fbe6e1;color:var(--red);}
   .b-size{background:var(--lilac-2);color:var(--purple-dark);}
+  .g-bar.g-overdue{background:var(--red);}
+  .risk-banner{background:#fdece7;border:1px solid #f0cabf;color:#9e3320;border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
   .commit-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);}
   .sizesel{font-size:12px;font-weight:700;color:var(--muted);display:inline-flex;gap:6px;align-items:center;text-transform:uppercase;letter-spacing:.4px;}
   .sizesel select{padding:5px 9px;font-weight:700;}
@@ -290,6 +293,20 @@
     <div class="modal-actions">
       <button class="btn" onclick="saveMeetingModal()">Save quarter</button>
       <button class="btn ghost" onclick="closeMeetingModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Carry-over modal -->
+<div class="modal-ov no-print" id="carryModal" onclick="if(event.target===this)closeCarryModal()">
+  <div class="modal" style="text-align:left;">
+    <h3 style="text-align:center;">↪ Carry over unfinished</h3>
+    <p class="block-desc" style="margin:2px 0 0;">Copies unfinished priorities (committed but not 100% complete) from <strong id="carryFrom"></strong> into another quarter. <strong id="carryCount">0</strong> will carry. Progress is kept; schedule dates are cleared so they can be re-planned.</p>
+    <label>Carry into</label>
+    <select id="carryTarget"></select>
+    <div class="modal-actions">
+      <button class="btn" onclick="doCarry()">Carry over</button>
+      <button class="btn ghost" onclick="closeCarryModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -458,6 +475,7 @@
         <button class="btn sm" onclick="openMeetingModal('new')">+ New</button>
         <button class="btn ghost sm" onclick="openMeetingModal('edit')">Edit theme &amp; goal</button>
         <button class="btn sm" onclick="copyFormLink()">🔗 Copy form link</button>
+        <button class="btn ghost sm" onclick="openCarryModal()">↪ Carry over</button>
         <button class="btn danger sm" onclick="deleteMeeting()">Delete</button>
       </div>
       <div class="mgroup" style="margin-left:auto;">
@@ -475,6 +493,7 @@
       <button id="tab-priority" class="active" onclick="setTab('priority')">⭐ All priorities</button>
       <button id="tab-committed" onclick="setTab('committed')">✅ This quarter</button>
       <button id="tab-roadmap" onclick="setTab('roadmap')">🗓 Roadmap</button>
+      <button id="tab-load" onclick="setTab('load')">📊 Load</button>
       <button id="tab-swot" onclick="setTab('swot')">SWOT</button>
       <button id="tab-ssk" onclick="setTab('ssk')">Start / Stop / Keep</button>
     </div>
@@ -704,6 +723,31 @@
       store.meetings=store.meetings.filter(x=>x.id!==delId); store.activeId=store.meetings[0].id; save(); applyTheme(); renderMeetingSel(); render(); dbDeleteMeeting(delId);
     }, 'Delete quarter');
   }
+  function carryCandidates(m){ return m.entries.filter(e=>e.type==='priority' && e.committed && !isComplete(e)); }
+  function openCarryModal(){
+    if(!isManager()) return;
+    if(store.meetings.length<2){ infoModal('Create another quarter first, then you can carry unfinished priorities into it.'); return; }
+    const others=store.meetings.filter(m=>m.id!==cur().id);
+    document.getElementById('carryFrom').textContent=cur().name;
+    document.getElementById('carryCount').textContent=carryCandidates(cur()).length;
+    document.getElementById('carryTarget').innerHTML=others.map(m=>`<option value="${m.id}">${esc(m.name)}</option>`).join('');
+    document.getElementById('carryModal').classList.add('show');
+  }
+  function closeCarryModal(){ document.getElementById('carryModal').classList.remove('show'); }
+  function doCarry(){
+    const targetId=document.getElementById('carryTarget').value;
+    const target=store.meetings.find(m=>m.id===targetId); if(!target){ closeCarryModal(); return; }
+    const src=cur(); const list=carryCandidates(src); let added=0;
+    list.forEach(e=>{
+      target.entries.push({ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
+        done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0})),
+        reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() });
+      added++;
+    });
+    closeCarryModal();
+    switchMeeting(targetId);
+    infoModal('Carried '+added+' unfinished priorit'+(added===1?'y':'ies')+' into "'+target.name+'". Progress was kept; schedule dates were cleared so you can re-plan them.');
+  }
 
   /* ---------- access / screens ---------- */
   function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
@@ -788,7 +832,7 @@
     // tab buttons
     const showSort=(dashTab==='priority'||dashTab==='committed');
     const showReviewed=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap');
-    ['priority','committed','roadmap','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
+    ['priority','committed','roadmap','load','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
     document.getElementById('stageFilterLbl').style.display = showReviewed?'flex':'none';
@@ -804,6 +848,7 @@
     const body=document.getElementById('dash-body'); const rank={High:0,Medium:1,Low:2};
     let items=cur().entries.filter(dashFilter);
     if(dashTab==='roadmap'){ renderRoadmap(); return; }
+    if(dashTab==='load'){ renderLoad(); return; }
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
@@ -822,7 +867,9 @@
         body.innerHTML='<div class="card"><p class="empty">'+msg+'</p></div>'; return;
       }
       const ctrl = '<div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost sm" onclick="expandAllCards(true)">▾ Expand all</button><button class="btn ghost sm" onclick="expandAllCards(false)">▸ Collapse all</button></div>';
-      const intro = ctrl + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
+      const riskN = pr.filter(isAtRisk).length;
+      const riskBanner = riskN ? '<div class="risk-banner">⚠ '+riskN+' priorit'+(riskN===1?'y is':'ies are')+' at risk — has an overdue task. Open to reschedule or update progress.</div>' : '';
+      const intro = ctrl + riskBanner + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
       if(sort==='dept'){
         const groups={}; pr.forEach(e=>{const d=e.dept||'Unassigned';(groups[d]=groups[d]||[]).push(e);});
         body.innerHTML=intro+Object.keys(groups).sort().map(d=>`<div class="dept-group"><h3>${esc(d)} <span class="dcount">· ${groups[d].length}</span></h3>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
@@ -856,7 +903,7 @@
     const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
-    const badges = (e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
+    const badges = (isAtRisk(e)?'<span class="badge b-risk">⚠ At risk</span> ':'')+(e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
     const sched = scheduleSummary(e);
     const exp = !!cardExpanded[e.id];
     const detail = exp ? `
@@ -931,6 +978,30 @@
   let cardExpanded={};
   function toggleCard(id){ cardExpanded[id]=!cardExpanded[id]; renderDashBody(); }
   function expandAllCards(b){ if(b){ cur().entries.forEach(e=>{ if(e.type==='priority') cardExpanded[e.id]=true; }); } else { cardExpanded={}; } renderDashBody(); }
+  /* ---------- load / capacity view ---------- */
+  function renderLoad(){
+    const body=document.getElementById('dash-body');
+    const committed=cur().entries.filter(e=>e.type==='priority'&&e.committed);
+    document.getElementById('dash-count').textContent = committed.length+' committed';
+    if(!committed.length){ body.innerHTML='<div class="card"><p class="empty">No committed priorities yet. Commit some, then this shows how the work is spread across people and departments.</p></div>'; return; }
+    function tableFor(keyFn, label, headLabel){
+      const groups={}; committed.forEach(e=>{ const k=(keyFn(e)||'').trim()||'Unassigned'; (groups[k]=groups[k]||[]).push(e); });
+      const keys=Object.keys(groups).sort((a,b)=> groups[b].reduce((x,e)=>x+(SIZE_WEIGHT[e.size]||0),0) - groups[a].reduce((x,e)=>x+(SIZE_WEIGHT[e.size]||0),0));
+      const rows=keys.map(k=>{
+        const list=groups[k];
+        const s=list.filter(e=>e.size==='S').length, m=list.filter(e=>e.size==='M').length, l=list.filter(e=>e.size==='L').length, none=list.filter(e=>!e.size).length;
+        const pts=list.reduce((a,e)=>a+(SIZE_WEIGHT[e.size]||0),0);
+        const risk=list.filter(isAtRisk).length;
+        return `<tr><td><strong>${esc(k)}</strong>${risk?` <span class="badge b-risk">⚠ ${risk}</span>`:''}</td><td>${list.length}</td><td>${s}</td><td>${m}</td><td>${l}</td><td>${none||'–'}</td><td><strong>${pts}</strong></td></tr>`;
+      }).join('');
+      return `<div class="card" style="margin-bottom:16px;"><p class="done-label">${label}</p>
+        <table class="dash-tbl"><thead><tr><th>${headLabel}</th><th>Priorities</th><th>S</th><th>M</th><th>L</th><th>No size</th><th>Load pts</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    }
+    body.innerHTML = '<div class="note no-print" style="margin-bottom:14px;">Load = committed priorities by owner. <strong>Load pts</strong> weights each by size (S=1, M=2, L=3) so you can spot who\'s carrying the most before you lock the quarter. ⚠ flags at-risk items.</div>'
+      + tableFor(e=>e.pm,'By project manager','Project manager')
+      + tableFor(e=>e.dept,'By department','Department');
+  }
+
   let roadmapExpanded={};
   let roadmapSort='start';
   function toggleRoadmapRow(id){ roadmapExpanded[id]=!roadmapExpanded[id]; renderRoadmap(); }
@@ -971,7 +1042,7 @@
         let row=`<div class="rm-row">
           <div class="g-label">
             <button class="rm-toggle" onclick="toggleRoadmapRow('${e.id}')" title="Show / hide pieces">${exp?'▾':'▸'}</button>
-            <span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span>
+            ${isAtRisk(e)?'<span title="At risk — has an overdue task">⚠ </span>':''}<span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span>
             <div class="rm-pm">${meta}</div>
           </div>
           <div class="g-track"><div class="g-bar" style="left:${left}%;width:${width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
@@ -982,7 +1053,8 @@
             if(p.start&&p.end&&parseD(p.start)&&parseD(p.end)&&parseD(p.end)>=parseD(p.start)){
               const s=parseD(p.start),en=parseD(p.end);
               const l=daysBetween(min,s)/total*100, w=Math.max(2,(daysBetween(s,en)+1)/total*100);
-              row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><div class="g-bar" style="left:${l}%;width:${w}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+              const od=isOverduePlan(p);
+              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':''}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><div class="g-bar${od?' g-overdue':''}" style="left:${l}%;width:${w}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
             } else {
               row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><span class="g-none">not scheduled</span></div></div>`;
             }
@@ -1022,6 +1094,10 @@
     if(e.reviewed) return 'reviewed';
     return 'new';
   }
+  function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
+  function isOverduePlan(p){ if(!p||!p.end) return false; const en=parseD(p.end); return !!(en && en < todayStart() && (Number(p.pct)||0) < 100); }
+  function isAtRisk(e){ if(isComplete(e)) return false; return (e.plan||[]).some(isOverduePlan); }
+  const SIZE_WEIGHT={S:1,M:2,L:3};
   const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
   function passReview(e){ if(presenting && !e.reviewed) return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
@@ -1145,7 +1221,8 @@
       const s=parseD(t.start),en=parseD(t.end);
       const left=daysBetween(min,s)/total*100;
       const width=Math.max(3,(daysBetween(s,en)+1)/total*100);
-      return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track"><div class="g-bar" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
+      const od=isOverduePlan({end:t.end,pct:t.pct});
+      return `<div class="gantt-row"><div class="g-label">${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track"><div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
     }).join('');
     return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
   }
