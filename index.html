@@ -142,6 +142,11 @@
   .tabs{display:flex;gap:6px;flex-wrap:wrap;margin:18px 0 14px;}
   .tabs button{cursor:pointer;border:1px solid var(--line);background:#fff;color:var(--purple-dark);font-weight:700;font-size:14px;padding:9px 16px;border-radius:10px;}
   .tabs button.active{background:var(--purple);color:#fff;border-color:var(--purple);}
+  .tab-spacer{flex:1 1 auto;}
+  .tab-inputs{display:flex;align-items:center;gap:6px;}
+  .tab-inputs .fl{font-size:11px;}
+  .tabs button.tab-mini{font-size:12.5px;padding:6px 11px;color:var(--muted);font-weight:600;}
+  .tabs button.tab-mini.active{color:#fff;font-weight:700;}
   .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:18px;}
   .filters .fl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
   .filters select{min-width:150px;}
@@ -506,8 +511,11 @@
       <button id="tab-committed" onclick="setTab('committed')">✅ This quarter</button>
       <button id="tab-roadmap" onclick="setTab('roadmap')">🗓 Roadmap</button>
       <button id="tab-load" onclick="setTab('load')">📊 Load</button>
-      <button id="tab-swot" onclick="setTab('swot')">SWOT</button>
-      <button id="tab-ssk" onclick="setTab('ssk')">Start / Stop / Keep</button>
+      <span class="tab-spacer"></span>
+      <span class="tab-inputs"><span class="fl">Team inputs</span>
+        <button id="tab-swot" class="tab-mini" onclick="setTab('swot')">SWOT</button>
+        <button id="tab-ssk" class="tab-mini" onclick="setTab('ssk')">Start / Stop / Keep</button>
+      </span>
     </div>
 
     <div class="filters no-print">
