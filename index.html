@@ -484,6 +484,18 @@
       <select id="f-dept" onchange="renderDashBody()"><option value="">All</option></select>
       <span class="fl">Contributor</span>
       <select id="f-contrib" onchange="renderDashBody()"><option value="">All</option></select>
+      <span id="stageFilterLbl" style="display:flex;align-items:center;gap:6px;">
+        <span class="fl">Stage</span>
+        <select id="f-stage" onchange="renderDashBody()">
+          <option value="all">All</option>
+          <option value="new">🆕 New</option>
+          <option value="reviewed">✅ Reviewed</option>
+          <option value="sized">📏 Sized</option>
+          <option value="committed">🎯 Committed</option>
+          <option value="scheduled">🗓 Scheduled</option>
+          <option value="complete">✔ Complete</option>
+        </select>
+      </span>
       <span class="fl" id="sortLbl">Sort</span>
       <select id="f-sort" onchange="renderDashBody()">
         <option value="impact">Impact (high → low)</option>
@@ -491,14 +503,6 @@
         <option value="contrib">Contributor A–Z</option>
         <option value="new">Newest first</option>
       </select>
-      <span id="reviewedFilterLbl" style="display:flex;align-items:center;gap:6px;">
-        <span class="fl">Review</span>
-        <select id="f-review" onchange="renderDashBody()">
-          <option value="all">All</option>
-          <option value="reviewed">✓ Reviewed only</option>
-          <option value="unreviewed">Not yet reviewed</option>
-        </select>
-      </span>
       <span class="count" id="dash-count"></span>
     </div>
 
@@ -787,7 +791,7 @@
     ['priority','committed','roadmap','swot','ssk'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',dashTab===t));
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
-    document.getElementById('reviewedFilterLbl').style.display = showReviewed?'flex':'none';
+    document.getElementById('stageFilterLbl').style.display = showReviewed?'flex':'none';
     renderDashBody();
   }
 
@@ -803,6 +807,7 @@
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
+      setReviewCounts(pr);
       pr=pr.filter(passReview);
       const sort=document.getElementById('f-sort').value;
       if(sort==='impact') pr.sort((a,b)=>(rank[a.impact]??1)-(rank[b.impact]??1));
@@ -933,6 +938,7 @@
   function renderRoadmap(){
     const body=document.getElementById('dash-body');
     let pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
+    setReviewCounts(pr);
     pr=pr.filter(passReview);
     document.getElementById('dash-count').textContent = pr.length+' committed';
     if(!pr.length){ body.innerHTML='<div class="card"><p class="empty">No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong>, then add start &amp; end dates to see it on the roadmap.</p></div>'; return; }
@@ -1006,8 +1012,26 @@
   let presenting=false;
   function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
   function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
-  function reviewFilterMode(){ if(presenting) return 'reviewed'; const s=document.getElementById('f-review'); return (s && s.value) || 'all'; }
-  function passReview(e){ const m=reviewFilterMode(); if(m==='reviewed') return !!e.reviewed; if(m==='unreviewed') return !e.reviewed; return true; }
+  function isScheduled(e){ return !!prioRange(e); }
+  function isComplete(e){ return (e.done && e.done.length>0) && prioPct(e)===100; }
+  function stageOf(e){
+    if(isComplete(e)) return 'complete';
+    if(isScheduled(e)) return 'scheduled';
+    if(e.committed) return 'committed';
+    if(e.size) return 'sized';
+    if(e.reviewed) return 'reviewed';
+    return 'new';
+  }
+  const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
+  function passReview(e){ if(presenting && !e.reviewed) return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
+  function setReviewCounts(list){
+    const sel=document.getElementById('f-stage'); if(!sel) return;
+    const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
+    const keep=sel.value||'all';
+    sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+(v==='all'?list.length:(counts[v]||0))+')</option>').join('');
+    sel.value=keep;
+  }
   function setSize(id,v){ setField(id,'size',v); }
   function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
 
