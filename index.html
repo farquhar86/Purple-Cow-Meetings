@@ -772,7 +772,7 @@
     list.forEach(e=>{
       target.entries.push({ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
         done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0})),
-        reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() });
+        stage:'committed', reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() });
       added++;
     });
     closeCarryModal();
@@ -1119,22 +1119,33 @@
   function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
   function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
   function isScheduled(e){ return !!prioRange(e); }
-  function isComplete(e){ return e.completed===true || ((e.done && e.done.length>0) && prioPct(e)===100); }
-  function stageOf(e){
-    if(isComplete(e)) return 'complete';
+  function stageRank(k){ const i=STAGE_ORDER.indexOf(k); return i<0?0:i; }
+  function legacyStage(e){
+    const full = e.completed===true || (e.done && e.done.length>0 && prioPct(e)===100);
+    if(full) return 'complete';
     if(isScheduled(e)) return 'scheduled';
     if(e.committed) return 'committed';
     if(e.size) return 'sized';
     if(e.reviewed) return 'reviewed';
     return 'new';
   }
+  function stageOf(e){ return (e.stage && STAGE_ORDER.indexOf(e.stage)>=0) ? e.stage : legacyStage(e); }
+  function isComplete(e){ return stageOf(e)==='complete'; }
+  function syncStageFlags(e){ const r=stageRank(stageOf(e)); e.reviewed=r>=stageRank('reviewed'); e.committed=r>=stageRank('committed'); e.completed=stageOf(e)==='complete'; }
+  function autoStage(e){
+    if(!e.stage) e.stage=legacyStage(e);
+    if(e.size && stageRank(e.stage)<stageRank('sized')) e.stage='sized';
+    if(isScheduled(e) && stageRank(e.stage)<stageRank('scheduled')) e.stage='scheduled';
+    if(e.done && e.done.length>0 && prioPct(e)===100 && stageRank(e.stage)<stageRank('complete')) e.stage='complete';
+    syncStageFlags(e);
+  }
   function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
   function isOverduePlan(p){ if(!p||!p.end) return false; const en=parseD(p.end); return !!(en && en < todayStart() && (Number(p.pct)||0) < 100); }
   function isAtRisk(e){ if(isComplete(e)) return false; return (e.plan||[]).some(isOverduePlan); }
   const SIZE_WEIGHT={S:1,M:2,L:3};
-  const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
-  function passReview(e){ if(presenting && !e.reviewed) return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
+  function passReview(e){ if(presenting && stageOf(e)==='new') return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
   function stageBarHTML(list){
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
     const cv=stageVal();
@@ -1152,8 +1163,8 @@
     sel.value=keep;
   }
   function setSize(id,v){ setField(id,'size',v); }
-  const STAGE_ORDER=['new','reviewed','sized','committed','scheduled','complete'];
-  const STAGE_ICON={new:['🆕','New'],reviewed:['✅','Reviewed'],sized:['📏','Sized'],committed:['🎯','Committed'],scheduled:['🗓','Scheduled'],complete:['✔','Complete']};
+  const STAGE_ORDER=['new','reviewed','proposed','sized','committed','scheduled','complete'];
+  const STAGE_ICON={new:['🆕','New'],reviewed:['✅','Reviewed'],proposed:['🔖','Proposed'],sized:['📏','Sized'],committed:['🎯','Committed'],scheduled:['🗓','Scheduled'],complete:['✔','Complete']};
   function stepperFor(e){
     const cidx=STAGE_ORDER.indexOf(stageOf(e));
     return '<div class="stage-stepper">'+STAGE_ORDER.map((k,i)=>{
@@ -1163,15 +1174,11 @@
   }
   function setStageClick(id,key){
     const e=cur().entries.find(x=>x.id===id); if(!e) return;
-    if(key==='new'){ e.reviewed=false; e.committed=false; e.completed=false; }
-    else if(key==='reviewed'){ e.reviewed=true; e.committed=false; e.completed=false; }
-    else if(key==='sized'){ e.reviewed=true; e.completed=false; if(!e.size){ save(); refreshPrio(); infoModal('Pick a size (S / M / L) in the “Size (scoping team)” dropdown to reach the Sized stage.'); return; } }
-    else if(key==='committed'){ e.reviewed=true; e.committed=true; e.completed=false; }
-    else if(key==='scheduled'){ e.reviewed=true; e.committed=true; e.completed=false; if(!isScheduled(e)){ save(); refreshPrio(); infoModal('Add start & end dates to the tasks below to reach the Scheduled stage.'); return; } }
-    else if(key==='complete'){ e.reviewed=true; e.committed=true; e.completed=true; }
-    save(); refreshPrio();
+    e.stage=key; syncStageFlags(e); save(); refreshPrio();
+    if(key==='sized' && !e.size){ infoModal('Tip: pick a size (S / M / L) below so this stage reflects an estimate.'); }
+    else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
   }
-  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; save(); refreshPrio(); }
+  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); save(); refreshPrio(); }
 
   /* ---------- date helpers ---------- */
   function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
@@ -1194,10 +1201,10 @@
     let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
     return Math.round(sum/done.length);
   }
-  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } save(); refreshPrio(); }
-  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); save(); refreshPrio(); }
+  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); save(); refreshPrio(); }
+  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); autoStage(e); save(); refreshPrio(); }
   function editDoneText(id,i,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done[i]=val; save(); refreshPrio(); }
-  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); save(); refreshPrio(); }
+  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); autoStage(e); save(); refreshPrio(); }
   function renderPrioPage(){
     const e=cur().entries.find(x=>x.id===prioOpenId);
     const body=document.getElementById('prio-body');
