@@ -172,6 +172,8 @@
   .b-commit{background:#e4f4ec;color:var(--green);}
   .b-review{background:#e7eefb;color:#3a5bb8;}
   .b-risk{background:#fbe6e1;color:var(--red);}
+  .b-bottleneck{background:#fdeede;color:#b9701a;}
+  .b-innovation{background:#e7eefb;color:#3a5bb8;}
   .b-size{background:var(--lilac-2);color:var(--purple-dark);}
   .g-bar.g-overdue{background:var(--red);}
   .risk-banner{background:#fdece7;border:1px solid #f0cabf;color:#9e3320;border-radius:10px;padding:10px 14px;font-size:13.5px;font-weight:600;margin-bottom:14px;}
@@ -358,7 +360,8 @@
     <nav class="nav">
       <a href="#swot">SWOT</a>
       <a href="#ssk">Start / Stop / Keep</a>
-      <a href="#prio">Priorities</a>
+      <a href="#bottlenecks">Bottlenecks</a>
+      <a href="#innovations">Innovations</a>
     </nav>
   </div>
 </div>
@@ -434,28 +437,53 @@
   </section>
 
   <!-- Priorities -->
-  <section class="block" id="prio">
-    <div class="block-head"><span class="step">Part 3</span><h2>Priorities — what we'd commit to</h2></div>
-    <p class="block-desc">The few things this team believes matter most this quarter. For each one, nail down <strong>what "done" looks like</strong> in plain, measurable terms. <span class="req">Add at least 1 priority.</span></p>
+  <!-- Bottlenecks -->
+  <section class="block" id="bottlenecks">
+    <div class="block-head"><span class="step">Part 3</span><h2>🔧 Bottlenecks</h2></div>
+    <p class="block-desc">Things or processes that are <strong>holding Purple Cow back</strong> — friction, delays, or broken steps we should change. What's slowing us down or capping how well we serve the herd? <span class="req">Add at least 1.</span></p>
     <div class="note theme-reminder" id="prioThemeNote"></div>
     <div class="card prio-form">
-      <label for="p-title">Priority</label>
-      <input type="text" id="p-title" placeholder="e.g. Cut install wait time so we can onboard more members" />
-      <label for="p-why">Why it matters for the march to 100,000</label>
-      <textarea id="p-why" placeholder="What does this unlock? Why now?"></textarea>
-      <label>What does "done" look like? <span style="font-weight:400;color:var(--muted)">— add a few measurable bullet points</span></label>
-      <div id="done-lines">
-        <div class="done-line"><input type="text" class="done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine()">＋</button></div>
+      <label for="b-title">Bottleneck</label>
+      <input type="text" id="b-title" placeholder="e.g. New installs take too long to schedule" />
+      <label for="b-why">Why it matters / what it's costing us</label>
+      <textarea id="b-why" placeholder="What does fixing this unlock?"></textarea>
+      <label>What does "fixed" look like? <span style="font-weight:400;color:var(--muted)">— add a few measurable bullet points</span></label>
+      <div id="b-done-lines">
+        <div class="done-line"><input type="text" class="b-done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine('b')">＋</button></div>
       </div>
       <label>Gut-feel impact</label>
       <div class="impact-opts">
-        <label><input type="radio" name="impact" value="High" checked> High</label>
-        <label><input type="radio" name="impact" value="Medium"> Medium</label>
-        <label><input type="radio" name="impact" value="Low"> Low</label>
+        <label><input type="radio" name="b-impact" value="High" checked> High</label>
+        <label><input type="radio" name="b-impact" value="Medium"> Medium</label>
+        <label><input type="radio" name="b-impact" value="Low"> Low</label>
       </div>
-      <div style="margin-top:16px;"><button class="btn" onclick="addPriority()">Add priority</button></div>
+      <div style="margin-top:16px;"><button class="btn" onclick="addPriorityKind('bottleneck')">Add bottleneck</button></div>
     </div>
-    <div id="list-priority" style="margin-top:16px;"></div>
+    <div id="list-bottleneck" style="margin-top:16px;"></div>
+  </section>
+
+  <!-- Innovations -->
+  <section class="block" id="innovations">
+    <div class="block-head"><span class="step">Part 4</span><h2>💡 Innovations</h2></div>
+    <p class="block-desc">Ways we should <strong>evolve to be a better company</strong> — new ideas to grow, delight the herd, and leapfrog the competition. What should we build or become? <span class="req">Add at least 1.</span></p>
+    <div class="card prio-form">
+      <label for="i-title">Innovation</label>
+      <input type="text" id="i-title" placeholder="e.g. Self-install kit customers set up in 10 minutes" />
+      <label for="i-why">Why it matters / how it helps us leap ahead</label>
+      <textarea id="i-why" placeholder="What does this unlock? Why now?"></textarea>
+      <label>What does "done" look like? <span style="font-weight:400;color:var(--muted)">— add a few measurable bullet points</span></label>
+      <div id="i-done-lines">
+        <div class="done-line"><input type="text" class="i-done-input" placeholder="e.g. 50% of new customers self-install" /><button class="btn ghost sm" onclick="addDoneLine('i')">＋</button></div>
+      </div>
+      <label>Gut-feel impact</label>
+      <div class="impact-opts">
+        <label><input type="radio" name="i-impact" value="High" checked> High</label>
+        <label><input type="radio" name="i-impact" value="Medium"> Medium</label>
+        <label><input type="radio" name="i-impact" value="Low"> Low</label>
+      </div>
+      <div style="margin-top:16px;"><button class="btn" onclick="addPriorityKind('innovation')">Add innovation</button></div>
+    </div>
+    <div id="list-innovation" style="margin-top:16px;"></div>
   </section>
 
   <section class="block" id="submit">
@@ -524,6 +552,14 @@
       <select id="f-dept" onchange="renderDashBody()"><option value="">All</option></select>
       <span class="fl">Contributor</span>
       <select id="f-contrib" onchange="renderDashBody()"><option value="">All</option></select>
+      <span id="kindFilterLbl" style="display:flex;align-items:center;gap:6px;">
+        <span class="fl">Type</span>
+        <select id="f-kind" onchange="renderDashBody()">
+          <option value="">All</option>
+          <option value="bottleneck">🔧 Bottlenecks</option>
+          <option value="innovation">💡 Innovations</option>
+        </select>
+      </span>
       <span id="stageFilterLbl" style="display:flex;align-items:center;gap:6px;">
         <span class="fl">Stage</span>
         <select id="f-stage" onchange="renderDashBody()">
@@ -668,20 +704,22 @@
     formDraft.push({ id:uid(), type, text:v, by:who(), dept:deptEl.value.trim(), t:Date.now() });
     el.value=''; renderForm(); el.focus();
   }
-  function addDoneLine(){
-    const wrap=document.getElementById('done-lines'); const div=document.createElement('div'); div.className='done-line';
-    div.innerHTML='<input type="text" class="done-input" placeholder="Another measure of done…" /><button class="btn danger sm" onclick="this.parentNode.remove()">✕</button>';
+  function addDoneLine(pre){
+    pre=pre||'b';
+    const wrap=document.getElementById(pre+'-done-lines'); const div=document.createElement('div'); div.className='done-line';
+    div.innerHTML='<input type="text" class="'+pre+'-done-input" placeholder="Another measure…" /><button class="btn danger sm" onclick="this.parentNode.remove()">✕</button>';
     wrap.appendChild(div); div.querySelector('input').focus();
   }
-  function addPriority(){
-    const title=document.getElementById('p-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
-    const why=document.getElementById('p-why').value.trim();
-    const done=[...document.querySelectorAll('.done-input')].map(i=>i.value.trim()).filter(Boolean);
-    const impact=(document.querySelector('input[name=impact]:checked')||{}).value||'Medium';
-    formDraft.push({ id:uid(), type:'priority', title, why, done, impact, notes:'', by:who(), dept:deptEl.value.trim(), t:Date.now() });
-    document.getElementById('p-title').value=''; document.getElementById('p-why').value='';
-    document.getElementById('done-lines').innerHTML='<div class="done-line"><input type="text" class="done-input" placeholder="e.g. New installs scheduled within 5 business days" /><button class="btn ghost sm" onclick="addDoneLine()">＋</button></div>';
-    renderForm(); document.getElementById('prio').scrollIntoView({behavior:'smooth'});
+  function addPriorityKind(kind){
+    const pre=kind==='bottleneck'?'b':'i';
+    const title=document.getElementById(pre+'-title').value.trim(); if(!title){ infoModal('Give it a title first.'); return; }
+    const why=document.getElementById(pre+'-why').value.trim();
+    const done=[...document.querySelectorAll('.'+pre+'-done-input')].map(i=>i.value.trim()).filter(Boolean);
+    const impact=(document.querySelector('input[name='+pre+'-impact]:checked')||{}).value||'Medium';
+    formDraft.push({ id:uid(), type:'priority', kind, title, why, done, impact, notes:'', by:who(), dept:deptEl.value.trim(), t:Date.now() });
+    document.getElementById(pre+'-title').value=''; document.getElementById(pre+'-why').value='';
+    document.getElementById(pre+'-done-lines').innerHTML='<div class="done-line"><input type="text" class="'+pre+'-done-input" placeholder="Another measure…" /><button class="btn ghost sm" onclick="addDoneLine(\''+pre+'\')">＋</button></div>';
+    renderForm(); document.getElementById(kind==='bottleneck'?'bottlenecks':'innovations').scrollIntoView({behavior:'smooth'});
   }
 
   function countTypes(types){ return formDraft.filter(e=>types.includes(e.type)).length; }
@@ -691,7 +729,8 @@
     if(!memEl.value.trim()) p.push('Enter your name');
     if(countTypes(['strength','weakness','opportunity','threat'])<2) p.push('Add at least 2 SWOT items');
     if(countTypes(['start','stop','keep'])<2) p.push('Add at least 2 Start / Stop / Keep items');
-    if(countTypes(['priority'])<1) p.push('Add at least 1 priority');
+    if(formDraft.filter(e=>e.type==='priority'&&e.kind==='bottleneck').length<1) p.push('Add at least 1 bottleneck');
+    if(formDraft.filter(e=>e.type==='priority'&&e.kind==='innovation').length<1) p.push('Add at least 1 innovation');
     return p;
   }
   async function submitForm(){
@@ -835,16 +874,19 @@
         <button class="x" title="Edit" onclick="draftEditText('${e.id}')">✎</button>
         <button class="x" title="Remove" onclick="draftRemove('${e.id}')">×</button></li>`).join('') : '<li class="empty">Nothing added yet.</li>';
     });
-    const pr=formDraft.filter(e=>e.type==='priority'); const box=document.getElementById('list-priority');
-    box.innerHTML = pr.length ? pr.map(e=>{
-      const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
-      const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
-      return `<div class="card prio-card" style="margin-bottom:14px;">
-        <div class="prio-meta"><h4>${esc(e.title)}</h4><span class="badge ${cls}">${esc(e.impact)} impact</span></div>
-        ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
-        <p class="done-label">Definition of done</p>${done}
-        <div class="prio-meta"><span></span><button class="x" title="Remove" onclick="draftRemove('${e.id}')">×</button></div>
-      </div>`; }).join('') : '<div class="card"><p class="empty">No priorities added yet.</p></div>';
+    ['bottleneck','innovation'].forEach(kind=>{
+      const box=document.getElementById('list-'+kind); if(!box) return;
+      const pr=formDraft.filter(e=>e.type==='priority'&&e.kind===kind);
+      box.innerHTML = pr.length ? pr.map(e=>{
+        const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
+        const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+        return `<div class="card prio-card" style="margin-bottom:14px;">
+          <div class="prio-meta"><h4>${esc(e.title)}</h4><span class="badge ${cls}">${esc(e.impact)} impact</span></div>
+          ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
+          <p class="done-label">Definition of done</p>${done}
+          <div class="prio-meta"><span></span><button class="x" title="Remove" onclick="draftRemove('${e.id}')">×</button></div>
+        </div>`; }).join('') : '<div class="card"><p class="empty">None added yet.</p></div>';
+    });
   }
 
   /* ---------- render: dashboard ---------- */
@@ -867,6 +909,8 @@
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
     document.getElementById('stageFilterLbl').style.display = showReviewed?'flex':'none';
+    const showKind=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap'||dashTab==='load');
+    document.getElementById('kindFilterLbl').style.display = showKind?'flex':'none';
     renderDashBody();
   }
 
@@ -883,6 +927,7 @@
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority');
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
+      pr=pr.filter(passKind);
       const baseList=pr.slice();
       setReviewCounts(baseList);
       pr=pr.filter(passReview);
@@ -936,7 +981,7 @@
     const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
-    const badges = (isAtRisk(e)?'<span class="badge b-risk">⚠ At risk</span> ':'')+(e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
+    const badges = kindBadge(e)+(isAtRisk(e)?'<span class="badge b-risk">⚠ At risk</span> ':'')+(e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
     const sched = scheduleSummary(e);
     const exp = !!cardExpanded[e.id];
     const detail = exp ? `
@@ -1015,7 +1060,7 @@
   /* ---------- load / capacity view ---------- */
   function renderLoad(){
     const body=document.getElementById('dash-body');
-    const committed=cur().entries.filter(e=>e.type==='priority'&&e.committed);
+    const committed=cur().entries.filter(e=>e.type==='priority'&&e.committed).filter(passKind);
     document.getElementById('dash-count').textContent = committed.length+' committed';
     if(!committed.length){ body.innerHTML='<div class="card"><p class="empty">No committed priorities yet. Commit some, then this shows how the work is spread across people and departments.</p></div>'; return; }
     function tableFor(keyFn, label, headLabel){
@@ -1042,7 +1087,7 @@
   function setRoadmapSort(v){ roadmapSort=v; renderRoadmap(); }
   function renderRoadmap(){
     const body=document.getElementById('dash-body');
-    let pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed);
+    let pr=cur().entries.filter(dashFilter).filter(e=>e.type==='priority'&&e.committed).filter(passKind);
     setReviewCounts(pr);
     pr=pr.filter(passReview);
     document.getElementById('dash-count').textContent = pr.length+' committed';
@@ -1142,6 +1187,8 @@
   function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
   function isOverduePlan(p){ if(!p||!p.end) return false; const en=parseD(p.end); return !!(en && en < todayStart() && (Number(p.pct)||0) < 100); }
   function isAtRisk(e){ if(isComplete(e)) return false; return (e.plan||[]).some(isOverduePlan); }
+  function kindBadge(e){ if(e.kind==='bottleneck') return '<span class="badge b-bottleneck">🔧 Bottleneck</span> '; if(e.kind==='innovation') return '<span class="badge b-innovation">💡 Innovation</span> '; return ''; }
+  function passKind(e){ const s=document.getElementById('f-kind'); const k=s&&s.value; return !k || (e.kind||'')===k; }
   const SIZE_WEIGHT={S:1,M:2,L:3};
   const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
@@ -1239,6 +1286,10 @@
             <option value="M" ${e.size==='M'?'selected':''}>M — medium</option>
             <option value="L" ${e.size==='L'?'selected':''}>L — large</option></select></div>
           <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${pmOpts}</select></div>
+          <div><label>Type</label><select onchange="setField('${e.id}','kind',this.value)">
+            <option value="" ${!e.kind?'selected':''}>—</option>
+            <option value="bottleneck" ${e.kind==='bottleneck'?'selected':''}>🔧 Bottleneck</option>
+            <option value="innovation" ${e.kind==='innovation'?'selected':''}>💡 Innovation</option></select></div>
         </div>
         <label style="margin-top:14px;">Why it matters</label>
         <textarea onchange="setField('${e.id}','why',this.value)" style="width:100%;min-height:60px;">${esc(e.why||'')}</textarea>
