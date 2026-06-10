@@ -339,7 +339,7 @@
   <div class="hero-inner">
     <div class="brand"><span class="dot">🐄</span> Purple Cow Internet</div>
     <h1 class="hero-title" id="heroTitle">The March to 100,000 Herd Members</h1>
-    <p class="hero-sub">An intake form for each team to capture what's working, what isn't, and the priorities for the quarter. Fill it in together — your manager reviews everything in the backend.</p>
+    <p class="hero-sub">An intake form for each team to capture what's working, what isn't, the bottlenecks holding us back, and the innovations that move us forward. Fill it in together — your manager reviews everything in the backend.</p>
     <span class="goal-pill" id="goalPill">🎯 Quarterly goal</span>
     <span class="quarter-chip" id="quarterChip">Quarter</span>
   </div>
@@ -371,9 +371,9 @@
     <strong>How to use this form:</strong>
     <div class="step-flow">
       <ol>
-        <li>Pick your team and add your name — every item you add is tagged with your name.</li>
-        <li>Work through the three sections together as a team.</li>
-        <li>Your manager logs in to the backend dashboard to review, sort, add notes, and finalize priorities.</li>
+        <li>Pick your team and add your name.</li>
+        <li>Work through all four sections together as a team: SWOT, Start / Stop / Keep, Bottlenecks, and Innovations.</li>
+        <li>Hit Submit — your manager reviews everything in the backend and decides what to take on this quarter.</li>
       </ol>
     </div>
   </div>
@@ -489,7 +489,7 @@
   <section class="block" id="submit">
     <div class="card" style="text-align:center;">
       <h2 style="color:var(--purple-dark);margin:0 0 6px;">Ready to submit?</h2>
-      <p class="block-desc" id="submitHint" style="margin:0 auto 16px;">When your team has filled everything out, submit it for your manager to review. You can keep editing and submit again any time.</p>
+      <p class="block-desc" id="submitHint" style="margin:0 auto 16px;">When your team has filled out all four sections, hit Submit to send it to your manager. Once submitted, your responses are in — you can close the page.</p>
       <button class="btn" style="font-size:16px;padding:13px 30px;" onclick="submitForm()">✅ Submit to manager</button>
       <div id="submitMsg" style="margin-top:16px;"></div>
     </div>
@@ -778,7 +778,7 @@
     document.title=(m.theme||DEFAULT_THEME)+' — '+m.name;
     ['footerTheme','footerTheme2','footerTheme3'].forEach(id=>{const el=document.getElementById(id); if(el) el.textContent=m.theme||DEFAULT_THEME;});
     const pn=document.getElementById('prioThemeNote');
-    if(pn) pn.innerHTML='🐄 <strong>Keep the theme front of mind:</strong> “'+esc(m.theme||DEFAULT_THEME)+'.” Pick priorities that move us toward — '+esc(m.goal||DEFAULT_GOAL)+'.';
+    if(pn) pn.innerHTML='🐄 <strong>Keep the theme front of mind:</strong> “'+esc(m.theme||DEFAULT_THEME)+'.” Focus on what moves us toward — '+esc(m.goal||DEFAULT_GOAL)+'.';
   }
   function renderMeetingSel(){
     document.getElementById('meetingSel').innerHTML = store.meetings.map(m=>`<option value="${m.id}" ${m.id===store.activeId?'selected':''}>${esc(m.name)}</option>`).join('');
