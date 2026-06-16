@@ -743,6 +743,9 @@
     }
     box.innerHTML='<div class="note">Submitting…</div>';
     const m=cur();
+    // stamp the final name/department on every item at submit, so nothing gets left as "Unnamed"
+    const finalBy=who(), finalDept=deptEl.value.trim();
+    formDraft.forEach(en=>{ en.by=finalBy; en.dept=finalDept; });
     try{
       if(USE_DB){ const {error}=await sb.from('entries').insert(formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}))); if(error) throw error; }
       else { formDraft.forEach(en=>m.entries.push(en)); save(); }
