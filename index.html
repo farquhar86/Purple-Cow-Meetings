@@ -166,6 +166,8 @@
   table.dash-tbl th{background:var(--lilac);color:var(--purple-dark);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;}
   table.dash-tbl td{padding:10px 12px;border-top:1px solid var(--line);font-size:14px;vertical-align:top;}
   body.presenting .mgr-fab,body.presenting .dash-bar,body.presenting .filters,body.presenting .tabs,body.presenting .dash-acts,body.presenting .row-actions,body.presenting .commit-row{display:none !important;}
+  #exitPresentBtn{position:fixed;top:12px;right:14px;z-index:300;display:none;box-shadow:0 4px 16px rgba(34,21,49,.35);}
+  body.presenting #exitPresentBtn{display:inline-block;}
   body.presenting{background:#fff;}
 
   /* commit + size */
@@ -329,6 +331,30 @@
     <div class="modal-actions">
       <button class="btn" onclick="doCarry()">Carry over</button>
       <button class="btn ghost" onclick="closeCarryModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- New priority modal (dashboard quick-add) -->
+<div class="modal-ov no-print" id="newPrioModal" onclick="if(event.target===this)closeNewPrioModal()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">➕ New priority</h3>
+    <label>Title</label>
+    <input type="text" id="np-title" placeholder="What's the priority?" style="width:100%;">
+    <div class="pm-grid">
+      <div><label>Type</label><select id="np-kind"><option value="">—</option><option value="bottleneck">🔧 Bottleneck</option><option value="innovation">💡 Innovation</option></select></div>
+      <div><label>Department</label><select id="np-dept"></select></div>
+      <div><label>Impact</label><select id="np-impact"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
+      <div><label>Size</label><select id="np-size"><option value="">—</option><option value="S">S</option><option value="M">M</option><option value="L">L</option></select></div>
+      <div><label>Project manager</label><select id="np-pm"></select></div>
+    </div>
+    <label>Why it matters</label>
+    <textarea id="np-why" placeholder="Why now? What does it unlock?"></textarea>
+    <label>Definition of done <span style="font-weight:400;color:var(--muted)">— one measurable outcome per line</span></label>
+    <textarea id="np-done" placeholder="e.g. New installs scheduled within 5 business days"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveNewPrio()">Create priority</button>
+      <button class="btn ghost" onclick="closeNewPrioModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -501,6 +527,7 @@
 
 <!-- ====================== SCREEN: BACKEND DASHBOARD ====================== -->
 <div id="screen-dash" style="display:none;">
+  <button id="exitPresentBtn" class="btn" onclick="togglePresent()">✕ Exit presentation</button>
   <div class="dash-top">
     <div class="hero-inner">
       <h1>📊 Backend dashboard — <span id="dashQuarter">Quarter</span></h1>
@@ -527,10 +554,7 @@
         <button class="btn danger sm" onclick="deleteMeeting()">Delete</button>
       </div>
       <div class="mgroup" style="margin-left:auto;">
-        <button class="btn sm" onclick="exportData()">⬇ Export</button>
-        <label class="btn ghost sm" style="cursor:pointer;margin:0;">⬆ Combine file
-          <input type="file" accept=".json" style="display:none" onchange="importData(event)">
-        </label>
+        <button class="btn sm" onclick="openNewPrioModal()">➕ New priority</button>
         <button class="btn danger sm" onclick="resetAll()">Clear quarter</button>
       </div>
     </div>
@@ -807,6 +831,29 @@
     document.getElementById('carryModal').classList.add('show');
   }
   function closeCarryModal(){ document.getElementById('carryModal').classList.remove('show'); }
+  function openNewPrioModal(){
+    if(!isManager()) return;
+    document.getElementById('np-title').value=''; document.getElementById('np-why').value=''; document.getElementById('np-done').value='';
+    document.getElementById('np-kind').value=''; document.getElementById('np-impact').value='Medium'; document.getElementById('np-size').value='';
+    document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('');
+    document.getElementById('np-pm').innerHTML='<option value="">— unassigned —</option>'+PROJECT_MANAGERS.map(p=>'<option>'+esc(p)+'</option>').join('');
+    document.getElementById('newPrioModal').classList.add('show');
+    setTimeout(()=>document.getElementById('np-title').focus(),60);
+  }
+  function closeNewPrioModal(){ document.getElementById('newPrioModal').classList.remove('show'); }
+  function saveNewPrio(){
+    const title=document.getElementById('np-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
+    const done=document.getElementById('np-done').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const e={ id:uid(), type:'priority', kind:document.getElementById('np-kind').value||'', title,
+      why:document.getElementById('np-why').value.trim(), dept:document.getElementById('np-dept').value,
+      impact:document.getElementById('np-impact').value||'Medium', size:document.getElementById('np-size').value||'',
+      pm:document.getElementById('np-pm').value||'', done, plan:done.map(()=>({start:'',end:'',pct:0})),
+      notes:'', by:'Added on dashboard', stage:'reviewed', t:Date.now() };
+    syncStageFlags(e);
+    cur().entries.push(e); save();
+    closeNewPrioModal(); dashTab='priority';
+    openPrio(e.id);
+  }
   function doCarry(){
     const targetId=document.getElementById('carryTarget').value;
     const target=store.meetings.find(m=>m.id===targetId); if(!target){ closeCarryModal(); return; }
