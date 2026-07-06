@@ -669,7 +669,7 @@
     const m={ id:uid(), name:defaultQuarterName(), theme:DEFAULT_THEME, goal:DEFAULT_GOAL, entries };
     return { activeId:m.id, meetings:[m] };
   }
-  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} scheduleSync(); }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(store)); }catch(e){} }
   function cur(){ let m=store.meetings.find(x=>x.id===store.activeId); if(!m){ m=store.meetings[0]; store.activeId=m.id; } return m; }
   function isManager(){ return reviewUnlocked; }
 
@@ -677,15 +677,12 @@
   function dbDeleteEntry(id){ if(!USE_DB) return; sb.from('entries').delete().eq('id',id).then(r=>{ if(r.error) console.warn('entry delete',r.error); }); }
   function dbDeleteMeeting(id){ if(!USE_DB) return; sb.from('meetings').delete().eq('id',id).then(r=>{ if(r.error) console.warn('meeting delete',r.error); }); }
   function dbDeleteEntriesForMeeting(mid){ if(!USE_DB) return; sb.from('entries').delete().eq('meeting_id',mid).then(r=>{ if(r.error) console.warn('entries delete',r.error); }); }
-  let _syncT=null;
-  function scheduleSync(){ if(!USE_DB) return; clearTimeout(_syncT); _syncT=setTimeout(syncActive,500); }
-  async function syncActive(){
-    if(!USE_DB) return; const m=cur();
-    try{
-      await sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}});
-      if(m.entries.length) await sb.from('entries').upsert(m.entries.map(e=>({id:e.id,meeting_id:m.id,data:e})));
-    }catch(err){ console.warn('sync',err); }
-  }
+  // Save just ONE entry to the database (never the whole quarter — so no one clobbers others' work)
+  function dbUpsertEntry(mid, e){ if(!USE_DB) return; sb.from('entries').upsert({id:e.id,meeting_id:mid,data:e}).then(r=>{ if(r.error) console.warn('entry upsert',r.error); }); }
+  function dbUpsertMeeting(m){ if(!USE_DB) return; sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}}).then(r=>{ if(r.error) console.warn('meeting upsert',r.error); }); }
+  function persist(e){ save(); dbUpsertEntry(cur().id, e); }
+  let _noteT={};
+  function persistNote(e){ save(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertEntry(cur().id, e), 600); }
   async function dbLoad(){
     const [mr,er]=await Promise.all([ sb.from('meetings').select('id,data'), sb.from('entries').select('id,meeting_id,data') ]);
     if(mr.error) throw mr.error; if(er.error) throw er.error;
@@ -785,11 +782,11 @@
     const label = field==='done' ? 'Edit "done" measures (one per line)' : ('Edit '+field);
     editModal(label, curVal, (v)=>{
       if(field==='done'){ e.done=v.split('\n').map(s=>s.trim()).filter(Boolean); } else { e[field]=v.trim(); }
-      save(); render();
+      persist(e); render();
     });
   }
   function saveNote(id, val){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val; save();
+    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val; persistNote(e);
     const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
   }
 
@@ -850,7 +847,7 @@
       pm:document.getElementById('np-pm').value||'', done, plan:done.map(()=>({start:'',end:'',pct:0})),
       notes:'', by:'Added on dashboard', stage:'reviewed', t:Date.now() };
     syncStageFlags(e);
-    cur().entries.push(e); save();
+    cur().entries.push(e); persist(e);
     closeNewPrioModal(); dashTab='priority';
     openPrio(e.id);
   }
@@ -859,9 +856,10 @@
     const target=store.meetings.find(m=>m.id===targetId); if(!target){ closeCarryModal(); return; }
     const src=cur(); const list=carryCandidates(src); let added=0;
     list.forEach(e=>{
-      target.entries.push({ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
+      const copy={ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
         done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0})),
-        stage:'committed', reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() });
+        stage:'committed', reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() };
+      target.entries.push(copy); dbUpsertEntry(target.id, copy);
       added++;
     });
     closeCarryModal();
@@ -1211,8 +1209,8 @@
 
   /* ---------- commit / size / generic field ---------- */
   let presenting=false;
-  function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; save(); refreshPrio(); }
-  function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; save(); refreshPrio(); }
+  function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; persist(e); refreshPrio(); }
+  function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; persist(e); refreshPrio(); }
   function isScheduled(e){ return !!prioRange(e); }
   function stageRank(k){ const i=STAGE_ORDER.indexOf(k); return i<0?0:i; }
   function legacyStage(e){
@@ -1271,11 +1269,11 @@
   }
   function setStageClick(id,key){
     const e=cur().entries.find(x=>x.id===id); if(!e) return;
-    e.stage=key; syncStageFlags(e); save(); refreshPrio();
+    e.stage=key; syncStageFlags(e); persist(e); refreshPrio();
     if(key==='sized' && !e.size){ infoModal('Tip: pick a size (S / M / L) below so this stage reflects an estimate.'); }
     else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
   }
-  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); save(); refreshPrio(); }
+  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
 
   /* ---------- date helpers ---------- */
   function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
@@ -1298,10 +1296,10 @@
     let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
     return Math.round(sum/done.length);
   }
-  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); save(); refreshPrio(); }
-  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); autoStage(e); save(); refreshPrio(); }
-  function editDoneText(id,i,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done[i]=val; save(); refreshPrio(); }
-  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); autoStage(e); save(); refreshPrio(); }
+  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); persist(e); refreshPrio(); }
+  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); autoStage(e); persist(e); refreshPrio(); }
+  function editDoneText(id,i,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done[i]=val; persist(e); refreshPrio(); }
+  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); autoStage(e); persist(e); refreshPrio(); }
   function renderPrioPage(){
     const e=cur().entries.find(x=>x.id===prioOpenId);
     const body=document.getElementById('prio-body');
@@ -1420,9 +1418,10 @@
     const name=document.getElementById('mm-q').value+' '+document.getElementById('mm-year').value;
     const theme=document.getElementById('mm-theme').value.trim()||DEFAULT_THEME;
     const goal=document.getElementById('mm-goal').value.trim();
-    if(meetingMode==='new'){ const m={id:uid(),name,theme,goal,entries:[]}; store.meetings.push(m); store.activeId=m.id; }
-    else { const m=cur(); m.name=name; m.theme=theme; m.goal=goal; }
-    save(); applyTheme(); renderMeetingSel(); render(); closeMeetingModal();
+    let m;
+    if(meetingMode==='new'){ m={id:uid(),name,theme,goal,entries:[]}; store.meetings.push(m); store.activeId=m.id; }
+    else { m=cur(); m.name=name; m.theme=theme; m.goal=goal; }
+    save(); dbUpsertMeeting(m); applyTheme(); renderMeetingSel(); render(); closeMeetingModal();
   }
 
   /* ---------- export / import / reset ---------- */
