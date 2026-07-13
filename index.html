@@ -1221,11 +1221,11 @@
         withRange.forEach(o=>{ const pm=o.e.pm||'Unassigned'; if(pm!==lastPm){ rows+=`<div class="rm-group">👤 ${esc(pm)}</div>`; lastPm=pm; } rows+=rowHTML(o); });
       } else { rows=withRange.map(rowHTML).join(''); }
       html+=`<div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — committed priorities for ${esc(cur().name)}</p>${sortSel}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)} <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;">· ${pr.length} committed · ${withRange.length} scheduled${noDates.length?' · '+noDates.length+' unscheduled':''}</span></p>${sortSel}</div>
         <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${todayMark}${ticks}</div></div>${rows}</div>
         <p class="sched-summary">Full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}); red line = today. Bar colour = impact: <strong style="color:#6a2c8f;">■ High</strong> · <strong style="color:#2f8f8f;">■ Medium</strong> · <strong style="color:#9aa0a6;">■ Low</strong>. <strong style="color:var(--red);">Red</strong> = overdue · <strong style="color:#b9701a;">⏰ amber outline</strong> = behind schedule. ▸ expand a priority to see its pieces.</p></div>`;
     } else {
-      html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)}</p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
+      html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)} <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;">· ${pr.length} committed · 0 scheduled</span></p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
     }
     if(noDates.length){
       html+=`<div class="card" style="margin-top:16px;"><p class="done-label">Committed, not yet scheduled</p>`+noDates.map(e=>`<div style="padding:5px 0;font-size:14px;"><span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${prioPct(e)}%</span> <span class="rm-pm">👤 ${e.pm?esc(e.pm):'Unassigned'}</span> — add start &amp; end dates to place it on the roadmap.</div>`).join('')+`</div>`;
