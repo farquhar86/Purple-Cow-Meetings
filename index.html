@@ -1169,7 +1169,7 @@
       const todayPct = todayIn ? (daysBetween(min,now)/total*100) : 0;
       const todayMark = todayIn ? '<div class="today-line" style="left:'+todayPct+'%"></div>' : '';
       let ticks=''; let d=new Date(min.getFullYear(),min.getMonth(),1);
-      while(d<=max){ const left=Math.max(0,daysBetween(min,d)/total*100); ticks+=`<span class="rm-tick" style="left:${left}%">${d.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</span>`; d.setMonth(d.getMonth()+1); }
+      while(d<=max){ const left=Math.max(0,daysBetween(min,d)/total*100); ticks+=`<span class="rm-tick" style="left:${left}%">${d.toLocaleDateString('en-US',{month:'short'})}</span>`; d.setMonth(d.getMonth()+1); }
       if(todayIn) ticks+='<span class="rm-today-lbl" style="left:'+todayPct+'%">▼ Today</span>';
       function clampBar(startD, endD){ let left=Math.max(0,Math.min(100,daysBetween(min,startD)/total*100)); let width=(daysBetween(startD,endD)+1)/total*100; if(left+width>100) width=100-left; width=Math.max(2,width); return {left,width}; }
       const rank={High:0,Medium:1,Low:2}, sz={S:0,M:1,L:2};
