@@ -238,6 +238,8 @@
   .g-fill{position:absolute;left:0;top:0;height:100%;background:rgba(255,255,255,.55);border-radius:6px 0 0 6px;}
   .g-bar span{position:relative;z-index:1;}
   .rm-toggle{cursor:pointer;border:none;background:none;color:var(--purple-dark);font-weight:700;font-size:13px;padding:0 4px 0 0;}
+  .today-line{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--red);opacity:.75;z-index:3;pointer-events:none;border-radius:1px;}
+  .rm-today-lbl{position:absolute;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--red);white-space:nowrap;}
   .rm-sub .g-label{width:34%;font-size:12px;color:var(--muted);padding-left:18px;}
   .rm-sub .g-track{height:16px;background:var(--lilac);}
   .rm-sub .g-bar{height:16px;font-size:9px;background:var(--purple-light);}
@@ -1102,6 +1104,12 @@
     dated.forEach(p=>{ const s=parseD(p.start),en=parseD(p.end); if(s<min)min=s; if(en>max)max=en; });
     return {min,max};
   }
+  function quarterRange(name){
+    const m=(name||'').match(/Q([1-4])\s*(\d{4})/i);
+    if(!m) return null;
+    const q=+m[1], y=+m[2];
+    return { start:new Date(y,(q-1)*3,1), end:new Date(y,q*3,0) };
+  }
   let cardExpanded={};
   function toggleCard(id){ cardExpanded[id]=!cardExpanded[id]; renderDashBody(); }
   function expandAllCards(b){ if(b){ cur().entries.forEach(e=>{ if(e.type==='priority') cardExpanded[e.id]=true; }); } else { cardExpanded={}; } renderDashBody(); }
@@ -1151,11 +1159,19 @@
       </select></div>`;
     let html='';
     if(withRange.length){
-      let min=withRange[0].min, max=withRange[0].max;
-      withRange.forEach(o=>{ if(o.min<min)min=o.min; if(o.max>max)max=o.max; });
+      let min, max;
+      const qr=quarterRange(cur().name);
+      if(qr){ min=qr.start; max=qr.end; }
+      else { min=withRange[0].min; max=withRange[0].max; withRange.forEach(o=>{ if(o.min<min)min=o.min; if(o.max>max)max=o.max; }); }
       const total=Math.max(1, daysBetween(min,max)+1);
+      const now=todayStart();
+      const todayIn = now>=min && now<=max;
+      const todayPct = todayIn ? (daysBetween(min,now)/total*100) : 0;
+      const todayMark = todayIn ? '<div class="today-line" style="left:'+todayPct+'%"></div>' : '';
       let ticks=''; let d=new Date(min.getFullYear(),min.getMonth(),1);
       while(d<=max){ const left=Math.max(0,daysBetween(min,d)/total*100); ticks+=`<span class="rm-tick" style="left:${left}%">${d.toLocaleDateString('en-US',{month:'short',year:'2-digit'})}</span>`; d.setMonth(d.getMonth()+1); }
+      if(todayIn) ticks+='<span class="rm-today-lbl" style="left:'+todayPct+'%">▼ Today</span>';
+      function clampBar(startD, endD){ let left=Math.max(0,Math.min(100,daysBetween(min,startD)/total*100)); let width=(daysBetween(startD,endD)+1)/total*100; if(left+width>100) width=100-left; width=Math.max(2,width); return {left,width}; }
       const rank={High:0,Medium:1,Low:2}, sz={S:0,M:1,L:2};
       if(roadmapSort==='pm') withRange.sort((a,b)=>(a.e.pm||'~').localeCompare(b.e.pm||'~')||(a.min-b.min));
       else if(roadmapSort==='impact') withRange.sort((a,b)=>(rank[a.e.impact]??1)-(rank[b.e.impact]??1)||(a.min-b.min));
@@ -1163,8 +1179,7 @@
       else withRange.sort((a,b)=>a.min-b.min);
       function rowHTML(o){
         const e=o.e, pct=prioPct(e), exp=!!roadmapExpanded[e.id];
-        const left=daysBetween(min,o.min)/total*100;
-        const width=Math.max(3,(daysBetween(o.min,o.max)+1)/total*100);
+        const b=clampBar(o.min,o.max);
         const meta=[e.size?'Size '+esc(e.size):'', '👤 PM: '+(e.pm?esc(e.pm):'Unassigned')].join(' · ');
         let row=`<div class="rm-row">
           <div class="g-label">
@@ -1172,18 +1187,18 @@
             ${isAtRisk(e)?'<span title="At risk — has an overdue task">⚠ </span>':''}<span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span>
             <div class="rm-pm">${meta}</div>
           </div>
-          <div class="g-track"><div class="g-bar" style="left:${left}%;width:${width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
+          <div class="g-track">${todayMark}<div class="g-bar" style="left:${b.left}%;width:${b.width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
         </div>`;
         if(exp){
           (e.done||[]).forEach((dn,i)=>{
             const p=(e.plan&&e.plan[i])||{}; const ip=Number(p.pct)||0;
             if(p.start&&p.end&&parseD(p.start)&&parseD(p.end)&&parseD(p.end)>=parseD(p.start)){
               const s=parseD(p.start),en=parseD(p.end);
-              const l=daysBetween(min,s)/total*100, w=Math.max(2,(daysBetween(s,en)+1)/total*100);
+              const sb2=clampBar(s,en);
               const od=isOverduePlan(p);
-              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':''}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><div class="g-bar${od?' g-overdue':''}" style="left:${l}%;width:${w}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':''}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${sb2.left}%;width:${sb2.width}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
             } else {
-              row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track"><span class="g-none">not scheduled</span></div></div>`;
+              row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
             }
           });
         }
@@ -1196,8 +1211,8 @@
       } else { rows=withRange.map(rowHTML).join(''); }
       html+=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — committed priorities for ${esc(cur().name)}</p>${sortSel}</div>
-        <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${ticks}</div></div>${rows}</div>
-        <p class="sched-summary">▸ click the arrow to expand a priority into its pieces. Lighter fill shows % complete. Click a bar to open the priority.</p></div>`;
+        <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${todayMark}${ticks}</div></div>${rows}</div>
+        <p class="sched-summary">Showing the full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}). The red line marks today. ▸ expand a priority to see its pieces; click a bar to open it.</p></div>`;
     } else {
       html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)}</p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
     }
