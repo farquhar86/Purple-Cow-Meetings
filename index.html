@@ -26,8 +26,12 @@
   .login-divider::before,.login-divider::after{content:"";flex:1;height:1px;background:var(--line);}
 
   /* Manager access button */
-  .mgr-fab{position:fixed;top:12px;right:14px;z-index:250;}
-  .mgr-fab .btn{box-shadow:0 4px 16px rgba(34,21,49,.35);border:1px solid rgba(255,255,255,.4);}
+  .topright{position:fixed;top:10px;right:14px;z-index:260;display:flex;align-items:center;gap:10px;}
+  .topright .btn{box-shadow:0 4px 16px rgba(34,21,49,.35);border:1px solid rgba(255,255,255,.4);}
+  .brandmark{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 13px 4px 6px;box-shadow:0 2px 10px rgba(34,21,49,.18);}
+  .bm-logo{width:24px;height:24px;border-radius:7px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;letter-spacing:-.5px;}
+  .bm-name{font-weight:800;font-size:13px;color:var(--purple-dark);letter-spacing:-.2px;white-space:nowrap;}
+  @media(max-width:520px){.bm-name{display:none;}}
   .modal-ov{position:fixed;inset:0;background:rgba(34,21,49,.55);display:none;align-items:center;justify-content:center;z-index:400;padding:18px;}
   .modal-ov.show{display:flex;}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
@@ -165,7 +169,7 @@
   table.dash-tbl{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
   table.dash-tbl th{background:var(--lilac);color:var(--purple-dark);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;}
   table.dash-tbl td{padding:10px 12px;border-top:1px solid var(--line);font-size:14px;vertical-align:top;}
-  body.presenting .mgr-fab,body.presenting .dash-bar,body.presenting .filters,body.presenting .tabs,body.presenting .dash-acts,body.presenting .row-actions,body.presenting .commit-row{display:none !important;}
+  body.presenting .topright,body.presenting .dash-bar,body.presenting .filters,body.presenting .tabs,body.presenting .dash-acts,body.presenting .row-actions,body.presenting .commit-row{display:none !important;}
   #exitPresentBtn{position:fixed;top:12px;right:14px;z-index:300;display:none;box-shadow:0 4px 16px rgba(34,21,49,.35);}
   body.presenting #exitPresentBtn{display:inline-block;}
   body.presenting{background:#fff;}
@@ -251,14 +255,19 @@
   .rm-sortbar select{padding:6px 9px;font-size:13px;}
 
   @media print{
-    .mgr-fab,.dash-bar,.filters,.tabs,.dash-acts,.row-actions,.add-row,.prio-form,.toolbar,.note.no-print{display:none !important;}
+    .topright,.dash-bar,.filters,.tabs,.dash-acts,.row-actions,.add-row,.prio-form,.toolbar,.note.no-print{display:none !important;}
     body{background:#fff;}
   }
 </style>
 </head>
 <body>
 
-<div class="mgr-fab no-print"><button class="btn" id="mgrBtn" onclick="fabClick()">🔒 Manager</button></div>
+<div class="topright no-print">
+  <button class="btn" id="mgrBtn" onclick="fabClick()">🔒 Manager login</button>
+  <div class="brandmark" title="Not Metronome — Purple Cow's planning tool">
+    <span class="bm-logo">NM</span><span class="bm-name">Not Metronome</span>
+  </div>
+</div>
 
 <!-- ====================== SCREEN: LOGIN LANDING ====================== -->
 <div id="screen-login">
@@ -898,9 +907,9 @@
   }
   function logout(){ reviewUnlocked=false; try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
   function updateFab(){
-    const fab=document.querySelector('.mgr-fab'); const b=document.getElementById('mgrBtn');
-    if(fab) fab.style.display = (screen==='login') ? 'none' : 'block';
-    if(b) b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard');
+    const b=document.getElementById('mgrBtn');
+    if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
+      b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
   function showScreen(name){ screen=name;
     document.getElementById('screen-login').style.display=name==='login'?'block':'none';
@@ -1189,7 +1198,7 @@
             ${isAtRisk(e)?'<span title="At risk — has an overdue task">⚠ </span>':''}<span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span> ${isPrioBehind(e)?'<span class="behind-chip" title="Behind — progress has not kept up with the timeline">⏰ behind</span>':''}
             <div class="rm-pm">${meta}</div>
           </div>
-          <div class="g-track">${todayMark}<div class="g-bar${isPrioBehind(e)?' g-behind':''}" style="left:${b.left}%;width:${b.width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
+          <div class="g-track">${todayMark}<div class="g-bar${isPrioBehind(e)?' g-behind':''}" style="left:${b.left}%;width:${b.width}%;background:${impactColor(e.impact)};" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)} · ${esc(e.impact)} impact"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
         </div>`;
         if(exp){
           (e.done||[]).forEach((dn,i)=>{
@@ -1198,7 +1207,7 @@
               const s=parseD(p.start),en=parseD(p.end);
               const sb2=clampBar(s,en);
               const od=isOverduePlan(p); const bh=!od && isPlanBehind(p);
-              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':(bh?'⏰ ':'')}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':(bh?' g-behind':'')}" style="left:${sb2.left}%;width:${sb2.width}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':(bh?'⏰ ':'')}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':(bh?' g-behind':'')}" style="left:${sb2.left}%;width:${sb2.width}%;${od?'':'background:'+impactColor(e.impact)+';'}"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
             } else {
               row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
             }
@@ -1214,7 +1223,7 @@
       html+=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — committed priorities for ${esc(cur().name)}</p>${sortSel}</div>
         <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${todayMark}${ticks}</div></div>${rows}</div>
-        <p class="sched-summary">Full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}); red line = today. <strong style="color:var(--red);">Red bar</strong> = overdue · <strong style="color:#b9701a;">⏰ amber outline</strong> = behind schedule (progress hasn't kept up with time). ▸ expand a priority to see its pieces.</p></div>`;
+        <p class="sched-summary">Full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}); red line = today. Bar colour = impact: <strong style="color:#6a2c8f;">■ High</strong> · <strong style="color:#2f8f8f;">■ Medium</strong> · <strong style="color:#9aa0a6;">■ Low</strong>. <strong style="color:var(--red);">Red</strong> = overdue · <strong style="color:#b9701a;">⏰ amber outline</strong> = behind schedule. ▸ expand a priority to see its pieces.</p></div>`;
     } else {
       html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)}</p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
     }
@@ -1255,6 +1264,7 @@
   function planExpectedPct(p){ if(!p||!p.start||!p.end) return 0; const s=parseD(p.start),en=parseD(p.end); if(!s||!en||en<s) return 0; const now=todayStart(); if(now<=s) return 0; if(now>=en) return 100; return daysBetween(s,now)/(daysBetween(s,en)+1)*100; }
   function isPlanBehind(p){ if(!p||!p.start||!p.end) return false; const s=parseD(p.start),en=parseD(p.end),now=todayStart(); if(!s||!en) return false; if(now<s||now>en) return false; return (Number(p.pct)||0) < planExpectedPct(p)-10; }
   function isPrioBehind(e){ if(isComplete(e)) return false; const r=prioRange(e); if(!r) return false; const now=todayStart(); if(now<r.min||now>r.max) return false; const total=daysBetween(r.min,r.max)+1; const expected=daysBetween(r.min,now)/total*100; return prioPct(e) < expected-10; }
+  function impactColor(imp){ return imp==='High' ? '#6a2c8f' : imp==='Low' ? '#9aa0a6' : '#2f8f8f'; }
   function kindBadge(e){ if(e.kind==='bottleneck') return '<span class="badge b-bottleneck">🔧 Bottleneck</span> '; if(e.kind==='innovation') return '<span class="badge b-innovation">💡 Innovation</span> '; return ''; }
   function passKind(e){ const s=document.getElementById('f-kind'); const k=s&&s.value; return !k || (e.kind||'')===k; }
   const SIZE_WEIGHT={S:1,M:2,L:3};
