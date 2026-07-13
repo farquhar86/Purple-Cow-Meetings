@@ -239,6 +239,8 @@
   .g-bar span{position:relative;z-index:1;}
   .rm-toggle{cursor:pointer;border:none;background:none;color:var(--purple-dark);font-weight:700;font-size:13px;padding:0 4px 0 0;}
   .today-line{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--red);opacity:.75;z-index:3;pointer-events:none;border-radius:1px;}
+  .g-bar.g-behind{box-shadow:0 0 0 2px var(--amber);}
+  .behind-chip{font-size:10px;font-weight:700;color:#b9701a;background:#fdeede;padding:1px 7px;border-radius:999px;}
   .rm-today-lbl{position:absolute;top:-2px;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--red);white-space:nowrap;}
   .rm-sub .g-label{width:34%;font-size:12px;color:var(--muted);padding-left:18px;}
   .rm-sub .g-track{height:16px;background:var(--lilac);}
@@ -1184,10 +1186,10 @@
         let row=`<div class="rm-row">
           <div class="g-label">
             <button class="rm-toggle" onclick="toggleRoadmapRow('${e.id}')" title="Show / hide pieces">${exp?'▾':'▸'}</button>
-            ${isAtRisk(e)?'<span title="At risk — has an overdue task">⚠ </span>':''}<span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span>
+            ${isAtRisk(e)?'<span title="At risk — has an overdue task">⚠ </span>':''}<span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${pct}%</span> ${isPrioBehind(e)?'<span class="behind-chip" title="Behind — progress has not kept up with the timeline">⏰ behind</span>':''}
             <div class="rm-pm">${meta}</div>
           </div>
-          <div class="g-track">${todayMark}<div class="g-bar" style="left:${b.left}%;width:${b.width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
+          <div class="g-track">${todayMark}<div class="g-bar${isPrioBehind(e)?' g-behind':''}" style="left:${b.left}%;width:${b.width}%;" onclick="openPrio('${e.id}')" title="${esc(e.title)}: ${toISO(o.min)} → ${toISO(o.max)}"><div class="g-fill" style="width:${pct}%"></div><span>${fmtShort(toISO(o.min))}–${fmtShort(toISO(o.max))}</span></div></div>
         </div>`;
         if(exp){
           (e.done||[]).forEach((dn,i)=>{
@@ -1195,8 +1197,8 @@
             if(p.start&&p.end&&parseD(p.start)&&parseD(p.end)&&parseD(p.end)>=parseD(p.start)){
               const s=parseD(p.start),en=parseD(p.end);
               const sb2=clampBar(s,en);
-              const od=isOverduePlan(p);
-              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':''}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${sb2.left}%;width:${sb2.width}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+              const od=isOverduePlan(p); const bh=!od && isPlanBehind(p);
+              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':(bh?'⏰ ':'')}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':(bh?' g-behind':'')}" style="left:${sb2.left}%;width:${sb2.width}%;"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
             } else {
               row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
             }
@@ -1212,7 +1214,7 @@
       html+=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — committed priorities for ${esc(cur().name)}</p>${sortSel}</div>
         <div class="roadmap"><div class="rm-row rm-head"><div class="g-label"></div><div class="g-track rm-axis">${todayMark}${ticks}</div></div>${rows}</div>
-        <p class="sched-summary">Showing the full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}). The red line marks today. ▸ expand a priority to see its pieces; click a bar to open it.</p></div>`;
+        <p class="sched-summary">Full quarter (${fmtShort(toISO(min))} – ${fmtShort(toISO(max))}); red line = today. <strong style="color:var(--red);">Red bar</strong> = overdue · <strong style="color:#b9701a;">⏰ amber outline</strong> = behind schedule (progress hasn't kept up with time). ▸ expand a priority to see its pieces.</p></div>`;
     } else {
       html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)}</p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
     }
@@ -1250,6 +1252,9 @@
   function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
   function isOverduePlan(p){ if(!p||!p.end) return false; const en=parseD(p.end); return !!(en && en < todayStart() && (Number(p.pct)||0) < 100); }
   function isAtRisk(e){ if(isComplete(e)) return false; return (e.plan||[]).some(isOverduePlan); }
+  function planExpectedPct(p){ if(!p||!p.start||!p.end) return 0; const s=parseD(p.start),en=parseD(p.end); if(!s||!en||en<s) return 0; const now=todayStart(); if(now<=s) return 0; if(now>=en) return 100; return daysBetween(s,now)/(daysBetween(s,en)+1)*100; }
+  function isPlanBehind(p){ if(!p||!p.start||!p.end) return false; const s=parseD(p.start),en=parseD(p.end),now=todayStart(); if(!s||!en) return false; if(now<s||now>en) return false; return (Number(p.pct)||0) < planExpectedPct(p)-10; }
+  function isPrioBehind(e){ if(isComplete(e)) return false; const r=prioRange(e); if(!r) return false; const now=todayStart(); if(now<r.min||now>r.max) return false; const total=daysBetween(r.min,r.max)+1; const expected=daysBetween(r.min,now)/total*100; return prioPct(e) < expected-10; }
   function kindBadge(e){ if(e.kind==='bottleneck') return '<span class="badge b-bottleneck">🔧 Bottleneck</span> '; if(e.kind==='innovation') return '<span class="badge b-innovation">💡 Innovation</span> '; return ''; }
   function passKind(e){ const s=document.getElementById('f-kind'); const k=s&&s.value; return !k || (e.kind||'')===k; }
   const SIZE_WEIGHT={S:1,M:2,L:3};
