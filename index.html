@@ -363,8 +363,8 @@
     </div>
     <label>Why it matters</label>
     <textarea id="np-why" placeholder="Why now? What does it unlock?"></textarea>
-    <label>Definition of done <span style="font-weight:400;color:var(--muted)">— one measurable outcome per line</span></label>
-    <textarea id="np-done" placeholder="e.g. New installs scheduled within 5 business days"></textarea>
+    <label>Tasks <span style="font-weight:400;color:var(--muted)">— one per line (you can add dates after)</span></label>
+    <textarea id="np-done" placeholder="e.g. Choose vendor"></textarea>
     <div class="modal-actions">
       <button class="btn" onclick="saveNewPrio()">Create priority</button>
       <button class="btn ghost" onclick="closeNewPrioModal()">Cancel</button>
@@ -1047,7 +1047,7 @@
     const exp = !!cardExpanded[e.id];
     const detail = exp ? `
       ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
-      <p class="done-label">Definition of done</p>${done}
+      <p class="done-label">🛠 Tasks</p>${done}
       <div class="notes-wrap">
         <div class="nlabel">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></div>
         <textarea class="notes-area" oninput="saveNote('${e.id}', this.value)" placeholder="Notes from the review — clarifications, decisions, what 'done' really means, who owns it…">${esc(e.notes||'')}</textarea>
@@ -1304,6 +1304,7 @@
     else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
   }
   function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
+  function setDod(id,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.dod=val.split('\n').map(s=>s.trim()).filter(Boolean); persist(e); }
 
   /* ---------- date helpers ---------- */
   function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
@@ -1339,6 +1340,7 @@
     const deptOpts=['',...DEPARTMENTS].map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
     const pct=prioPct(e);
+    const dodText = ((e.dod!==undefined) ? e.dod : (e.done||[]).slice()).join('\n');
     const doneRows = e.done.length ? e.done.map((d,i)=>`
       <tr>
         <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
@@ -1383,11 +1385,16 @@
       </div>
 
       <div class="card" style="margin-bottom:16px;">
+        <p class="done-label">✅ Definition of Done <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— what "done" means for this (one per line)</span></p>
+        <textarea onchange="setDod('${e.id}',this.value)" style="width:100%;min-height:80px;" placeholder="e.g. New installs scheduled within 5 business days">${esc(dodText)}</textarea>
+      </div>
+
+      <div class="card" style="margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <p class="done-label" style="margin:0;">Definition of done — task list</p>
-          <button class="btn sm" onclick="addDone('${e.id}')">+ Add item</button>
+          <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline</span></p>
+          <button class="btn sm" onclick="addDone('${e.id}')">+ Add task</button>
         </div>
-        <table class="sched-tbl"><thead><tr><th>✓</th><th>Item</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
+        <table class="sched-tbl"><thead><tr><th>✓</th><th>Task</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
       </div>
 
       <div class="card">
