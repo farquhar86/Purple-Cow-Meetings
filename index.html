@@ -348,6 +348,19 @@
   </div>
 </div>
 
+<!-- Set-password modal (invite / reset links) -->
+<div class="modal-ov no-print" id="setpwModal">
+  <div class="modal" style="text-align:center;">
+    <div class="lockicon">🔑</div>
+    <h3>Set your password</h3>
+    <p class="block-desc" style="margin:2px auto 10px;">Welcome to Not Metronome! Choose a password to finish setting up your account.</p>
+    <input type="password" id="setpw1" placeholder="New password" style="text-align:center;">
+    <input type="password" id="setpw2" placeholder="Confirm password" style="text-align:center;margin-top:8px;">
+    <div class="lock-err" id="setpwErr"></div>
+    <div class="modal-actions"><button class="btn" onclick="submitSetPassword()">Set password &amp; continue</button></div>
+  </div>
+</div>
+
 <!-- Team / users modal -->
 <div class="modal-ov no-print" id="teamsModal" onclick="if(event.target===this)closeTeamsModal()">
   <div class="modal modal-scroll" style="text-align:left;">
@@ -355,11 +368,10 @@
     <p class="block-desc" style="margin:2px 0 12px;">Add or remove people who can sign in to the manager dashboard.</p>
     <div id="teamsList"><p class="empty">Loading…</p></div>
     <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
-    <label>Add a person</label>
+    <label>Invite a person <span style="font-weight:400;color:var(--muted)">— they'll get an email to set their own password</span></label>
     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-      <input type="email" id="newUserEmail" placeholder="email@purplecowinternet.com" style="flex:2;min-width:180px;">
-      <input type="password" id="newUserPw" placeholder="temporary password" style="flex:1;min-width:150px;">
-      <button class="btn" onclick="addTeamUser()">Add</button>
+      <input type="email" id="newUserEmail" placeholder="email@purplecowinternet.com" style="flex:1;min-width:220px;">
+      <button class="btn" onclick="addTeamUser()">Send invite</button>
     </div>
     <div class="lock-err" id="teamsErr"></div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
@@ -681,6 +693,7 @@
   const SUPABASE_URL = 'https://pabuedfwiinvlhvmrslm.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_OVguZFResdKPD8Un4E9j3w_RH3WFlZS';
   const USE_DB = !!(SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase);
+  const INITIAL_HASH = (typeof location!=='undefined' && location.hash) || ''; // captured before Supabase consumes it (invite / password-reset links)
   const sb = USE_DB ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -865,7 +878,7 @@
     document.getElementById('np-title').value=''; document.getElementById('np-why').value=''; document.getElementById('np-done').value='';
     document.getElementById('np-kind').value=''; document.getElementById('np-impact').value='Medium'; document.getElementById('np-size').value='';
     document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('');
-    document.getElementById('np-pm').innerHTML='<option value="">— unassigned —</option>'+PROJECT_MANAGERS.map(p=>'<option>'+esc(p)+'</option>').join('');
+    document.getElementById('np-pm').innerHTML=ownerOptions('');
     document.getElementById('newPrioModal').classList.add('show');
     setTimeout(()=>document.getElementById('np-title').focus(),60);
   }
@@ -883,7 +896,14 @@
   }
   let teamUsers=[];
   async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
-  function ownerOptions(selected){ return ['<option value="">— unassigned —</option>'].concat((teamUsers||[]).map(u=>{ const em=u.email||''; return '<option value="'+esc(em)+'"'+((selected||'')===em?' selected':'')+'>'+esc((em.split('@')[0])||em)+'</option>'; })).join(''); }
+  function pmName(p){ return p ? (p.indexOf('@')>=0 ? p.split('@')[0] : p) : ''; }
+  function ownerOptions(selected){
+    const emails=(teamUsers||[]).map(u=>u.email||'');
+    let out='<option value="">— unassigned —</option>';
+    emails.forEach(em=>{ out+='<option value="'+esc(em)+'"'+((selected||'')===em?' selected':'')+'>'+esc(pmName(em))+'</option>'; });
+    if(selected && emails.indexOf(selected)<0){ out+='<option value="'+esc(selected)+'" selected>'+esc(pmName(selected))+'</option>'; }
+    return out;
+  }
   function openTeamsModal(){ if(!isManager()) return; document.getElementById('teamsErr').textContent=''; document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; document.getElementById('teamsModal').classList.add('show'); loadTeamUsers(); }
   function closeTeamsModal(){ document.getElementById('teamsModal').classList.remove('show'); }
   async function loadTeamUsers(){
@@ -896,13 +916,27 @@
     }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
   }
   async function addTeamUser(){
-    const email=document.getElementById('newUserEmail').value.trim(), pw=document.getElementById('newUserPw').value;
+    const email=document.getElementById('newUserEmail').value.trim();
     const err=document.getElementById('teamsErr'); err.textContent='';
-    if(!email||!pw){ err.textContent='Enter an email and a password.'; return; }
-    if(pw.length<6){ err.textContent='Password must be at least 6 characters.'; return; }
-    err.textContent='Adding…';
-    try{ await callUserFn({action:'create',email,password:pw}); document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; err.textContent=''; loadTeamUsers(); }
+    if(!email){ err.textContent='Enter an email address.'; return; }
+    err.textContent='Sending invite…';
+    try{ await callUserFn({action:'create',email,redirectTo:location.origin+location.pathname}); document.getElementById('newUserEmail').value=''; err.textContent='✅ Invite emailed to '+email+'.'; loadTeamUsers(); }
     catch(e){ err.textContent=e.message; }
+  }
+  function showSetPassword(){ showScreen('login'); document.getElementById('setpwErr').textContent=''; document.getElementById('setpw1').value=''; document.getElementById('setpw2').value=''; document.getElementById('setpwModal').classList.add('show'); }
+  async function submitSetPassword(){
+    const a=document.getElementById('setpw1').value, b=document.getElementById('setpw2').value, err=document.getElementById('setpwErr');
+    if(!a||a.length<6){ err.textContent='Password must be at least 6 characters.'; return; }
+    if(a!==b){ err.textContent='Passwords do not match.'; return; }
+    err.textContent='Saving…';
+    try{
+      const {error}=await sb.auth.updateUser({password:a}); if(error) throw error;
+      document.getElementById('setpwModal').classList.remove('show');
+      try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
+      reviewUnlocked=true; loadTeamUsersCache();
+      try{ await dbLoad(); }catch(e){}
+      gotoDash();
+    }catch(e){ err.textContent=e.message||'Could not set password.'; }
   }
   function removeTeamUser(id,email){ confirmModal('Remove '+(email||'this user')+'? They will no longer be able to log in.', async ()=>{ try{ await callUserFn({action:'delete',id}); loadTeamUsers(); }catch(e){ document.getElementById('teamsErr').textContent=e.message; } }, 'Remove user'); }
   function saveNewPrio(){
@@ -1118,7 +1152,7 @@
         </span>
         <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${badges}</span>
       </div>
-      <div class="meta-line"><span class="tag t-keep">${dept}</span>${e.pm?`<span class="rm-pm">👤 PM: ${esc(e.pm)}</span>`:''}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}<span class="pct-chip">${pct}% done</span></div>
+      <div class="meta-line"><span class="tag t-keep">${dept}</span>${e.pm?`<span class="rm-pm">👤 PM: ${esc(pmName(e.pm))}</span>`:''}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}<span class="pct-chip">${pct}% done</span></div>
       <div class="pctbar" style="margin:2px 0 ${exp?'8px':'0'};"><div class="pctbar-fill" style="width:${pct}%"></div></div>
       ${detail}
     </div>`;
@@ -1193,7 +1227,7 @@
         const s=list.filter(e=>e.size==='S').length, m=list.filter(e=>e.size==='M').length, l=list.filter(e=>e.size==='L').length, none=list.filter(e=>!e.size).length;
         const pts=list.reduce((a,e)=>a+(SIZE_WEIGHT[e.size]||0),0);
         const risk=list.filter(isAtRisk).length;
-        return `<tr><td><strong>${esc(k)}</strong>${risk?` <span class="badge b-risk">⚠ ${risk}</span>`:''}</td><td>${list.length}</td><td>${s}</td><td>${m}</td><td>${l}</td><td>${none||'–'}</td><td><strong>${pts}</strong></td></tr>`;
+        return `<tr><td><strong>${esc(pmName(k))}</strong>${risk?` <span class="badge b-risk">⚠ ${risk}</span>`:''}</td><td>${list.length}</td><td>${s}</td><td>${m}</td><td>${l}</td><td>${none||'–'}</td><td><strong>${pts}</strong></td></tr>`;
       }).join('');
       return `<div class="card" style="margin-bottom:16px;"><p class="done-label">${label}</p>
         <table class="dash-tbl"><thead><tr><th>${headLabel}</th><th>Priorities</th><th>S</th><th>M</th><th>L</th><th>No size</th><th>Load pts</th></tr></thead><tbody>${rows}</tbody></table></div>`;
@@ -1246,7 +1280,7 @@
       function rowHTML(o){
         const e=o.e, pct=prioPct(e), exp=!!roadmapExpanded[e.id];
         const b=clampBar(o.min,o.max);
-        const meta=[e.size?'Size '+esc(e.size):'', '👤 PM: '+(e.pm?esc(e.pm):'Unassigned')].join(' · ');
+        const meta=[e.size?'Size '+esc(e.size):'', '👤 PM: '+(e.pm?esc(pmName(e.pm)):'Unassigned')].join(' · ');
         let row=`<div class="rm-row">
           <div class="g-label">
             <button class="rm-toggle" onclick="toggleRoadmapRow('${e.id}')" title="Show / hide pieces">${exp?'▾':'▸'}</button>
@@ -1274,7 +1308,7 @@
       let rows='';
       if(roadmapSort==='pm'){
         let lastPm=null;
-        withRange.forEach(o=>{ const pm=o.e.pm||'Unassigned'; if(pm!==lastPm){ rows+=`<div class="rm-group">👤 ${esc(pm)}</div>`; lastPm=pm; } rows+=rowHTML(o); });
+        withRange.forEach(o=>{ const pm=o.e.pm||'Unassigned'; if(pm!==lastPm){ rows+=`<div class="rm-group">👤 ${esc(pmName(pm)||'Unassigned')}</div>`; lastPm=pm; } rows+=rowHTML(o); });
       } else { rows=withRange.map(rowHTML).join(''); }
       html+=`<div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)} <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;">· ${pr.length} committed · ${withRange.length} scheduled${noDates.length?' · '+noDates.length+' unscheduled':''}</span></p>${sortSel}</div>
@@ -1284,7 +1318,7 @@
       html+=`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;"><p class="done-label" style="margin:0;">🗓 Roadmap — ${esc(cur().name)} <span style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0;">· ${pr.length} committed · 0 scheduled</span></p>${sortSel}</div><p class="empty">No committed priorities have dates yet.</p></div>`;
     }
     if(noDates.length){
-      html+=`<div class="card" style="margin-top:16px;"><p class="done-label">Committed, not yet scheduled</p>`+noDates.map(e=>`<div style="padding:5px 0;font-size:14px;"><span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${prioPct(e)}%</span> <span class="rm-pm">👤 ${e.pm?esc(e.pm):'Unassigned'}</span> — add start &amp; end dates to place it on the roadmap.</div>`).join('')+`</div>`;
+      html+=`<div class="card" style="margin-top:16px;"><p class="done-label">Committed, not yet scheduled</p>`+noDates.map(e=>`<div style="padding:5px 0;font-size:14px;"><span class="prio-link" onclick="openPrio('${e.id}')">${esc(e.title)}</span> <span class="pct-chip">${prioPct(e)}%</span> <span class="rm-pm">👤 ${e.pm?esc(pmName(e.pm)):'Unassigned'}</span> — add start &amp; end dates to place it on the roadmap.</div>`).join('')+`</div>`;
     }
     body.innerHTML=backLink()+html;
   }
@@ -1422,7 +1456,7 @@
             <option value="S" ${e.size==='S'?'selected':''}>S — small</option>
             <option value="M" ${e.size==='M'?'selected':''}>M — medium</option>
             <option value="L" ${e.size==='L'?'selected':''}>L — large</option></select></div>
-          <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${pmOpts}</select></div>
+          <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${ownerOptions(e.pm)}</select></div>
           <div><label>Type</label><select onchange="setField('${e.id}','kind',this.value)">
             <option value="" ${!e.kind?'selected':''}>—</option>
             <option value="bottleneck" ${e.kind==='bottleneck'?'selected':''}>🔧 Bottleneck</option>
@@ -1432,7 +1466,7 @@
         <textarea onchange="setField('${e.id}','why',this.value)" style="width:100%;min-height:60px;">${esc(e.why||'')}</textarea>
         <div style="margin-top:12px;">
           <div class="pctbar"><div class="pctbar-fill" style="width:${pct}%"></div></div>
-          <div class="sched-summary"><strong>${pct}% complete</strong> overall · PM: ${e.pm?esc(e.pm):'unassigned'} · Added by ${esc(e.by)}</div>
+          <div class="sched-summary"><strong>${pct}% complete</strong> overall · PM: ${e.pm?esc(pmName(e.pm)):'unassigned'} · Added by ${esc(e.by)}</div>
         </div>
       </div>
 
@@ -1572,6 +1606,7 @@
   (async function init(){
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked) loadTeamUsersCache(); }catch(e){ reviewUnlocked=false; }
+      if(/type=(invite|recovery)/.test(INITIAL_HASH)){ applyTheme(); renderForm(); showSetPassword(); return; }
       const r=parseHash();
       if(r.form && !reviewUnlocked){
         // someone filling out the intake form: only load the quarter info, never other people's entries
