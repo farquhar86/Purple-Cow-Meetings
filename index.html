@@ -881,12 +881,16 @@
     if(!res.ok || (j&&j.error)) throw new Error((j&&j.error)||('Error '+res.status));
     return j;
   }
+  let teamUsers=[];
+  async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
+  function ownerOptions(selected){ return ['<option value="">— unassigned —</option>'].concat((teamUsers||[]).map(u=>{ const em=u.email||''; return '<option value="'+esc(em)+'"'+((selected||'')===em?' selected':'')+'>'+esc((em.split('@')[0])||em)+'</option>'; })).join(''); }
   function openTeamsModal(){ if(!isManager()) return; document.getElementById('teamsErr').textContent=''; document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; document.getElementById('teamsModal').classList.add('show'); loadTeamUsers(); }
   function closeTeamsModal(){ document.getElementById('teamsModal').classList.remove('show'); }
   async function loadTeamUsers(){
     const box=document.getElementById('teamsList'); box.innerHTML='<p class="empty">Loading…</p>';
     try{
       const {users}=await callUserFn({action:'list'});
+      teamUsers=users||[];
       if(!users||!users.length){ box.innerHTML='<p class="empty">No users yet.</p>'; return; }
       box.innerHTML='<table class="dash-tbl"><thead><tr><th>Email</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td>${esc(u.email||'')}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
     }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
@@ -946,6 +950,7 @@
         reviewUnlocked=true; err.textContent='';
         document.getElementById('loginPw').value='';
         try{ await dbLoad(); }catch(e){ console.warn('post-login load', e); }
+        loadTeamUsersCache();
         gotoDash();
       }catch(e){ err.textContent='Sign-in failed — check your connection.'; }
     } else {
@@ -1257,7 +1262,8 @@
               const s=parseD(p.start),en=parseD(p.end);
               const sb2=clampBar(s,en);
               const od=isOverduePlan(p); const bh=!od && isPlanBehind(p);
-              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':(bh?'⏰ ':'')}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':(bh?' g-behind':'')}" style="left:${sb2.left}%;width:${sb2.width}%;${od?'':'background:'+impactColor(e.impact)+';'}"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
+              const own=p.owner?' <span class="rm-pm">· '+esc((p.owner.split('@')[0])||p.owner)+'</span>':'';
+              row+=`<div class="rm-row rm-sub"><div class="g-label">${od?'⚠ ':(bh?'⏰ ':'')}↳ ${esc(dn)} <span class="pct-chip">${ip}%</span>${own}</div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':(bh?' g-behind':'')}" style="left:${sb2.left}%;width:${sb2.width}%;${od?'':'background:'+impactColor(e.impact)+';'}"><div class="g-fill" style="width:${ip}%"></div></div></div></div>`;
             } else {
               row+=`<div class="rm-row rm-sub"><div class="g-label">↳ ${esc(dn)} <span class="pct-chip">${ip}%</span></div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
             }
@@ -1364,11 +1370,11 @@
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; prioOpenId=id; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); }
+  function openPrio(id){ if(!reviewUnlocked) return; prioOpenId=id; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0} : {start:'',end:'',pct:0}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||''} : {start:'',end:'',pct:0,owner:''}); });
     e.plan=np;
   }
   function prioPct(e){
@@ -1394,12 +1400,13 @@
     const doneRows = e.done.length ? e.done.map((d,i)=>`
       <tr>
         <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
-        <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Definition of done item…" style="width:100%;"></td>
+        <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
+        <td><select onchange="setPlan('${e.id}',${i},'owner',this.value)" title="In charge">${ownerOptions(e.plan[i].owner)}</select></td>
         <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
         <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
         <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
         <td><button class="btn danger sm" title="Remove item" onclick="removeDone('${e.id}',${i})">✕</button></td>
-      </tr>`).join('') : '<tr><td colspan="6" class="empty">No items yet. Click “+ Add item” to start building the list.</td></tr>';
+      </tr>`).join('') : '<tr><td colspan="7" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
         ${stepperFor(e)}
@@ -1444,7 +1451,7 @@
           <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline</span></p>
           <button class="btn sm" onclick="addDone('${e.id}')">+ Add task</button>
         </div>
-        <table class="sched-tbl"><thead><tr><th>✓</th><th>Task</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
+        <table class="sched-tbl"><thead><tr><th>✓</th><th>Task</th><th>In charge</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
       </div>
 
       <div class="card">
@@ -1564,7 +1571,7 @@
   }
   (async function init(){
     if(USE_DB){
-      try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); }catch(e){ reviewUnlocked=false; }
+      try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked) loadTeamUsersCache(); }catch(e){ reviewUnlocked=false; }
       const r=parseHash();
       if(r.form && !reviewUnlocked){
         // someone filling out the intake form: only load the quarter info, never other people's entries
