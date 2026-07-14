@@ -904,7 +904,7 @@
     if(selected && emails.indexOf(selected)<0){ out+='<option value="'+esc(selected)+'" selected>'+esc(pmName(selected))+'</option>'; }
     return out;
   }
-  function openTeamsModal(){ if(!isManager()) return; document.getElementById('teamsErr').textContent=''; document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; document.getElementById('teamsModal').classList.add('show'); loadTeamUsers(); }
+  function openTeamsModal(){ if(!isManager()) return; document.getElementById('teamsErr').textContent=''; document.getElementById('newUserEmail').value=''; document.getElementById('teamsModal').classList.add('show'); loadTeamUsers(); }
   function closeTeamsModal(){ document.getElementById('teamsModal').classList.remove('show'); }
   async function loadTeamUsers(){
     const box=document.getElementById('teamsList'); box.innerHTML='<p class="empty">Loading…</p>';
