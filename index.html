@@ -348,6 +348,24 @@
   </div>
 </div>
 
+<!-- Team / users modal -->
+<div class="modal-ov no-print" id="teamsModal" onclick="if(event.target===this)closeTeamsModal()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">⚙ Team — who can log in</h3>
+    <p class="block-desc" style="margin:2px 0 12px;">Add or remove people who can sign in to the manager dashboard.</p>
+    <div id="teamsList"><p class="empty">Loading…</p></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0;">
+    <label>Add a person</label>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="email" id="newUserEmail" placeholder="email@purplecowinternet.com" style="flex:2;min-width:180px;">
+      <input type="password" id="newUserPw" placeholder="temporary password" style="flex:1;min-width:150px;">
+      <button class="btn" onclick="addTeamUser()">Add</button>
+    </div>
+    <div class="lock-err" id="teamsErr"></div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
+  </div>
+</div>
+
 <!-- New priority modal (dashboard quick-add) -->
 <div class="modal-ov no-print" id="newPrioModal" onclick="if(event.target===this)closeNewPrioModal()">
   <div class="modal modal-scroll" style="text-align:left;">
@@ -549,6 +567,7 @@
         <button class="btn" onclick="gotoForm()">📝 View intake form</button>
         <button class="btn" onclick="togglePresent()" id="presentBtn">▶ Presentation mode</button>
         <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
+        <button class="btn" onclick="openTeamsModal()">⚙ Team</button>
         <button class="btn" onclick="logout()">Log out</button>
       </div>
       <p class="sub"><span id="dashTheme"></span> · <span id="dashGoal"></span></p>
@@ -851,6 +870,37 @@
     setTimeout(()=>document.getElementById('np-title').focus(),60);
   }
   function closeNewPrioModal(){ document.getElementById('newPrioModal').classList.remove('show'); }
+  /* ---------- team / user management (via secure Edge Function) ---------- */
+  async function callUserFn(payload){
+    if(!USE_DB) throw new Error('Not connected to the database.');
+    const {data}=await sb.auth.getSession();
+    const token=data && data.session && data.session.access_token;
+    if(!token) throw new Error('Please log in again.');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/manage-users',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify(payload)});
+    let j; try{ j=await res.json(); }catch(e){ j={error:'Unexpected response ('+res.status+'). Is the manage-users function deployed?'}; }
+    if(!res.ok || (j&&j.error)) throw new Error((j&&j.error)||('Error '+res.status));
+    return j;
+  }
+  function openTeamsModal(){ if(!isManager()) return; document.getElementById('teamsErr').textContent=''; document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; document.getElementById('teamsModal').classList.add('show'); loadTeamUsers(); }
+  function closeTeamsModal(){ document.getElementById('teamsModal').classList.remove('show'); }
+  async function loadTeamUsers(){
+    const box=document.getElementById('teamsList'); box.innerHTML='<p class="empty">Loading…</p>';
+    try{
+      const {users}=await callUserFn({action:'list'});
+      if(!users||!users.length){ box.innerHTML='<p class="empty">No users yet.</p>'; return; }
+      box.innerHTML='<table class="dash-tbl"><thead><tr><th>Email</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td>${esc(u.email||'')}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
+    }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
+  }
+  async function addTeamUser(){
+    const email=document.getElementById('newUserEmail').value.trim(), pw=document.getElementById('newUserPw').value;
+    const err=document.getElementById('teamsErr'); err.textContent='';
+    if(!email||!pw){ err.textContent='Enter an email and a password.'; return; }
+    if(pw.length<6){ err.textContent='Password must be at least 6 characters.'; return; }
+    err.textContent='Adding…';
+    try{ await callUserFn({action:'create',email,password:pw}); document.getElementById('newUserEmail').value=''; document.getElementById('newUserPw').value=''; err.textContent=''; loadTeamUsers(); }
+    catch(e){ err.textContent=e.message; }
+  }
+  function removeTeamUser(id,email){ confirmModal('Remove '+(email||'this user')+'? They will no longer be able to log in.', async ()=>{ try{ await callUserFn({action:'delete',id}); loadTeamUsers(); }catch(e){ document.getElementById('teamsErr').textContent=e.message; } }, 'Remove user'); }
   function saveNewPrio(){
     const title=document.getElementById('np-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
     const done=document.getElementById('np-done').value.split('\n').map(s=>s.trim()).filter(Boolean);
