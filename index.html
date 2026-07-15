@@ -38,6 +38,9 @@
   #setpwModal{z-index:520;}
   body.role-team .admin-only{display:none !important;}
   .role-pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--line);color:var(--muted);margin-left:8px;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em;}
+  .status-pill{display:inline-block;font-size:.72rem;font-weight:700;white-space:nowrap;}
+  .status-pill.ok{color:#128a3f;}
+  .status-pill.wait{color:#c2820a;}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -933,7 +936,8 @@
       teamUsers=users||[];
       if(!users||!users.length){ box.innerHTML='<p class="empty">No users yet.</p>'; return; }
       const roleSel=(u)=>{ const cur=u.role||'admin'; const opt=(v,l)=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`; return `<select onchange="setUserRole('${u.id}',this.value,this)">${opt('admin','Admin')}${opt('leadership','Leadership')}${opt('team','Team')}</select>`; };
-      box.innerHTML='<table class="dash-tbl"><thead><tr><th>Email</th><th>Role</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td>${esc(u.email||'')}</td><td>${roleSel(u)}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
+      const statusCell=(u)=>{ const active=!!u.last_sign_in_at; return active ? '<span class="status-pill ok" title="Has set a password and logged in">● Active</span>' : '<span class="status-pill wait" title="Invited — has not set a password / logged in yet">● Pending</span>'; };
+      box.innerHTML='<table class="dash-tbl"><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td>${esc(u.email||'')}</td><td>${roleSel(u)}</td><td>${statusCell(u)}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
     }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
   }
   async function setUserRole(id, role, selEl){

@@ -41,6 +41,8 @@ Deno.serve(async (req) => {
         email: u.email,
         created_at: u.created_at,
         role: (u.app_metadata && (u.app_metadata as any).role) || "admin",
+        last_sign_in_at: u.last_sign_in_at || null,
+        confirmed: !!(u.email_confirmed_at || u.confirmed_at),
       }));
       return json({ users });
     }
