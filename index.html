@@ -41,6 +41,43 @@
   .status-pill{display:inline-block;font-size:.72rem;font-weight:700;white-space:nowrap;}
   .status-pill.ok{color:#128a3f;}
   .status-pill.wait{color:#c2820a;}
+  /* ---- app sidebar (Ninety-style shell) ---- */
+  #appSidebar{position:fixed;inset:0 auto 0 0;width:236px;background:#fff;border-right:1px solid var(--line);display:none;flex-direction:column;z-index:300;}
+  body.app-shell #appSidebar{display:flex;}
+  body.presenting #appSidebar{display:none !important;}
+  .sb-brand{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);}
+  .sb-logo{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-weight:800;font-size:.72rem;letter-spacing:-.5px;}
+  .sb-org{font-weight:800;font-size:.95rem;color:var(--purple-dark);}
+  .sb-nav{display:flex;flex-direction:column;padding:12px 8px;gap:2px;}
+  .sb-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.95rem;font-weight:600;color:var(--muted);cursor:pointer;}
+  .sb-item:hover{background:var(--lilac);color:var(--purple-dark);}
+  .sb-item.active{background:var(--lilac-2);color:var(--purple-dark);}
+  .sb-ic{font-size:1.05rem;width:20px;text-align:center;flex:0 0 auto;}
+  .sb-bottom{margin-top:auto;padding:10px 8px 14px;border-top:1px solid var(--line);position:relative;}
+  .sb-add{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.92rem;font-weight:600;color:var(--muted);cursor:pointer;}
+  .sb-add:hover{background:var(--lilac);color:var(--purple-dark);}
+  .sb-acct{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;padding:8px 10px;border-radius:9px;cursor:pointer;margin-top:4px;}
+  .sb-acct:hover{background:var(--lilac);}
+  .sb-avatar{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-weight:700;font-size:.75rem;flex:0 0 auto;}
+  .sb-acctname{font-weight:700;font-size:.88rem;color:var(--ink);flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sb-caret{color:var(--muted);font-size:.9rem;}
+  .sb-menu{display:none;position:absolute;left:8px;right:8px;bottom:64px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:6px;z-index:310;}
+  .sb-menu.show{display:block;}
+  .sb-menu-hd{font-size:.78rem;color:var(--muted);padding:8px 10px 6px;border-bottom:1px solid var(--line);margin-bottom:4px;word-break:break-all;}
+  .sb-menu-hd b{color:var(--ink);}
+  .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
+  .sb-menu button:hover{background:var(--lilac);}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
+  body.presenting #screen-dash{margin-left:0 !important;}
+  /* placeholder section pages */
+  .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
+  .sec-head h1{margin:0;font-size:1.5rem;}
+  .sec-head p{margin:6px 0 0;opacity:.9;font-size:.95rem;}
+  .sec-body{max-width:640px;margin:60px auto;text-align:center;padding:0 24px;}
+  .sec-body .sec-emoji{font-size:2.6rem;}
+  .sec-body h2{color:var(--purple-dark);margin:14px 0 8px;}
+  .sec-body p{color:var(--muted);}
+  .sec-soon{display:inline-block;margin-top:14px;background:var(--lilac-2);color:var(--purple-dark);font-weight:700;font-size:.8rem;padding:6px 14px;border-radius:999px;}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -268,6 +305,31 @@
 </style>
 </head>
 <body>
+
+<!-- ====================== APP SIDEBAR (Ninety-style) ====================== -->
+<aside id="appSidebar" class="no-print">
+  <div class="sb-brand"><span class="sb-logo">NM</span><span class="sb-org">Purple Cow</span></div>
+  <nav class="sb-nav" id="sbNav">
+    <button class="sb-item" data-sec="home" onclick="navTo('home')"><span class="sb-ic">🏠</span>Home</button>
+    <button class="sb-item" data-sec="metrics" onclick="navTo('metrics')"><span class="sb-ic">📈</span>Metrics</button>
+    <button class="sb-item" data-sec="priorities" onclick="navTo('priorities')"><span class="sb-ic">🎯</span>Priorities</button>
+    <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
+    <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
+    <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
+  </nav>
+  <div class="sb-bottom">
+    <button class="sb-add admin-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
+    <div class="sb-menu" id="sbAcctMenu">
+      <div class="sb-menu-hd"><b id="sbMenuName">Account</b><br><span id="sbMenuEmail"></span></div>
+      <button onclick="closeAcctMenu();logout();">Log out</button>
+    </div>
+    <button class="sb-acct" id="sbAcct" onclick="toggleAcctMenu(event)">
+      <span class="sb-avatar" id="sbAvatar">–</span>
+      <span class="sb-acctname" id="sbAcctName">Account</span>
+      <span class="sb-caret">⌄</span>
+    </button>
+  </div>
+</aside>
 
 <div class="topright no-print">
   <button class="btn" id="mgrBtn" onclick="fabClick()">🔒 Manager login</button>
@@ -688,6 +750,61 @@
   </div>
 </div>
 
+<!-- ====================== SECTION: HOME ====================== -->
+<div id="screen-home" style="display:none;">
+  <div class="sec-head"><h1>👋 Welcome back<span id="homeName"></span></h1><p>Your Purple Cow operating system — everything in one place.</p></div>
+  <div class="sec-body">
+    <div class="sec-emoji">🏠</div>
+    <h2>Home</h2>
+    <p>This will become your dashboard — a snapshot of your priorities, this week's to-dos, key metrics, and upcoming meetings. Use the sidebar to jump into any section. <b>Priorities</b> is live now; the rest are on the way.</p>
+    <span class="sec-soon">Overview coming soon</span>
+  </div>
+</div>
+
+<!-- ====================== SECTION: METRICS ====================== -->
+<div id="screen-metrics" style="display:none;">
+  <div class="sec-head"><h1>📈 Metrics</h1><p>Record and evaluate the key numbers that matter, week over week.</p></div>
+  <div class="sec-body">
+    <div class="sec-emoji">📈</div>
+    <h2>Scorecard &amp; measurables</h2>
+    <p>A weekly grid of the metrics each person or team owns, with a target and a green/red status at a glance. We'll build this next.</p>
+    <span class="sec-soon">Coming soon</span>
+  </div>
+</div>
+
+<!-- ====================== SECTION: TO-DOS ====================== -->
+<div id="screen-todos" style="display:none;">
+  <div class="sec-head"><h1>✅ To-Dos</h1><p>Short 7-day commitments with an owner and a due date.</p></div>
+  <div class="sec-body">
+    <div class="sec-emoji">✅</div>
+    <h2>To-Dos</h2>
+    <p>Capture action items from your meetings, assign an owner and due date, and check them off week to week. We'll build this next.</p>
+    <span class="sec-soon">Coming soon</span>
+  </div>
+</div>
+
+<!-- ====================== SECTION: ISSUES ====================== -->
+<div id="screen-issues" style="display:none;">
+  <div class="sec-head"><h1>⚠️ Issues</h1><p>A running list of problems and ideas to work through.</p></div>
+  <div class="sec-body">
+    <div class="sec-emoji">⚠️</div>
+    <h2>Issues list</h2>
+    <p>Park anything that needs discussion here, then prioritize and solve them in your meetings (Identify → Discuss → Solve). We'll build this next.</p>
+    <span class="sec-soon">Coming soon</span>
+  </div>
+</div>
+
+<!-- ====================== SECTION: MEETINGS ====================== -->
+<div id="screen-meetings" style="display:none;">
+  <div class="sec-head"><h1>🗓️ Meetings</h1><p>Run a focused weekly meeting that drives decisions.</p></div>
+  <div class="sec-body">
+    <div class="sec-emoji">🗓️</div>
+    <h2>Weekly meeting</h2>
+    <p>A structured agenda that pulls your scorecard, priorities, to-dos, and issues into one flow — with notes and follow-up. We'll build this next.</p>
+    <span class="sec-soon">Coming soon</span>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const KEY = 'pc_herd100k_meetings_v2';
@@ -916,7 +1033,7 @@
   function canCreate(){ return myRole!=='team'; }
   function canManageUsers(){ return myRole==='admin' || myRole==='leadership'; }
   function teamVisible(e){ if(myRole!=='team') return true; if(!e||e.type!=='priority') return true; return e.pm===myEmail || (e.plan||[]).some(p=>p&&p.owner===myEmail); }
-  function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = myRole? (myRole.charAt(0).toUpperCase()+myRole.slice(1)) : ''; }
+  function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = myRole? (myRole.charAt(0).toUpperCase()+myRole.slice(1)) : ''; if(typeof updateSidebarAccount==='function') updateSidebarAccount(); }
   function roleName(r){ r=r||'admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
   async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
   function pmName(p){ return p ? (p.indexOf('@')>=0 ? p.split('@')[0] : p) : ''; }
@@ -967,7 +1084,7 @@
       try{ history.replaceState(null,'',location.pathname+location.search); }catch(e){}
       reviewUnlocked=true; loadTeamUsersCache();
       try{ await dbLoad(); }catch(e){}
-      gotoDash();
+      navTo('home');
     }catch(e){ err.textContent=e.message||'Could not set password.'; }
   }
   function removeTeamUser(id,email){ confirmModal('Remove '+(email||'this user')+'? They will no longer be able to log in.', async ()=>{ try{ await callUserFn({action:'delete',id}); loadTeamUsers(); }catch(e){ document.getElementById('teamsErr').textContent=e.message; } }, 'Remove user'); }
@@ -1019,7 +1136,7 @@
         document.getElementById('loginPw').value='';
         try{ await dbLoad(); }catch(e){ console.warn('post-login load', e); }
         loadTeamUsersCache();
-        gotoDash();
+        navTo('home');
       }catch(e){ err.textContent='Sign-in failed — check your connection.'; }
     } else {
       if(document.getElementById('loginPw').value===REVIEW_PW){
@@ -1034,15 +1151,33 @@
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
+  const APP_SCREENS=['dash','prio','home','metrics','todos','issues','meetings'];
   function showScreen(name){ screen=name;
-    document.getElementById('screen-login').style.display=name==='login'?'block':'none';
-    document.getElementById('screen-form').style.display=name==='form'?'block':'none';
-    document.getElementById('screen-dash').style.display=name==='dash'?'block':'none';
-    document.getElementById('screen-prio').style.display=name==='prio'?'block':'none';
+    ['login','form','dash','prio','home','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
+  /* ---------- sidebar navigation ---------- */
+  let currentSection='home';
+  function navTo(sec){
+    currentSection=sec; closeAcctMenu();
+    if(sec==='priorities'){ gotoDash(); }
+    else { showScreen(sec); if(sec==='home') renderHome(); window.scrollTo({top:0}); }
+    setActiveNav(sec);
+  }
+  function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
+  function renderHome(){ const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : ''; }
+  function updateSidebarAccount(){
+    const nm = myEmail ? pmName(myEmail) : 'Account';
+    const av = (myEmail||'?').replace(/[^a-zA-Z]/g,'').slice(0,2).toUpperCase() || '–';
+    const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
+    set('sbAcctName', nm); set('sbAvatar', av); set('sbMenuName', nm+' · '+roleName(myRole)); set('sbMenuEmail', myEmail||'');
+  }
+  function toggleAcctMenu(ev){ if(ev) ev.stopPropagation(); const m=document.getElementById('sbAcctMenu'); if(m) m.classList.toggle('show'); }
+  function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }
+  document.addEventListener('click', (e)=>{ const b=document.getElementById('sbAcct'), m=document.getElementById('sbAcctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target) && b && !b.contains(e.target)) m.classList.remove('show'); });
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
-  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
+  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
   function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); presenting=on; document.getElementById('presentBtn').textContent= on?'✕ Exit presentation (showing reviewed only)':'▶ Presentation mode'; if(screen==='dash') renderDashBody(); }
 
   /* ---------- render: master ---------- */
@@ -1620,7 +1755,7 @@
       applyTheme(); renderForm(); showScreen('form');
     } else {
       applyTheme(); renderForm();
-      if(reviewUnlocked){ gotoDash(); } else { showScreen('login'); }
+      if(reviewUnlocked){ navTo('home'); } else { showScreen('login'); }
     }
   }
   function copyFormLink(){
