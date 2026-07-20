@@ -92,18 +92,22 @@
   .scorecard th.mx-c1,.scorecard td.mx-c1{position:sticky;left:0;z-index:3;width:190px;min-width:190px;max-width:190px;}
   .scorecard th.mx-c2,.scorecard td.mx-c2{position:sticky;left:190px;z-index:3;width:110px;min-width:110px;}
   .scorecard th.mx-c3,.scorecard td.mx-c3{position:sticky;left:300px;z-index:3;width:92px;min-width:92px;box-shadow:2px 0 4px -2px rgba(80,30,110,.25);}
-  .scorecard th.mx-r3,.scorecard td.mx-r3{position:sticky;right:132px;z-index:3;width:82px;min-width:82px;box-shadow:-2px 0 4px -2px rgba(80,30,110,.25);}
-  .scorecard th.mx-r2,.scorecard td.mx-r2{position:sticky;right:60px;z-index:3;width:72px;min-width:72px;}
-  .scorecard th.mx-r1,.scorecard td.mx-r1{position:sticky;right:0;z-index:3;width:60px;min-width:60px;}
+  .scorecard th.mx-r4,.scorecard td.mx-r4{position:sticky;right:216px;z-index:3;width:78px;min-width:78px;box-shadow:-2px 0 4px -2px rgba(80,30,110,.25);}
+  .scorecard th.mx-r3,.scorecard td.mx-r3{position:sticky;right:148px;z-index:3;width:68px;min-width:68px;}
+  .scorecard th.mx-r2,.scorecard td.mx-r2{position:sticky;right:56px;z-index:3;width:92px;min-width:92px;}
+  .scorecard th.mx-r1,.scorecard td.mx-r1{position:sticky;right:0;z-index:3;width:56px;min-width:56px;}
   .scorecard thead th.mx-c1,.scorecard thead th.mx-c2,.scorecard thead th.mx-c3,
-  .scorecard thead th.mx-r1,.scorecard thead th.mx-r2,.scorecard thead th.mx-r3{background:var(--lilac);}
+  .scorecard thead th.mx-r1,.scorecard thead th.mx-r2,.scorecard thead th.mx-r3,.scorecard thead th.mx-r4{background:var(--lilac);}
   .scorecard tbody td.mx-c1,.scorecard tbody td.mx-c2,.scorecard tbody td.mx-c3,.scorecard tbody td.mx-r1{background:#fff;}
-  .scorecard tbody td.mx-r2,.scorecard tbody td.mx-r3{background:var(--lilac);}
+  .scorecard tbody td.mx-r3,.scorecard tbody td.mx-r4{background:var(--lilac);}
+  .mx-pace{font-size:9.5px;font-weight:600;color:var(--muted);line-height:1.2;}
+  .mx-per{font-size:9.5px;color:var(--muted);font-weight:600;}
   .scorecard tbody tr:hover td.mx-c1,.scorecard tbody tr:hover td.mx-c2,
   .scorecard tbody tr:hover td.mx-c3,.scorecard tbody tr:hover td.mx-r1{background:#fcfaff;}
   @media(max-width:900px){ /* too narrow to freeze — let everything scroll */
     .scorecard th.mx-c1,.scorecard td.mx-c1,.scorecard th.mx-c2,.scorecard td.mx-c2,.scorecard th.mx-c3,.scorecard td.mx-c3,
-    .scorecard th.mx-r1,.scorecard td.mx-r1,.scorecard th.mx-r2,.scorecard td.mx-r2,.scorecard th.mx-r3,.scorecard td.mx-r3{position:static;box-shadow:none;}
+    .scorecard th.mx-r1,.scorecard td.mx-r1,.scorecard th.mx-r2,.scorecard td.mx-r2,
+    .scorecard th.mx-r3,.scorecard td.mx-r3,.scorecard th.mx-r4,.scorecard td.mx-r4{position:static;box-shadow:none;}
   }
   .scorecard input.mx-val.is-derived::placeholder{color:#9b8fae;font-style:italic;}
   /* where we are right now, and where each quarter begins */
@@ -576,6 +580,12 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
       <div style="width:120px;"><label>Target</label><input type="number" id="mx-goal" step="any" style="width:100%;" oninput="mxRenderLegend()"></div>
+      <div style="width:150px;"><label>Target is per</label>
+        <select id="mx-goalper" onchange="mxRenderLegend()" style="width:100%;">
+          <option value="week">Week</option><option value="month">Month</option>
+          <option value="quarter">Quarter</option><option value="year">Year</option>
+        </select>
+      </div>
       <div style="flex:1;min-width:175px;"><label>Direction</label>
         <select id="mx-dir" onchange="mxRenderLegend()" style="width:100%;">
           <option value="higher">Higher is better ↑</option>
@@ -1403,6 +1413,24 @@
   function goalForDate(m,d){ const qg=m.quarterGoals||{}; const v=qg[quarterKeyOf(d)];
     if(v!==undefined && v!==null && v!=='') return Number(v);
     return (m.goal===''||m.goal===undefined||m.goal===null)?'':Number(m.goal); }
+  /* A target can be stated per week/month/quarter/year while the numbers are
+     recorded more often. For counts that add up we spread the target across the
+     recording periods (1,826 a quarter = 140.5 a week). For rates and levels
+     (rollup = average) the target applies as-is to every period. */
+  const GOALPER_WEEKS={week:1, month:13/3, quarter:13, year:52};
+  const PERIOD_WEEKS={weekly:1, monthly:13/3, quarterly:13};
+  function defaultGoalPer(period){ return period==='monthly'?'month':(period==='quarterly'?'quarter':'week'); }
+  function goalScale(m){
+    if((m.rollup||'sum')==='avg') return 1;                       // a rate/level, don't divide it up
+    const gp=m.goalPer||defaultGoalPer(m.period||'weekly');
+    const per=PERIOD_WEEKS[m.period||'weekly']||1;
+    return per/(GOALPER_WEEKS[gp]||1);
+  }
+  function effectiveGoal(m,date){
+    const base=goalForDate(m,date);
+    if(base===''||base===null||base===undefined||isNaN(Number(base))) return '';
+    return Number(base)*goalScale(m);
+  }
   function tierBandsGoal(m,goal){ const g=Number(goal); const p=(Number(m.tierPct)||0)/100;
     if(goal===''||goal===undefined||goal===null||isNaN(g)) return null;
     return (m.direction==='lower') ? { great:g*(1-p), good:g, warn:g*(1+p) } : { great:g*(1+p), good:g, warn:g*(1-p) }; }
@@ -1412,18 +1440,32 @@
   function tierBands(m){ return tierBandsGoal(m,m.goal); }
   function tierOf(m,v){ return tierOfGoal(m,v,m.goal); }
   function goalLabel(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return '—';
-    return (m.direction==='lower'?'≤ ':'≥ ')+fmtVal(m,g); }
+    const op=(m.direction==='lower'?'≤ ':'≥ ');
+    const gp=m.goalPer||defaultGoalPer(m.period||'weekly');
+    const sc=goalScale(m);
+    let out=op+fmtVal(m,g)+'<span class="mx-per"> /'+gp.slice(0,2)+'</span>';
+    if(Math.abs(sc-1)>0.001){ const per=(m.period==='monthly'?'mo':(m.period==='quarterly'?'qtr':'wk'));
+      out+='<div class="mx-pace">'+op+fmtVal(m,Number(g)*sc)+' per '+per+'</div>'; }
+    return out; }
   const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
   function mxRenderLegend(){
     const box=document.getElementById('mxLegend'); if(!box) return;
     const gEl=document.getElementById('mx-goal'); if(!gEl) return;
     const m={ goal: gEl.value===''?'':Number(gEl.value), unit:(document.getElementById('mx-unit')||{}).value||'number',
-              direction:(document.getElementById('mx-dir')||{}).value||'higher', tierPct:(document.getElementById('mx-pct')||{}).value };
-    const b=tierBands(m);
+              direction:(document.getElementById('mx-dir')||{}).value||'higher', tierPct:(document.getElementById('mx-pct')||{}).value,
+              period:(document.getElementById('mx-period')||{}).value||'weekly',
+              rollup:(document.getElementById('mx-rollup')||{}).value||'sum',
+              goalPer:(document.getElementById('mx-goalper')||{}).value||'quarter' };
+    const sc=goalScale(m);
+    const perName=(m.period==='monthly'?'month':(m.period==='quarterly'?'quarter':'week'));
+    const b=tierBandsGoal(m, (m.goal===''?'':Number(m.goal)*sc));
     if(!b){ box.innerHTML='<p class="lg-tt">Enter a target to preview the colour bands.</p>'; return; }
     const low = m.direction==='lower';
+    const paceNote = Math.abs(sc-1)>0.001
+      ? '<p class="lg-tt">TARGET '+fmtVal(m,m.goal)+' PER '+String(m.goalPer).toUpperCase()
+        +' = <b>'+fmtVal(m,Number(m.goal)*sc)+'</b> PER '+perName.toUpperCase()+' — EACH '+perName.toUpperCase()+' IS GRADED ON THAT PACE</p>' : '';
     const row=(color,op,val,lab)=>'<div class="lg-row"><span class="lg-sw" style="background:'+color+'"></span><span class="lg-op">'+op+'</span><span class="lg-num">'+fmtVal(m,val)+'</span><span class="lg-lab">'+lab+'</span></div>';
-    box.innerHTML='<p class="lg-tt">HOW WEEKS WILL BE GRADED</p>'
+    box.innerHTML=paceNote+'<p class="lg-tt">HOW EACH '+perName.toUpperCase()+' WILL BE GRADED</p>'
       + row(TIER_COLORS.great, low?'≤':'≥', b.great, 'Smashed it')
       + row(TIER_COLORS.good,  low?'≤':'≥', b.good,  'Hit the target')
       + row(TIER_COLORS.warn,  low?'≤':'≥', b.warn,  'Just off')
@@ -1443,19 +1485,41 @@
     });
     wrap.innerHTML=html;
   }
+  /* Quarter-to-date pace: what we've racked up this quarter vs what we should
+     have by now, given how many periods of the quarter have been recorded. */
+  function paceCell(m,cols){
+    const nowQ=quarterKeyOf(new Date());
+    const inQ=cols.filter(c=>quarterKeyOf(c.start)===nowQ);
+    const done=[]; inQ.forEach(c=>{ const cv=cellValue(m,c); if(cv.eff!==null && !isNaN(cv.eff)) done.push({c,v:cv.eff}); });
+    if(!done.length) return '<td class="mx-avg mx-r2">—</td>';
+    const isAvg=(m.rollup||'sum')==='avg';
+    const actual = isAvg ? (done.reduce((a,d)=>a+d.v,0)/done.length) : done.reduce((a,d)=>a+d.v,0);
+    const per=effectiveGoal(m,done[0].c.start);
+    if(per===''||isNaN(Number(per))) return '<td class="mx-avg mx-r2">'+esc(fmtVal(m,actual))+'</td>';
+    const expected = isAvg ? Number(per) : Number(per)*done.length;
+    const t=tierOfGoal(m,actual,expected);
+    const diff=actual-expected;
+    const tip=quarterLabel(nowQ)+' so far: '+fmtVal(m,actual)+' after '+done.length+' '
+      +(m.period==='monthly'?'month':(m.period==='quarterly'?'quarter':'week'))+(done.length===1?'':'s')
+      +' — on pace you’d be at '+fmtVal(m,expected)+' ('+(diff>0?'+':'')+fmtVal(m,diff)+')';
+    return '<td class="mx-avg mx-r2 mx-cell '+t+'" title="'+esc(tip)+'"><b>'+esc(fmtVal(m,actual))+'</b>'
+         + '<div class="mx-pace">vs '+esc(fmtVal(m,expected))+'</div></td>';
+  }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
     cols.forEach(c=>{ const k='pc'+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+(c.isFuture?' is-future':'');
       head+='<th class="'+k+'">'+(c.qTag?'<div class="q-tag">'+esc(c.qTag)+'</div>':'')+esc(c.label)
           + (c.isNow?'<div class="now-tag">NOW</div>':'')+'</th>'; });
-    head+='<th class="mx-r3">Total</th><th class="mx-r2">Avg</th><th class="mx-r1">Trend</th></tr>';
+    head+='<th class="mx-r4">Total</th><th class="mx-r3">Avg</th>'
+        + '<th class="mx-r2" title="This quarter so far, against where you should be by now">Pace</th>'
+        + '<th class="mx-r1">Trend</th></tr>';
     let rows='';
     items.forEach(m=>{
       const editable=canEditMetric(m); let sum=0,cnt=0,cells='';
       cols.forEach(c=>{
         const cv=cellValue(m,c); const has=cv.eff!==null && !isNaN(cv.eff);
         if(has){ sum+=cv.eff; cnt++; }
-        const cls = !has ? '' : tierOfGoal(m,cv.eff,goalForDate(m,c.start));
+        const cls = !has ? '' : tierOfGoal(m,cv.eff,effectiveGoal(m,c.start));
         const ph = (cv.derived!==null && !cv.direct) ? esc(fmtVal(m,cv.derived)) : '';
         const inner = editable
           ? '<input class="mx-val'+(ph?' is-derived':'')+'" value="'+esc(cv.direct)+'" placeholder="'+ph+'" title="'+(ph?'Rolled up from the weekly numbers — type here to override':'')+'" onchange="setMetricValue(\''+m.id+'\',\''+c.key+'\',this.value)">'
@@ -1468,7 +1532,8 @@
       rows+='<tr><td class="lft mx-name mx-c1" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
           + '<td class="lft mx-owner mx-c2">'+esc(pmName(m.owner)||'—')+'</td>'
           + '<td class="lft mx-goal mx-c3">'+goalLabel(m)+'</td>'+cells
-          + '<td class="mx-avg mx-r3">'+total+'</td><td class="mx-avg mx-r2">'+avg+'</td>'
+          + '<td class="mx-avg mx-r4">'+total+'</td><td class="mx-avg mx-r3">'+avg+'</td>'
+          + paceCell(m,cols)
           + '<td class="mx-r1"><button class="btn ghost sm" title="See goals vs actuals over time" onclick="openMetricChart(\''+m.id+'\')">📈</button></td></tr>';
     });
     return '<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
@@ -1540,7 +1605,7 @@
     const span=Math.max(1,(max-min)/86400000);
     const need = per==='quarterly' ? Math.ceil(span/90)+2 : per==='monthly' ? Math.ceil(span/30)+2 : Math.ceil(span/7)+2;
     const cols=periodCols(per, Math.min(need>PERIOD_COUNTS[per]?need:PERIOD_COUNTS[per], 200));
-    return cols.map(c=>{ const cv=cellValue(m,c); const g=goalForDate(m,c.start);
+    return cols.map(c=>{ const cv=cellValue(m,c); const g=effectiveGoal(m,c.start);
       return { date:c.start, key:c.key, label:c.label,
                actual:(cv.eff===null||isNaN(cv.eff))?null:cv.eff,
                goal:(g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) }; });
@@ -1650,6 +1715,7 @@
     set('mx-period', editing?(m.period||'weekly'):'weekly');
     set('mx-rollup', editing?(m.rollup||'sum'):'sum');
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
+    set('mx-goalper', editing?(m.goalPer||defaultGoalPer(m.period||'weekly')):'quarter');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
     set('mx-source', editing?(m.source||'manual'):'manual');
@@ -1733,6 +1799,7 @@
       period:document.getElementById('mx-period').value||'weekly',
       rollup:document.getElementById('mx-rollup').value||'sum',
       goal: gv===''?'':Number(gv),
+      goalPer:document.getElementById('mx-goalper').value||'quarter',
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
       quarterGoals: mxReadQuarters(),
