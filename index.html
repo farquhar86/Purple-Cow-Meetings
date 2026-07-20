@@ -106,6 +106,15 @@
     .scorecard th.mx-r1,.scorecard td.mx-r1,.scorecard th.mx-r2,.scorecard td.mx-r2,.scorecard th.mx-r3,.scorecard td.mx-r3{position:static;box-shadow:none;}
   }
   .scorecard input.mx-val.is-derived::placeholder{color:#9b8fae;font-style:italic;}
+  /* where we are right now, and where each quarter begins */
+  .scorecard th.q-start,.scorecard td.q-start{border-left:2px dashed var(--purple-light);}
+  .scorecard th.is-now,.scorecard td.is-now{border-left:2px solid var(--purple);border-right:2px solid var(--purple);}
+  .scorecard thead th.is-now{background:var(--purple);color:#fff;border-top:2px solid var(--purple);}
+  .scorecard tbody tr:last-child td.is-now{border-bottom:2px solid var(--purple);}
+  .now-tag{font-size:8.5px;font-weight:800;letter-spacing:.09em;opacity:.95;margin-top:1px;}
+  .q-tag{font-size:8.5px;font-weight:800;color:var(--purple);letter-spacing:.04em;}
+  .scorecard thead th.is-now .q-tag{color:#fff;}
+  .scorecard th.is-future{color:#a89bb8;}
   .scorecard td.mx-name{font-weight:700;color:var(--purple-dark);cursor:pointer;}
   .scorecard td.mx-name:hover{text-decoration:underline;}
   .scorecard td.mx-owner,.scorecard td.mx-goal{color:var(--muted);}
@@ -1354,6 +1363,20 @@
       out.push({ key:wkKey(d), label:wkLabel(d), start:new Date(d), end:e }); });
     return out;
   }
+  /* tag each column with where we are now, and where a new quarter begins */
+  function markCols(cols,period){
+    const today=new Date(); today.setHours(0,0,0,0);
+    let prevQ='';
+    cols.forEach((c,i)=>{
+      c.isNow = today>=c.start && today<=c.end;
+      c.isFuture = c.start>today;
+      const q=quarterKeyOf(c.start);
+      c.qNew = (i>0 && q!==prevQ);
+      c.qTag = (period!=='quarterly' && (i===0 || c.qNew)) ? quarterLabel(q).replace(' 20',' ') : '';
+      prevQ=q;
+    });
+    return cols;
+  }
   /* a cell's value: what was typed in directly, or rolled up from the weekly numbers */
   function cellValue(m,col){
     const vals=m.values||{};
@@ -1414,14 +1437,16 @@
     [['weekly','Weekly'],['monthly','Monthly'],['quarterly','Quarterly']].forEach(([p,label])=>{
       const items=list.filter(m=>(m.period||'weekly')===p);
       if(!items.length) return;
-      const cols=periodCols(p, PERIOD_COUNTS[p]);
+      const cols=markCols(periodCols(p, PERIOD_COUNTS[p]), p);
       html+='<h3 class="mx-sec">'+label+' goals <span>'+items.length+'</span></h3>'+buildScorecard(items,cols);
     });
     wrap.innerHTML=html;
   }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
-    cols.forEach(c=>{ head+='<th>'+esc(c.label)+'</th>'; });
+    cols.forEach(c=>{ const k=(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+(c.isFuture?' is-future':'');
+      head+='<th class="'+k.trim()+'">'+(c.qTag?'<div class="q-tag">'+esc(c.qTag)+'</div>':'')+esc(c.label)
+          + (c.isNow?'<div class="now-tag">NOW</div>':'')+'</th>'; });
     head+='<th class="mx-r3">Total</th><th class="mx-r2">Avg</th><th class="mx-r1">Trend</th></tr>';
     let rows='';
     items.forEach(m=>{
@@ -1434,7 +1459,7 @@
         const inner = editable
           ? '<input class="mx-val'+(ph?' is-derived':'')+'" value="'+esc(cv.direct)+'" placeholder="'+ph+'" title="'+(ph?'Rolled up from the weekly numbers — type here to override':'')+'" onchange="setMetricValue(\''+m.id+'\',\''+c.key+'\',this.value)">'
           : (has?esc(fmtVal(m,cv.eff)):'—');
-        cells+='<td class="mx-cell '+cls+'">'+inner+'</td>';
+        cells+='<td class="mx-cell '+cls+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+'">'+inner+'</td>';
       });
       const total = (cnt && m.unit!=='percent') ? fmtVal(m,sum) : '—';
       const avg = cnt?fmtVal(m,sum/cnt):'—';
@@ -1471,7 +1496,12 @@
     if(iso) return new Date(Number(iso[1]), Number(iso[2])-1, Number(iso[3]));
     const d=new Date(t); return isNaN(d.getTime())?null:d;
   }
-  function parseBackfill(text){
+  function periodKeyFor(d,period){
+    if(period==='monthly') return wkKey(new Date(d.getFullYear(), d.getMonth(), 1));
+    if(period==='quarterly') return wkKey(new Date(d.getFullYear(), Math.floor(d.getMonth()/3)*3, 1));
+    return wkKey(alignWeekStart(d));
+  }
+  function parseBackfill(text,period){
     const out={}; let bad=0;
     String(text||'').split(/\r?\n/).forEach(line=>{
       const s=line.trim(); if(!s) return;
@@ -1480,16 +1510,18 @@
       const d=parseAnyDate(mm[1]);
       const v=Number(String(mm[2]).replace(/[$,%\s]/g,''));   // tolerate $ , % and spaces
       if(!d||isNaN(v)){ bad++; return; }
-      out[wkKey(alignWeekStart(d))]=v;
+      out[periodKeyFor(d,period)]=v;                    // snap to this metric's cadence
     });
     return { values:out, count:Object.keys(out).length, bad };
   }
   function applyBackfill(){
     const msg=document.getElementById('mxBackfillMsg');
-    const r=parseBackfill(document.getElementById('mx-backfill').value);
+    const per=(document.getElementById('mx-period')||{}).value||'weekly';
+    const r=parseBackfill(document.getElementById('mx-backfill').value, per);
     if(!r.count){ msg.textContent='Nothing readable — use lines like "2026-01-04, 176".'; mxPendingBackfill=null; return; }
     mxPendingBackfill=r.values;
-    msg.innerHTML='✅ Read <b>'+r.count+'</b> week'+(r.count===1?'':'s')+(r.bad?(' ('+r.bad+' line'+(r.bad===1?'':'s')+' skipped)'):'')+' — click <b>Save metric</b> to apply.';
+    const unit = per==='monthly'?'month':(per==='quarterly'?'quarter':'week');
+    msg.innerHTML='✅ Read <b>'+r.count+'</b> '+unit+(r.count===1?'':'s')+(r.bad?(' ('+r.bad+' line'+(r.bad===1?'':'s')+' skipped)'):'')+' — click <b>Save metric</b> to apply.';
   }
   /* ----- trend chart: quarterly goals (back and forward) vs actuals ----- */
   function alignWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const back=(x.getDay()-weekStartDay+7)%7; x.setDate(x.getDate()-back); return x; }
