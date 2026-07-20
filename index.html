@@ -549,6 +549,12 @@
       <datalist id="sfReportList"></datalist>
       <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
     </div>
+    <label style="margin-top:14px;display:block;">Backfill history <span style="font-weight:400;color:var(--muted)">— paste “date, value” lines (one per week); any date inside a week works</span></label>
+    <textarea id="mx-backfill" rows="4" placeholder="2026-01-04, 176&#10;2026-01-11, 131&#10;2026-01-18, 149" style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;"></textarea>
+    <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="btn ghost sm" onclick="applyBackfill()">Load history</button>
+      <span id="mxBackfillMsg" class="block-desc" style="margin:0;font-size:.78rem;"></span>
+    </div>
     <div class="lock-err" id="mxErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
       <button class="btn danger sm" id="mxDeleteBtn" onclick="deleteMetric()" style="display:none;margin-right:auto;">Delete</button>
@@ -1371,6 +1377,34 @@
       const v=el.value.trim(); if(v!=='') out[k]=Number(v); });
     return out;
   }
+  /* ----- backfill: paste weekly history (e.g. exported from Salesforce) ----- */
+  let mxPendingBackfill=null;
+  function parseAnyDate(s){
+    const t=String(s||'').trim();
+    const iso=t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if(iso) return new Date(Number(iso[1]), Number(iso[2])-1, Number(iso[3]));
+    const d=new Date(t); return isNaN(d.getTime())?null:d;
+  }
+  function parseBackfill(text){
+    const out={}; let bad=0;
+    String(text||'').split(/\r?\n/).forEach(line=>{
+      const s=line.trim(); if(!s) return;
+      const mm=s.match(/^([^\s,;\t]+)[\s,;\t]+(.+)$/);   // first token = date, the rest = value
+      if(!mm){ bad++; return; }
+      const d=parseAnyDate(mm[1]);
+      const v=Number(String(mm[2]).replace(/[$,%\s]/g,''));   // tolerate $ , % and spaces
+      if(!d||isNaN(v)){ bad++; return; }
+      out[wkKey(alignWeekStart(d))]=v;
+    });
+    return { values:out, count:Object.keys(out).length, bad };
+  }
+  function applyBackfill(){
+    const msg=document.getElementById('mxBackfillMsg');
+    const r=parseBackfill(document.getElementById('mx-backfill').value);
+    if(!r.count){ msg.textContent='Nothing readable — use lines like "2026-01-04, 176".'; mxPendingBackfill=null; return; }
+    mxPendingBackfill=r.values;
+    msg.innerHTML='✅ Read <b>'+r.count+'</b> week'+(r.count===1?'':'s')+(r.bad?(' ('+r.bad+' line'+(r.bad===1?'':'s')+' skipped)'):'')+' — click <b>Save metric</b> to apply.';
+  }
   /* ----- trend chart: quarterly goals (back and forward) vs actuals ----- */
   function alignWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const back=(x.getDay()-weekStartDay+7)%7; x.setDate(x.getDate()-back); return x; }
   function metricChartPoints(m){
@@ -1465,6 +1499,9 @@
     set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
+    mxPendingBackfill=null;
+    const bf=document.getElementById('mx-backfill'); if(bf) bf.value='';
+    const bfm=document.getElementById('mxBackfillMsg'); if(bfm) bfm.textContent='';
     mxRenderQuarters(editing?m:null);
     mxToggleSource(); mxRenderLegend();
     document.getElementById('metricModal').classList.add('show');
@@ -1544,6 +1581,7 @@
     let m;
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
+    if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); mxPendingBackfill=null; }
     persistMetric(m); closeMetricModal(); renderMetrics();
   }
   function deleteMetric(){
