@@ -105,6 +105,21 @@
   .lg-num{font-weight:700;color:var(--ink);}
   .lg-lab{margin-left:auto;font-size:11.5px;color:var(--muted);}
   .mx-wkbar{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);}
+  /* ---- avatars ---- */
+  .mx-qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:6px;}
+  .mx-qcell label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px;font-weight:700;}
+  .mx-qcell input{width:100%;}
+  .mx-qcell.is-now label{color:var(--purple-dark);}
+  .mx-qcell.is-now input{border-color:var(--purple-light);}
+  .ch-legend{display:flex;gap:16px;align-items:center;font-size:12px;color:var(--muted);margin:0 0 6px;flex-wrap:wrap;}
+  .ch-key{display:inline-flex;align-items:center;gap:6px;}
+  .ch-swatch{width:18px;height:0;border-top:3px solid var(--purple);display:inline-block;}
+  .ch-swatch.dash{border-top:3px dashed var(--muted);}
+  .tm-cell{display:flex;align-items:center;gap:9px;}
+  .tm-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--lilac-2);}
+  .tm-initials{width:28px;height:28px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-size:.66rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
+  .sb-avatar img{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;}
+  .sb-avatar.has-img{background:none;padding:0;}
   .mx-avg{font-weight:700;background:var(--lilac);}
   .mx-src{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;letter-spacing:.03em;}
   .mx-src.sf{background:#e0edff;color:#1a63c4;}
@@ -480,8 +495,19 @@
       <button class="btn" onclick="addTeamUser()">Send invite</button>
     </div>
     <p class="block-desc" style="margin:10px 0 0;font-size:.8rem;"><b>Admin</b> — full access, incl. managing people. &nbsp;<b>Leadership</b> — full access to planning. &nbsp;<b>Team</b> — sees only priorities they own or have a task on, and can't create new priorities.</p>
+    <div style="margin-top:10px;"><button class="btn ghost sm" onclick="syncSlackPhotos()">🔄 Sync photos from Slack</button></div>
     <div class="lock-err" id="teamsErr"></div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- Metric trend chart modal -->
+<div class="modal-ov no-print" id="chartModal" onclick="if(event.target===this)closeChartModal()">
+  <div class="modal modal-scroll" style="max-width:880px;text-align:left;">
+    <h3 style="text-align:center;" id="chTitle">Metric trend</h3>
+    <p class="block-desc" style="text-align:center;margin:2px 0 12px;" id="chSub"></p>
+    <div id="chBody"></div>
+    <div class="modal-actions"><button class="btn ghost" onclick="closeChartModal()">Close</button></div>
   </div>
 </div>
 
@@ -509,6 +535,8 @@
       <div style="width:110px;"><label>Step %</label><input type="number" id="mx-pct" step="any" value="10" style="width:100%;" oninput="mxRenderLegend()"></div>
     </div>
     <div id="mxLegend" class="mx-legend"></div>
+    <label style="margin-top:14px;display:block;">Targets by quarter <span style="font-weight:400;color:var(--muted)">— set them ahead of time; blank uses the default target above</span></label>
+    <div id="mxQuarters" class="mx-qgrid"></div>
     <label style="margin-top:12px;display:block;">Where does this number come from?</label>
     <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
       <option value="manual">Manual entry — someone types it in weekly</option>
@@ -1120,6 +1148,26 @@
   function roleName(r){ r=r||'admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
   async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
   function pmName(p){ return p ? (p.indexOf('@')>=0 ? p.split('@')[0] : p) : ''; }
+  /* ---------- profile photos (from Slack) ----------
+     Seeded here so photos work with no setup. Once a Slack bot token is added
+     to the manage-users function, photos are fetched automatically on invite
+     and stored on the account — which then takes priority over this list. */
+  const SLACK_AVATARS={
+    'brad@purplecowinternet.com':'https://secure.gravatar.com/avatar/7e8f4c35a853d8d6970a1c31b3ba4271.jpg?s=512&d=https%3A%2F%2Fa.slack-edge.com%2Fdf10d%2Fimg%2Favatars%2Fava_0009-512.png',
+    'curtis@purplecowinternet.com':'https://avatars.slack-edge.com/2025-04-08/8726614068019_402d9b6a7f5c52d63d2f_original.png',
+    'ashley.burke@purplecowinternet.com':'https://avatars.slack-edge.com/2024-04-08/6952105578592_e4003a2cc6e8513f96a2_original.jpg',
+    'rei.colina@purplecowinternet.com':'https://avatars.slack-edge.com/2025-07-01/9133115885058_946d97d20ef80024b9c4_original.jpg',
+    'joe@purplecowinternet.com':'https://avatars.slack-edge.com/2026-03-06/10663107133121_b2c393f2abaad92c7538_original.png',
+    'krystina@purplecowinternet.com':'https://avatars.slack-edge.com/2024-01-03/6442841422016_6c063e1a2a16842c4c27_original.jpg',
+    'holly.carver@purplecowinternet.com':'https://avatars.slack-edge.com/2026-03-30/10809417578244_1372b77e11b308174be1_original.jpg'
+  };
+  function initialsOf(email){ const n=pmName(email)||email||'?'; const parts=n.replace(/[^a-zA-Z. ]/g,'').split(/[. ]+/).filter(Boolean); const s=(parts[0]||'?')[0]+((parts[1]||'')[0]||''); return s.toUpperCase(); }
+  function avatarFor(email){ if(!email) return '';
+    const u=(teamUsers||[]).find(x=>(x.email||'').toLowerCase()===String(email).toLowerCase());
+    return (u && u.avatar) || SLACK_AVATARS[String(email).toLowerCase()] || ''; }
+  function avatarHtml(email,cls){ const src=avatarFor(email);
+    return src ? '<img class="'+(cls||'tm-avatar')+'" src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'">'
+               : '<span class="tm-initials">'+esc(initialsOf(email))+'</span>'; }
   function ownerOptions(selected){
     const emails=(teamUsers||[]).map(u=>u.email||'');
     let out='<option value="">— unassigned —</option>';
@@ -1137,8 +1185,13 @@
       if(!users||!users.length){ box.innerHTML='<p class="empty">No users yet.</p>'; return; }
       const roleSel=(u)=>{ const cur=u.role||'admin'; const opt=(v,l)=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`; return `<select onchange="setUserRole('${u.id}',this.value,this)">${opt('admin','Admin')}${opt('leadership','Leadership')}${opt('team','Team')}</select>`; };
       const statusCell=(u)=>{ const active=!!u.last_sign_in_at; return active ? '<span class="status-pill ok" title="Has set a password and logged in">● Active</span>' : '<span class="status-pill wait" title="Invited — has not set a password / logged in yet">● Pending</span>'; };
-      box.innerHTML='<table class="dash-tbl"><thead><tr><th>Email</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td>${esc(u.email||'')}</td><td>${roleSel(u)}</td><td>${statusCell(u)}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
+      box.innerHTML='<table class="dash-tbl"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td><span class="tm-cell">${avatarHtml(u.email)}<span>${esc(u.email||'')}</span></span></td><td>${roleSel(u)}</td><td>${statusCell(u)}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
     }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
+  }
+  async function syncSlackPhotos(){
+    const err=document.getElementById('teamsErr'); err.textContent='Fetching photos from Slack…';
+    try{ const r=await callUserFn({action:'syncavatars'}); err.textContent='✅ Updated '+(r.updated||0)+' profile photo'+((r.updated===1)?'':'s')+' from Slack.'; loadTeamUsers(); applyRoleUI(); }
+    catch(e){ err.textContent=e.message; }
   }
   async function setUserRole(id, role, selEl){
     const err=document.getElementById('teamsErr'); err.textContent='Saving role…';
@@ -1234,13 +1287,26 @@
     if(!m.direction) m.direction = (m.goalType==='lte') ? 'lower' : 'higher';
     if(m.tierPct===undefined||m.tierPct===null||m.tierPct==='') m.tierPct=10;
     return m; }
-  function tierBands(m){ const g=Number(m.goal); const p=(Number(m.tierPct)||0)/100;
-    if(m.goal===''||m.goal===undefined||m.goal===null||isNaN(g)) return null;
+  /* quarters — targets can be set per quarter, ahead of time */
+  function quarterKeyOf(d){ return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1); }
+  function quarterLabel(k){ const p=String(k).split('-Q'); return 'Q'+p[1]+' '+p[0]; }
+  function quarterRange(k){ const p=String(k).split('-Q'); const y=Number(p[0]), q=Number(p[1]);
+    if(!y||!q) return null; return { start:new Date(y,(q-1)*3,1), end:new Date(y,q*3,0) }; }
+  function quarterList(back,fwd){ const out=[]; const t=new Date(); const cy=t.getFullYear(), cq=Math.floor(t.getMonth()/3)+1;
+    for(let i=-back;i<=fwd;i++){ let q=cq+i, y=cy; while(q<1){q+=4;y--;} while(q>4){q-=4;y++;} out.push(y+'-Q'+q); } return out; }
+  function goalForDate(m,d){ const qg=m.quarterGoals||{}; const v=qg[quarterKeyOf(d)];
+    if(v!==undefined && v!==null && v!=='') return Number(v);
+    return (m.goal===''||m.goal===undefined||m.goal===null)?'':Number(m.goal); }
+  function tierBandsGoal(m,goal){ const g=Number(goal); const p=(Number(m.tierPct)||0)/100;
+    if(goal===''||goal===undefined||goal===null||isNaN(g)) return null;
     return (m.direction==='lower') ? { great:g*(1-p), good:g, warn:g*(1+p) } : { great:g*(1+p), good:g, warn:g*(1-p) }; }
-  function tierOf(m,v){ const b=tierBands(m); if(!b||isNaN(v)) return '';
+  function tierOfGoal(m,v,goal){ const b=tierBandsGoal(m,goal); if(!b||isNaN(v)) return '';
     if(m.direction==='lower'){ if(v<=b.great) return 'great'; if(v<=b.good) return 'good'; if(v<=b.warn) return 'warn'; return 'bad'; }
     if(v>=b.great) return 'great'; if(v>=b.good) return 'good'; if(v>=b.warn) return 'warn'; return 'bad'; }
-  function goalLabel(m){ if(m.goal===''||m.goal===undefined||m.goal===null) return '—'; return (m.direction==='lower'?'≤ ':'≥ ')+fmtVal(m,m.goal); }
+  function tierBands(m){ return tierBandsGoal(m,m.goal); }
+  function tierOf(m,v){ return tierOfGoal(m,v,m.goal); }
+  function goalLabel(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return '—';
+    return (m.direction==='lower'?'≤ ':'≥ ')+fmtVal(m,g); }
   const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
   function mxRenderLegend(){
     const box=document.getElementById('mxLegend'); if(!box) return;
@@ -1265,7 +1331,7 @@
     const weeks=weekStarts(METRIC_WEEKS, weekStartDay);
     let head='<tr><th class="lft">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
     weeks.forEach(w=>{ head+='<th>'+wkLabel(w)+'</th>'; });
-    head+='<th>Avg</th></tr>';
+    head+='<th>Avg</th><th>Trend</th></tr>';
     let rows='';
     list.forEach(m=>{
       const vals=m.values||{}; let sum=0,cnt=0,cells=''; const editable=canEditMetric(m);
@@ -1274,7 +1340,7 @@
         const has=!(raw===undefined||raw===null||raw==='');
         const n=Number(raw); const num=has&&!isNaN(n);
         if(num){ sum+=n; cnt++; }
-        const cls = !has ? '' : tierOf(m,n);
+        const cls = !has ? '' : tierOfGoal(m,n,goalForDate(m,w));
         const inner = editable
           ? '<input class="mx-val" value="'+(has?esc(String(raw)):'')+'" onchange="setMetricValue(\''+m.id+'\',\''+k+'\',this.value)">'
           : (has?esc(fmtVal(m,n)):'—');
@@ -1284,10 +1350,101 @@
       const badge = m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
       rows+='<tr><td class="lft mx-name" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
           + '<td class="lft mx-owner">'+esc(pmName(m.owner)||'—')+'</td>'
-          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells+'<td class="mx-avg">'+avg+'</td></tr>';
+          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells+'<td class="mx-avg">'+avg+'</td>'
+          + '<td><button class="btn ghost sm" title="See goals vs actuals over time" onclick="openMetricChart(\''+m.id+'\')">📈</button></td></tr>';
     });
     wrap.innerHTML='<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
   }
+  /* ----- quarterly target inputs inside the metric modal ----- */
+  function mxRenderQuarters(m){
+    const box=document.getElementById('mxQuarters'); if(!box) return;
+    const nowQ=quarterKeyOf(new Date()); const qg=(m&&m.quarterGoals)||{};
+    box.innerHTML=quarterList(2,3).map(k=>{
+      const v=(qg[k]===undefined||qg[k]===null)?'':qg[k];
+      return '<div class="mx-qcell'+(k===nowQ?' is-now':'')+'"><label>'+esc(quarterLabel(k))+(k===nowQ?' • now':'')+'</label>'
+           + '<input type="number" step="any" id="mxq-'+esc(k)+'" value="'+esc(String(v))+'" placeholder="default"></div>';
+    }).join('');
+  }
+  function mxReadQuarters(){
+    const out={};
+    quarterList(2,3).forEach(k=>{ const el=document.getElementById('mxq-'+k); if(!el) return;
+      const v=el.value.trim(); if(v!=='') out[k]=Number(v); });
+    return out;
+  }
+  /* ----- trend chart: quarterly goals (back and forward) vs actuals ----- */
+  function alignWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const back=(x.getDay()-weekStartDay+7)%7; x.setDate(x.getDate()-back); return x; }
+  function metricChartPoints(m){
+    normalizeMetric(m);
+    const qg=m.quarterGoals||{}, vals=m.values||{};
+    const dates=[];
+    Object.keys(vals).forEach(k=>{ const d=new Date(k+'T00:00:00'); if(!isNaN(d)) dates.push(d); });
+    Object.keys(qg).forEach(k=>{ const r=quarterRange(k); if(r){ dates.push(r.start); dates.push(r.end); } });
+    if(!dates.length){ const w=weekStarts(METRIC_WEEKS,weekStartDay); dates.push(w[0], w[w.length-1]); }
+    let min=new Date(Math.min.apply(null,dates.map(d=>d.getTime())));
+    let max=new Date(Math.max.apply(null,dates.map(d=>d.getTime())));
+    const pts=[]; let guard=0;
+    for(let d=alignWeekStart(min); d<=max && guard<260; d=new Date(d.getTime()+7*86400000), guard++){
+      const k=wkKey(d); const raw=vals[k];
+      const has=!(raw===undefined||raw===null||raw==='');
+      const g=goalForDate(m,d);
+      pts.push({ date:new Date(d), key:k, actual: has&&!isNaN(Number(raw))?Number(raw):null,
+                 goal: (g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) });
+    }
+    return pts;
+  }
+  function renderMetricChart(m){
+    const pts=metricChartPoints(m);
+    const nums=[]; pts.forEach(p=>{ if(p.actual!==null) nums.push(p.actual); if(p.goal!==null) nums.push(p.goal); });
+    if(!nums.length) return '<p class="empty">No targets or results recorded yet — set a quarterly target or enter a weekly number first.</p>';
+    const W=820,H=330,PL=58,PR=18,PT=16,PB=52;
+    let mn=Math.min.apply(null,nums), mx=Math.max.apply(null,nums);
+    if(mn===mx){ mn-=Math.abs(mn||1)*0.1; mx+=Math.abs(mx||1)*0.1; }
+    const padY=(mx-mn)*0.12; mn-=padY; mx+=padY;
+    const n=pts.length;
+    const X=i=> PL + (n<=1 ? (W-PL-PR)/2 : i*(W-PL-PR)/(n-1));
+    const Y=v=> PT + (mx-v)*(H-PT-PB)/(mx-mn);
+    let svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:100%;height:auto;font-family:inherit;">';
+    // y gridlines
+    for(let i=0;i<=4;i++){ const v=mn+(mx-mn)*i/4, y=Y(v);
+      svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#e3d6ef" stroke-width="1"/>'
+         + '<text x="'+(PL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#6b5e78">'+esc(fmtVal(m,v))+'</text>'; }
+    // quarter separators + labels
+    let lastQ='';
+    pts.forEach((p,i)=>{ const q=quarterKeyOf(p.date);
+      if(q!==lastQ){ if(i>0) svg+='<line x1="'+X(i)+'" y1="'+PT+'" x2="'+X(i)+'" y2="'+(H-PB)+'" stroke="#e3d6ef" stroke-dasharray="3,3"/>';
+        svg+='<text x="'+(X(i)+4)+'" y="'+(H-PB+16)+'" font-size="10.5" fill="#6b5e78" font-weight="700">'+esc(quarterLabel(q))+'</text>'; lastQ=q; } });
+    // today marker
+    const todayIdx=pts.findIndex(p=>p.date>=alignWeekStart(new Date()));
+    if(todayIdx>0){ const x=X(todayIdx);
+      svg+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8e4fb8" stroke-width="1.5"/>'
+         + '<text x="'+(x+4)+'" y="'+(PT+12)+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
+    // goal line (dashed) — segments so gaps don't join
+    let seg=[];
+    const flushGoal=()=>{ if(seg.length>1) svg+='<polyline fill="none" stroke="#6b5e78" stroke-width="2" stroke-dasharray="6,4" points="'+seg.join(' ')+'"/>'; seg=[]; };
+    pts.forEach((p,i)=>{ if(p.goal===null){ flushGoal(); } else { seg.push(X(i)+','+Y(p.goal)); } });
+    flushGoal();
+    // actual line (solid) + dots coloured by tier
+    let aseg=[];
+    const flushAct=()=>{ if(aseg.length>1) svg+='<polyline fill="none" stroke="#6a2c8f" stroke-width="2.5" points="'+aseg.join(' ')+'"/>'; aseg=[]; };
+    pts.forEach((p,i)=>{ if(p.actual===null){ flushAct(); } else { aseg.push(X(i)+','+Y(p.actual)); } });
+    flushAct();
+    const TC={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b','':'#6a2c8f'};
+    pts.forEach((p,i)=>{ if(p.actual===null) return;
+      const t=tierOfGoal(m,p.actual,p.goal===null?'':p.goal);
+      svg+='<circle cx="'+X(i)+'" cy="'+Y(p.actual)+'" r="3.6" fill="'+(TC[t]||TC[''])+'"><title>'+esc(p.key+' · '+fmtVal(m,p.actual))+'</title></circle>'; });
+    svg+='</svg>';
+    return '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Actual</span>'
+         + '<span class="ch-key"><i class="ch-swatch dash"></i> Target</span>'
+         + '<span class="ch-key">Dots are coloured by how the week graded</span></div>'+svg;
+  }
+  function openMetricChart(id){
+    const m=metricsStore.find(x=>x.id===id); if(!m) return;
+    document.getElementById('chTitle').textContent='📈 '+m.name;
+    document.getElementById('chSub').textContent=(m.direction==='lower'?'Lower is better':'Higher is better')+' · owner '+(pmName(m.owner)||'—');
+    document.getElementById('chBody').innerHTML=renderMetricChart(m);
+    document.getElementById('chartModal').classList.add('show');
+  }
+  function closeChartModal(){ document.getElementById('chartModal').classList.remove('show'); }
   function openMetricModal(id){
     if(!isManager()) return;
     const editing=!!id; const m= editing ? metricsStore.find(x=>x.id===id) : null;
@@ -1308,6 +1465,7 @@
     set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
+    mxRenderQuarters(editing?m:null);
     mxToggleSource(); mxRenderLegend();
     document.getElementById('metricModal').classList.add('show');
     setTimeout(()=>{ const el=document.getElementById('mx-name'); if(el) el.focus(); },60);
@@ -1381,6 +1539,7 @@
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
+      quarterGoals: mxReadQuarters(),
       source, sourceRef, sourceName };
     let m;
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
@@ -1452,9 +1611,12 @@
   function renderHome(){ const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : ''; }
   function updateSidebarAccount(){
     const nm = myEmail ? pmName(myEmail) : 'Account';
-    const av = (myEmail||'?').replace(/[^a-zA-Z]/g,'').slice(0,2).toUpperCase() || '–';
     const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
-    set('sbAcctName', nm); set('sbAvatar', av); set('sbMenuName', nm+' · '+roleName(myRole)); set('sbMenuEmail', myEmail||'');
+    set('sbAcctName', nm); set('sbMenuName', nm+' · '+roleName(myRole)); set('sbMenuEmail', myEmail||'');
+    const av=document.getElementById('sbAvatar');
+    if(av){ const src=avatarFor(myEmail);
+      if(src){ av.classList.add('has-img'); av.innerHTML='<img src="'+esc(src)+'" alt="" onerror="this.parentNode.textContent=\''+esc(initialsOf(myEmail))+'\'">'; }
+      else { av.classList.remove('has-img'); av.textContent = myEmail?initialsOf(myEmail):'–'; } }
   }
   function toggleAcctMenu(ev){ if(ev) ev.stopPropagation(); const m=document.getElementById('sbAcctMenu'); if(m) m.classList.toggle('show'); }
   function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }

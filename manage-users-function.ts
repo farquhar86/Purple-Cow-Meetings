@@ -33,6 +33,26 @@ Deno.serve(async (req) => {
 
     const ROLES = ["admin", "leadership", "team"];
 
+    // Look up a teammate's Slack profile photo by email.
+    // Needs a Supabase secret SLACK_BOT_TOKEN with scopes: users:read, users:read.email
+    // If the token isn't set, this quietly returns null and everything else still works.
+    const slackAvatar = async (email: string): Promise<string | null> => {
+      const token = Deno.env.get("SLACK_BOT_TOKEN");
+      if (!token || !email) return null;
+      try {
+        const r = await fetch(
+          "https://slack.com/api/users.lookupByEmail?email=" + encodeURIComponent(email),
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+        const j = await r.json();
+        if (!j.ok || !j.user) return null;
+        const p = j.user.profile || {};
+        return p.image_192 || p.image_512 || p.image_72 || null;
+      } catch (_e) {
+        return null;
+      }
+    };
+
     if (body.action === "list") {
       const { data, error } = await admin.auth.admin.listUsers();
       if (error) throw error;
@@ -41,6 +61,7 @@ Deno.serve(async (req) => {
         email: u.email,
         created_at: u.created_at,
         role: (u.app_metadata && (u.app_metadata as any).role) || "admin",
+        avatar: (u.app_metadata && (u.app_metadata as any).avatar) || null,
         last_sign_in_at: u.last_sign_in_at || null,
         confirmed: !!(u.email_confirmed_at || u.confirmed_at),
       }));
@@ -56,9 +77,28 @@ Deno.serve(async (req) => {
         body.redirectTo ? { redirectTo: body.redirectTo } : undefined,
       );
       if (error) throw error;
-      // Stamp the chosen role onto the new account.
-      await admin.auth.admin.updateUserById(data.user.id, { app_metadata: { role } });
-      return json({ user: { id: data.user.id, email: data.user.email, role }, invited: true });
+      // Stamp the chosen role — and their Slack photo, if we can find one — onto the new account.
+      const avatar = await slackAvatar(body.email);
+      await admin.auth.admin.updateUserById(data.user.id, { app_metadata: { role, avatar } });
+      return json({ user: { id: data.user.id, email: data.user.email, role, avatar }, invited: true });
+    }
+
+    if (body.action === "syncavatars") {
+      if (!Deno.env.get("SLACK_BOT_TOKEN")) {
+        return json({ error: "No Slack token configured. Add a SLACK_BOT_TOKEN secret to this function first." }, 400);
+      }
+      const { data, error } = await admin.auth.admin.listUsers();
+      if (error) throw error;
+      let updated = 0;
+      for (const u of data.users) {
+        if (!u.email) continue;
+        const avatar = await slackAvatar(u.email);
+        if (!avatar) continue;
+        const meta = (u.app_metadata || {}) as Record<string, unknown>;
+        await admin.auth.admin.updateUserById(u.id, { app_metadata: { ...meta, avatar } });
+        updated++;
+      }
+      return json({ ok: true, updated });
     }
 
     if (body.action === "setrole") {
