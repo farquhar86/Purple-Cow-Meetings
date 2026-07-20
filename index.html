@@ -78,6 +78,27 @@
   .sec-body h2{color:var(--purple-dark);margin:14px 0 8px;}
   .sec-body p{color:var(--muted);}
   .sec-soon{display:inline-block;margin-top:14px;background:var(--lilac-2);color:var(--purple-dark);font-weight:700;font-size:.8rem;padding:6px 14px;border-radius:999px;}
+  /* ---- scorecard / metrics ---- */
+  .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
+  .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
+  .mx-wrap{padding:0 34px 60px;overflow-x:auto;}
+  table.scorecard{border-collapse:collapse;width:100%;min-width:760px;font-size:13px;background:#fff;}
+  .scorecard th,.scorecard td{border:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap;}
+  .scorecard th{background:var(--lilac);color:var(--purple-dark);font-weight:700;font-size:11.5px;}
+  .scorecard th.lft,.scorecard td.lft{text-align:left;}
+  .scorecard td.mx-name{font-weight:700;color:var(--purple-dark);cursor:pointer;}
+  .scorecard td.mx-name:hover{text-decoration:underline;}
+  .scorecard td.mx-owner,.scorecard td.mx-goal{color:var(--muted);}
+  .scorecard tbody tr:hover{background:#fcfaff;}
+  .scorecard input.mx-val{width:62px;border:1px solid transparent;text-align:center;background:transparent;font-size:13px;font-weight:600;padding:4px;border-radius:5px;color:var(--ink);}
+  .scorecard input.mx-val:focus{outline:none;background:#fff;border-color:var(--purple-light);box-shadow:0 0 0 2px rgba(142,79,184,.2);}
+  .mx-cell.ok{background:rgba(46,158,107,.16);}
+  .mx-cell.bad{background:rgba(216,83,59,.13);}
+  .mx-avg{font-weight:700;background:var(--lilac);}
+  .mx-src{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;letter-spacing:.03em;}
+  .mx-src.sf{background:#e0edff;color:#1a63c4;}
+  .mx-src.connect{background:#ffe9d6;color:#b8641a;}
+  .mx-empty{max-width:560px;margin:50px auto;text-align:center;color:var(--muted);}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -453,6 +474,49 @@
   </div>
 </div>
 
+<!-- Metric editor modal -->
+<div class="modal-ov no-print" id="metricModal" onclick="if(event.target===this)closeMetricModal()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">📈 <span id="mxModalTitle">New metric</span></h3>
+    <input type="hidden" id="mx-id">
+    <label>Metric name <span class="req">*</span></label>
+    <input type="text" id="mx-name" placeholder="e.g. New herd members this week" style="width:100%;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="flex:1;min-width:170px;"><label>Owner</label><select id="mx-owner" style="width:100%;"></select></div>
+      <div style="width:130px;"><label>Unit</label>
+        <select id="mx-unit" style="width:100%;"><option value="number">Number</option><option value="currency">$ Currency</option><option value="percent">% Percent</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
+      <div style="width:165px;"><label>Goal</label>
+        <select id="mx-goaltype" onchange="mxToggleBetween()" style="width:100%;">
+          <option value="gte">At least (≥)</option><option value="lte">At most (≤)</option>
+          <option value="eq">Equal to (=)</option><option value="between">Between</option>
+        </select>
+      </div>
+      <div style="width:120px;"><label>Target</label><input type="number" id="mx-goal" step="any" style="width:100%;"></div>
+      <div style="width:120px;display:none;" id="mx-goal2-wrap"><label>and</label><input type="number" id="mx-goal2" step="any" style="width:100%;"></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Where does this number come from?</label>
+    <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
+      <option value="manual">Manual entry — someone types it in weekly</option>
+      <option value="salesforce">Salesforce</option>
+      <option value="connect">AWS Connect</option>
+    </select>
+    <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
+      <label id="mx-srcref-label">Source query</label>
+      <input type="text" id="mx-srcref" placeholder="" style="width:100%;">
+      <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
+    <div class="lock-err" id="mxErr"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn danger sm" id="mxDeleteBtn" onclick="deleteMetric()" style="display:none;margin-right:auto;">Delete</button>
+      <button class="btn ghost" onclick="closeMetricModal()">Cancel</button>
+      <button class="btn" onclick="saveMetric()">Save metric</button>
+    </div>
+  </div>
+</div>
+
 <!-- New priority modal (dashboard quick-add) -->
 <div class="modal-ov no-print" id="newPrioModal" onclick="if(event.target===this)closeNewPrioModal()">
   <div class="modal modal-scroll" style="text-align:left;">
@@ -763,13 +827,12 @@
 
 <!-- ====================== SECTION: METRICS ====================== -->
 <div id="screen-metrics" style="display:none;">
-  <div class="sec-head"><h1>📈 Metrics</h1><p>Record and evaluate the key numbers that matter, week over week.</p></div>
-  <div class="sec-body">
-    <div class="sec-emoji">📈</div>
-    <h2>Scorecard &amp; measurables</h2>
-    <p>A weekly grid of the metrics each person or team owns, with a target and a green/red status at a glance. We'll build this next.</p>
-    <span class="sec-soon">Coming soon</span>
+  <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
+  <div class="mx-toolbar">
+    <button class="btn sm admin-only" onclick="openMetricModal()">➕ New metric</button>
+    <p class="mx-hint">Green = hit the target, red = missed. Click a metric name to edit it. Type straight into a week to record the number.</p>
   </div>
+  <div class="mx-wrap" id="metricsWrap"></div>
 </div>
 
 <!-- ====================== SECTION: TO-DOS ====================== -->
@@ -1118,6 +1181,134 @@
     infoModal('Carried '+added+' unfinished priorit'+(added===1?'y':'ies')+' into "'+target.name+'". Progress was kept; schedule dates were cleared so you can re-plan them.');
   }
 
+  /* ---------- metrics / scorecard ---------- */
+  const METRIC_WEEKS=13;
+  let metricsStore=[], metricsLoaded=false;
+  function loadMetricsLocal(){ try{ metricsStore=JSON.parse(localStorage.getItem(KEY+'_metrics')||'[]')||[]; }catch(e){ metricsStore=[]; } }
+  function saveMetricsLocal(){ try{ localStorage.setItem(KEY+'_metrics', JSON.stringify(metricsStore)); }catch(e){} }
+  function persistMetric(m){ saveMetricsLocal(); dbUpsertMetric(m); }
+  function dbUpsertMetric(m){ if(!USE_DB) return; sb.from('metrics').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('metric save failed', r.error); }); }
+  function dbDeleteMetric(id){ if(!USE_DB) return; sb.from('metrics').delete().eq('id',id).then(r=>{ if(r.error) console.warn('metric delete failed', r.error); }); }
+  async function dbLoadMetrics(){
+    if(!USE_DB){ metricsLoaded=true; return; }
+    try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error; metricsStore=(r.data||[]).map(x=>x.data).filter(Boolean); saveMetricsLocal(); }
+    catch(e){ console.warn('metrics load failed — using local cache', e); }
+    finally{ metricsLoaded=true; }
+  }
+  async function ensureMetrics(){ if(!metricsLoaded) await dbLoadMetrics(); renderMetrics(); }
+  function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
+  function canEditMetric(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
+  function wkKey(d){ const p=n=>String(n).length<2?'0'+n:''+n; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
+  function wkLabel(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+  function weekEndings(n){ const out=[]; const t=new Date(); t.setHours(0,0,0,0); const sun=new Date(t); sun.setDate(t.getDate()-t.getDay()); for(let i=n-1;i>=0;i--){ const w=new Date(sun); w.setDate(sun.getDate()-i*7); out.push(w); } return out; }
+  function fmtVal(m,v){ if(v===''||v===null||v===undefined||isNaN(Number(v))) return '—'; const n=Number(v); const s=(Math.round(n*100)/100).toLocaleString(); if(m.unit==='currency') return '$'+s; if(m.unit==='percent') return s+'%'; return s; }
+  function meets(m,v){ const g=Number(m.goal), g2=Number(m.goal2); if(isNaN(v)||m.goal===''||m.goal===undefined||m.goal===null) return false;
+    if(m.goalType==='lte') return v<=g;
+    if(m.goalType==='eq') return v===g;
+    if(m.goalType==='between'){ const lo=Math.min(g,g2), hi=Math.max(g,g2); return v>=lo && v<=hi; }
+    return v>=g; }
+  function goalLabel(m){ if(m.goal===''||m.goal===undefined||m.goal===null) return '—';
+    if(m.goalType==='lte') return '≤ '+fmtVal(m,m.goal);
+    if(m.goalType==='eq') return '= '+fmtVal(m,m.goal);
+    if(m.goalType==='between') return fmtVal(m,m.goal)+' – '+fmtVal(m,m.goal2);
+    return '≥ '+fmtVal(m,m.goal); }
+  function renderMetrics(){
+    const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
+    const list=metricsStore.filter(metricVisible);
+    if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
+    const weeks=weekEndings(METRIC_WEEKS);
+    let head='<tr><th class="lft">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
+    weeks.forEach(w=>{ head+='<th>'+wkLabel(w)+'</th>'; });
+    head+='<th>Avg</th></tr>';
+    let rows='';
+    list.forEach(m=>{
+      const vals=m.values||{}; let sum=0,cnt=0,cells=''; const editable=canEditMetric(m);
+      weeks.forEach(w=>{
+        const k=wkKey(w); const raw=vals[k];
+        const has=!(raw===undefined||raw===null||raw==='');
+        const n=Number(raw); const num=has&&!isNaN(n);
+        if(num){ sum+=n; cnt++; }
+        const cls = !has ? '' : (meets(m,n)?'ok':'bad');
+        const inner = editable
+          ? '<input class="mx-val" value="'+(has?esc(String(raw)):'')+'" onchange="setMetricValue(\''+m.id+'\',\''+k+'\',this.value)">'
+          : (has?esc(fmtVal(m,n)):'—');
+        cells+='<td class="mx-cell '+cls+'">'+inner+'</td>';
+      });
+      const avg=cnt?fmtVal(m,sum/cnt):'—';
+      const badge = m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+      rows+='<tr><td class="lft mx-name" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
+          + '<td class="lft mx-owner">'+esc(pmName(m.owner)||'—')+'</td>'
+          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells+'<td class="mx-avg">'+avg+'</td></tr>';
+    });
+    wrap.innerHTML='<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
+  }
+  function openMetricModal(id){
+    if(!isManager()) return;
+    const editing=!!id; const m= editing ? metricsStore.find(x=>x.id===id) : null;
+    if(editing && !m) return;
+    if(!editing && !canCreate()){ infoModal('Your account can update the metrics you own, but not create new ones. Ask an admin to add a metric.'); return; }
+    if(editing && !canEditMetric(m)){ infoModal('You can only edit metrics you own.'); return; }
+    const set=(i,v)=>{ const e=document.getElementById(i); if(e) e.value=v; };
+    document.getElementById('mxModalTitle').textContent = editing?'Edit metric':'New metric';
+    set('mx-id', editing?m.id:'');
+    set('mx-name', editing?(m.name||''):'');
+    document.getElementById('mx-owner').innerHTML = ownerOptions(editing?(m.owner||''):myEmail);
+    set('mx-unit', editing?(m.unit||'number'):'number');
+    set('mx-goaltype', editing?(m.goalType||'gte'):'gte');
+    set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
+    set('mx-goal2', (editing && m.goal2!==undefined && m.goal2!==null)?m.goal2:'');
+    set('mx-source', editing?(m.source||'manual'):'manual');
+    set('mx-srcref', editing?(m.sourceRef||''):'');
+    document.getElementById('mxErr').textContent='';
+    document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
+    mxToggleBetween(); mxToggleSource();
+    document.getElementById('metricModal').classList.add('show');
+    setTimeout(()=>{ const el=document.getElementById('mx-name'); if(el) el.focus(); },60);
+  }
+  function closeMetricModal(){ document.getElementById('metricModal').classList.remove('show'); }
+  function mxToggleBetween(){ const t=document.getElementById('mx-goaltype').value; document.getElementById('mx-goal2-wrap').style.display = (t==='between')?'block':'none'; }
+  function mxToggleSource(){
+    const s=document.getElementById('mx-source').value;
+    const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
+    const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
+    if(s==='manual'){ wrap.style.display='none'; return; }
+    wrap.style.display='block';
+    if(s==='salesforce'){ lab.textContent='Salesforce query (SOQL)'; inp.placeholder="SELECT COUNT() FROM Opportunity WHERE StageName='Closed Won'";
+      note.textContent='Saved with the metric so the scheduled sync knows what to pull. Until the Salesforce sync is switched on, enter the weekly numbers by hand.'; }
+    else { lab.textContent='AWS Connect metric'; inp.placeholder='e.g. CONTACTS_HANDLED · Queue: Support';
+      note.textContent='Saved with the metric so the scheduled sync knows what to pull. Until the Connect sync is switched on, enter the weekly numbers by hand.'; }
+  }
+  function saveMetric(){
+    const err=document.getElementById('mxErr'); err.textContent='';
+    const name=document.getElementById('mx-name').value.trim();
+    if(!name){ err.textContent='Give the metric a name.'; return; }
+    const id=document.getElementById('mx-id').value;
+    const gv=document.getElementById('mx-goal').value, g2v=document.getElementById('mx-goal2').value;
+    const data={ name, owner:document.getElementById('mx-owner').value||'',
+      unit:document.getElementById('mx-unit').value||'number',
+      goalType:document.getElementById('mx-goaltype').value||'gte',
+      goal: gv===''?'':Number(gv), goal2: g2v===''?'':Number(g2v),
+      source:document.getElementById('mx-source').value||'manual',
+      sourceRef:document.getElementById('mx-srcref').value.trim() };
+    let m;
+    if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
+    else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
+    persistMetric(m); closeMetricModal(); renderMetrics();
+  }
+  function deleteMetric(){
+    const id=document.getElementById('mx-id').value; const m=metricsStore.find(x=>x.id===id); if(!m) return;
+    confirmModal('Delete the metric “'+m.name+'”? Its weekly history will be removed too.', ()=>{
+      metricsStore=metricsStore.filter(x=>x.id!==id); saveMetricsLocal(); dbDeleteMetric(id); closeMetricModal(); renderMetrics();
+    }, 'Delete metric');
+  }
+  function setMetricValue(id,key,val){
+    const m=metricsStore.find(x=>x.id===id); if(!m||!canEditMetric(m)) return;
+    if(!m.values) m.values={};
+    const v=String(val).trim();
+    if(v===''){ delete m.values[key]; } else { const n=Number(v); m.values[key]= isNaN(n)?v:n; }
+    persistMetric(m); renderMetrics();
+  }
+
   /* ---------- access / screens ---------- */
   function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
   function openMgr(){ showScreen('login'); const p=document.getElementById('loginPw'); if(p){ p.value=''; setTimeout(()=>p.focus(),60); } const er=document.getElementById('loginErr'); if(er) er.textContent=''; window.scrollTo({top:0}); }
@@ -1145,7 +1336,7 @@
       } else { err.textContent='Incorrect password. Try again.'; }
     }
   }
-  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
+  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; metricsLoaded=false; applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
   function updateFab(){
     const b=document.getElementById('mgrBtn');
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
@@ -1162,7 +1353,7 @@
   function navTo(sec){
     currentSection=sec; closeAcctMenu();
     if(sec==='priorities'){ gotoDash(); }
-    else { showScreen(sec); if(sec==='home') renderHome(); window.scrollTo({top:0}); }
+    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='metrics') ensureMetrics(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
@@ -1773,6 +1964,7 @@
     store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
   }
   (async function init(){
+    loadMetricsLocal();
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked){ setMyIdentity(data.session.user); loadTeamUsersCache(); } }catch(e){ reviewUnlocked=false; }
       if(/type=(invite|recovery)/.test(INITIAL_HASH)){ applyTheme(); renderForm(); showSetPassword(); return; }
