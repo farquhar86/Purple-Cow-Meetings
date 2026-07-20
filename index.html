@@ -115,6 +115,7 @@
   .q-tag{font-size:8.5px;font-weight:800;color:var(--purple);letter-spacing:.04em;}
   .scorecard thead th.is-now .q-tag{color:#fff;}
   .scorecard th.is-future{color:#a89bb8;}
+  .scorecard th.pc,.scorecard td.pc{min-width:104px;}
   .scorecard td.mx-name{font-weight:700;color:var(--purple-dark);cursor:pointer;}
   .scorecard td.mx-name:hover{text-decoration:underline;}
   .scorecard td.mx-owner,.scorecard td.mx-goal{color:var(--muted);}
@@ -1332,7 +1333,7 @@
     const sel=document.getElementById('mx-weekstart'); if(sel) sel.value=String(weekStartDay); }
   function setWeekStart(v){ weekStartDay=Number(v)||0; try{ localStorage.setItem(KEY+'_weekstart', String(weekStartDay)); }catch(e){} renderMetrics(); }
   function wkKey(d){ const p=n=>String(n).length<2?'0'+n:''+n; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
-  function wkLabel(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+  function wkLabel(d){ return d.toLocaleDateString(undefined,{month:'long',day:'numeric'}); }
   function weekStarts(n,startDay){ const sd=Number(startDay)||0; const t=new Date(); t.setHours(0,0,0,0);
     const back=(t.getDay()-sd+7)%7; const cur=new Date(t); cur.setDate(t.getDate()-back);
     const out=[]; for(let i=n-1;i>=0;i--){ const w=new Date(cur); w.setDate(cur.getDate()-i*7); out.push(w); } return out; }
@@ -1350,13 +1351,13 @@
     const out=[]; const t=new Date(); t.setHours(0,0,0,0);
     if(period==='monthly'){
       for(let i=n-1;i>=0;i--){ const s=new Date(t.getFullYear(), t.getMonth()-i, 1); const e=new Date(s.getFullYear(), s.getMonth()+1, 0);
-        out.push({ key:wkKey(s), label:s.toLocaleDateString(undefined,{month:'short'})+' '+String(s.getFullYear()).slice(2), start:s, end:e }); }
+        out.push({ key:wkKey(s), label:s.toLocaleDateString(undefined,{month:'long'})+' '+s.getFullYear(), start:s, end:e }); }
       return out;
     }
     if(period==='quarterly'){
       const cq=Math.floor(t.getMonth()/3);
       for(let i=n-1;i>=0;i--){ const s=new Date(t.getFullYear(), (cq-i)*3, 1); const e=new Date(s.getFullYear(), s.getMonth()+3, 0);
-        out.push({ key:wkKey(s), label:'Q'+(Math.floor(s.getMonth()/3)+1)+' '+String(s.getFullYear()).slice(2), start:s, end:e }); }
+        out.push({ key:wkKey(s), label:'Q'+(Math.floor(s.getMonth()/3)+1)+' '+s.getFullYear(), start:s, end:e }); }
       return out;
     }
     weekStarts(n,weekStartDay).forEach(d=>{ const e=new Date(d.getTime()+6*86400000);
@@ -1444,8 +1445,8 @@
   }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
-    cols.forEach(c=>{ const k=(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+(c.isFuture?' is-future':'');
-      head+='<th class="'+k.trim()+'">'+(c.qTag?'<div class="q-tag">'+esc(c.qTag)+'</div>':'')+esc(c.label)
+    cols.forEach(c=>{ const k='pc'+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+(c.isFuture?' is-future':'');
+      head+='<th class="'+k+'">'+(c.qTag?'<div class="q-tag">'+esc(c.qTag)+'</div>':'')+esc(c.label)
           + (c.isNow?'<div class="now-tag">NOW</div>':'')+'</th>'; });
     head+='<th class="mx-r3">Total</th><th class="mx-r2">Avg</th><th class="mx-r1">Trend</th></tr>';
     let rows='';
@@ -1459,7 +1460,7 @@
         const inner = editable
           ? '<input class="mx-val'+(ph?' is-derived':'')+'" value="'+esc(cv.direct)+'" placeholder="'+ph+'" title="'+(ph?'Rolled up from the weekly numbers — type here to override':'')+'" onchange="setMetricValue(\''+m.id+'\',\''+c.key+'\',this.value)">'
           : (has?esc(fmtVal(m,cv.eff)):'—');
-        cells+='<td class="mx-cell '+cls+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+'">'+inner+'</td>';
+        cells+='<td class="mx-cell pc '+cls+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+'">'+inner+'</td>';
       });
       const total = (cnt && m.unit!=='percent') ? fmtVal(m,sum) : '—';
       const avg = cnt?fmtVal(m,sum/cnt):'—';
