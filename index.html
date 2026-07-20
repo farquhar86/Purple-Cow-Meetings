@@ -88,10 +88,23 @@
   .scorecard th.lft,.scorecard td.lft{text-align:left;}
   .mx-sec{margin:22px 0 8px;color:var(--purple-dark);font-size:1rem;}
   .mx-sec span{background:var(--lilac-2);border-radius:999px;font-size:.72rem;padding:2px 9px;margin-left:6px;vertical-align:middle;}
-  .scorecard th.mx-namehd,.scorecard td.mx-name{position:sticky;left:0;z-index:2;min-width:190px;}
-  .scorecard th.mx-namehd{background:var(--lilac);}
-  .scorecard td.mx-name{background:#fff;box-shadow:1px 0 0 var(--line);}
-  .scorecard th.mx-tot,.scorecard td.mx-tot{background:var(--lilac);}
+  /* frozen columns: Metric / Owner / Goal pinned left — Total / Avg / Trend pinned right */
+  .scorecard th.mx-c1,.scorecard td.mx-c1{position:sticky;left:0;z-index:3;width:190px;min-width:190px;max-width:190px;}
+  .scorecard th.mx-c2,.scorecard td.mx-c2{position:sticky;left:190px;z-index:3;width:110px;min-width:110px;}
+  .scorecard th.mx-c3,.scorecard td.mx-c3{position:sticky;left:300px;z-index:3;width:92px;min-width:92px;box-shadow:2px 0 4px -2px rgba(80,30,110,.25);}
+  .scorecard th.mx-r3,.scorecard td.mx-r3{position:sticky;right:132px;z-index:3;width:82px;min-width:82px;box-shadow:-2px 0 4px -2px rgba(80,30,110,.25);}
+  .scorecard th.mx-r2,.scorecard td.mx-r2{position:sticky;right:60px;z-index:3;width:72px;min-width:72px;}
+  .scorecard th.mx-r1,.scorecard td.mx-r1{position:sticky;right:0;z-index:3;width:60px;min-width:60px;}
+  .scorecard thead th.mx-c1,.scorecard thead th.mx-c2,.scorecard thead th.mx-c3,
+  .scorecard thead th.mx-r1,.scorecard thead th.mx-r2,.scorecard thead th.mx-r3{background:var(--lilac);}
+  .scorecard tbody td.mx-c1,.scorecard tbody td.mx-c2,.scorecard tbody td.mx-c3,.scorecard tbody td.mx-r1{background:#fff;}
+  .scorecard tbody td.mx-r2,.scorecard tbody td.mx-r3{background:var(--lilac);}
+  .scorecard tbody tr:hover td.mx-c1,.scorecard tbody tr:hover td.mx-c2,
+  .scorecard tbody tr:hover td.mx-c3,.scorecard tbody tr:hover td.mx-r1{background:#fcfaff;}
+  @media(max-width:900px){ /* too narrow to freeze — let everything scroll */
+    .scorecard th.mx-c1,.scorecard td.mx-c1,.scorecard th.mx-c2,.scorecard td.mx-c2,.scorecard th.mx-c3,.scorecard td.mx-c3,
+    .scorecard th.mx-r1,.scorecard td.mx-r1,.scorecard th.mx-r2,.scorecard td.mx-r2,.scorecard th.mx-r3,.scorecard td.mx-r3{position:static;box-shadow:none;}
+  }
   .scorecard input.mx-val.is-derived::placeholder{color:#9b8fae;font-style:italic;}
   .scorecard td.mx-name{font-weight:700;color:var(--purple-dark);cursor:pointer;}
   .scorecard td.mx-name:hover{text-decoration:underline;}
@@ -1407,9 +1420,9 @@
     wrap.innerHTML=html;
   }
   function buildScorecard(items,cols){
-    let head='<tr><th class="lft mx-namehd">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
+    let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
     cols.forEach(c=>{ head+='<th>'+esc(c.label)+'</th>'; });
-    head+='<th class="mx-tot">Total</th><th class="mx-tot">Avg</th><th>Trend</th></tr>';
+    head+='<th class="mx-r3">Total</th><th class="mx-r2">Avg</th><th class="mx-r1">Trend</th></tr>';
     let rows='';
     items.forEach(m=>{
       const editable=canEditMetric(m); let sum=0,cnt=0,cells='';
@@ -1426,11 +1439,11 @@
       const total = (cnt && m.unit!=='percent') ? fmtVal(m,sum) : '—';
       const avg = cnt?fmtVal(m,sum/cnt):'—';
       const badge = m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
-      rows+='<tr><td class="lft mx-name" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
-          + '<td class="lft mx-owner">'+esc(pmName(m.owner)||'—')+'</td>'
-          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells
-          + '<td class="mx-avg mx-tot">'+total+'</td><td class="mx-avg mx-tot">'+avg+'</td>'
-          + '<td><button class="btn ghost sm" title="See goals vs actuals over time" onclick="openMetricChart(\''+m.id+'\')">📈</button></td></tr>';
+      rows+='<tr><td class="lft mx-name mx-c1" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
+          + '<td class="lft mx-owner mx-c2">'+esc(pmName(m.owner)||'—')+'</td>'
+          + '<td class="lft mx-goal mx-c3">'+goalLabel(m)+'</td>'+cells
+          + '<td class="mx-avg mx-r3">'+total+'</td><td class="mx-avg mx-r2">'+avg+'</td>'
+          + '<td class="mx-r1"><button class="btn ghost sm" title="See goals vs actuals over time" onclick="openMetricChart(\''+m.id+'\')">📈</button></td></tr>';
     });
     return '<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
   }
