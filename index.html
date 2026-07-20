@@ -115,6 +115,14 @@
   .ch-key{display:inline-flex;align-items:center;gap:6px;}
   .ch-swatch{width:18px;height:0;border-top:3px solid var(--purple);display:inline-block;}
   .ch-swatch.dash{border-top:3px dashed var(--muted);}
+  .ch-summary{margin:12px 0 6px;font-size:13px;color:var(--ink);}
+  .ch-hint{margin:10px 0;padding:9px 12px;border-radius:8px;background:var(--lilac);color:var(--purple-dark);font-size:12.5px;}
+  table.ch-tbl{border-collapse:collapse;width:100%;font-size:12.5px;margin-top:4px;}
+  .ch-tbl th,.ch-tbl td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:center;}
+  .ch-tbl th{background:var(--lilac);color:var(--purple-dark);font-size:11.5px;position:sticky;top:0;}
+  .ch-tbl th.lft,.ch-tbl td.lft{text-align:left;}
+  .ch-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
+  .ch-pill{display:inline-block;color:#fff;font-weight:700;font-size:10.5px;padding:2px 9px;border-radius:999px;}
   .tm-cell{display:flex;align-items:center;gap:9px;}
   .tm-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--lilac-2);}
   .tm-initials{width:28px;height:28px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-size:.66rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
@@ -1452,6 +1460,16 @@
     if(todayIdx>0){ const x=X(todayIdx);
       svg+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8e4fb8" stroke-width="1.5"/>'
          + '<text x="'+(x+4)+'" y="'+(PT+12)+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
+    // shade the "beating target" side of the goal line
+    let bi=0;
+    while(bi<n){
+      if(pts[bi].goal===null){ bi++; continue; }
+      let bj=bi; while(bj+1<n && pts[bj+1].goal===pts[bi].goal) bj++;
+      const x1=X(bi), x2=X(bj), gy=Y(pts[bi].goal);
+      const top=(m.direction==='lower')?gy:PT, hgt=(m.direction==='lower')?(H-PB-gy):(gy-PT);
+      if(hgt>0 && x2>x1) svg+='<rect x="'+x1+'" y="'+top+'" width="'+(x2-x1)+'" height="'+hgt+'" fill="rgba(46,158,107,.08)"/>';
+      bi=bj+1;
+    }
     // goal line (dashed) — segments so gaps don't join
     let seg=[];
     const flushGoal=()=>{ if(seg.length>1) svg+='<polyline fill="none" stroke="#6b5e78" stroke-width="2" stroke-dasharray="6,4" points="'+seg.join(' ')+'"/>'; seg=[]; };
@@ -1467,9 +1485,35 @@
       const t=tierOfGoal(m,p.actual,p.goal===null?'':p.goal);
       svg+='<circle cx="'+X(i)+'" cy="'+Y(p.actual)+'" r="3.6" fill="'+(TC[t]||TC[''])+'"><title>'+esc(p.key+' · '+fmtVal(m,p.actual))+'</title></circle>'; });
     svg+='</svg>';
-    return '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Actual</span>'
+    // ---- week-by-week breakdown ----
+    const TL={great:'Smashed it',good:'On target',warn:'Just off',bad:'Missed'};
+    let hit=0, graded=0;
+    pts.forEach(p=>{ if(p.actual===null||p.goal===null) return; graded++;
+      const t=tierOfGoal(m,p.actual,p.goal); if(t==='great'||t==='good') hit++; });
+    const anyGoal=pts.some(p=>p.goal!==null);
+    const hint = !anyGoal
+      ? '<div class="ch-hint">⚠️ No target set yet, so there’s no goal line. Edit this metric and set a <b>Target</b> (or per-quarter targets) to see how each week measures up.</div>' : '';
+    const summary = graded
+      ? '<p class="ch-summary">Hit the target in <b>'+hit+' of '+graded+'</b> weeks with both a target and a result ('+Math.round(hit/graded*100)+'%).</p>' : '';
+    const rows=pts.slice().reverse().filter(p=>p.actual!==null||p.goal!==null).slice(0,40);
+    let tbl='<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Target</th><th>Actual</th><th>Diff</th><th>How it went</th></tr></thead><tbody>';
+    rows.forEach(p=>{
+      const both=(p.actual!==null&&p.goal!==null);
+      const t=both?tierOfGoal(m,p.actual,p.goal):'';
+      const diff=both?(p.actual-p.goal):null;
+      const ds=diff===null?'—':((diff>0?'+':'')+fmtVal(m,diff));
+      tbl+='<tr><td class="lft">'+p.date.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+'</td>'
+         + '<td>'+(p.goal===null?'—':fmtVal(m,p.goal))+'</td>'
+         + '<td><b>'+(p.actual===null?'—':fmtVal(m,p.actual))+'</b></td>'
+         + '<td>'+ds+'</td>'
+         + '<td>'+(t?('<span class="ch-pill" style="background:'+TC[t]+'">'+TL[t]+'</span>'):'—')+'</td></tr>';
+    });
+    tbl+='</tbody></table></div>';
+    return hint
+         + '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Actual</span>'
          + '<span class="ch-key"><i class="ch-swatch dash"></i> Target</span>'
-         + '<span class="ch-key">Dots are coloured by how the week graded</span></div>'+svg;
+         + '<span class="ch-key">Shaded area = beating the target</span></div>'
+         + svg + summary + tbl;
   }
   function openMetricChart(id){
     const m=metricsStore.find(x=>x.id===id); if(!m) return;
