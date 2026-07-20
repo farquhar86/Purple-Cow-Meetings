@@ -86,6 +86,13 @@
   .scorecard th,.scorecard td{border:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap;}
   .scorecard th{background:var(--lilac);color:var(--purple-dark);font-weight:700;font-size:11.5px;}
   .scorecard th.lft,.scorecard td.lft{text-align:left;}
+  .mx-sec{margin:22px 0 8px;color:var(--purple-dark);font-size:1rem;}
+  .mx-sec span{background:var(--lilac-2);border-radius:999px;font-size:.72rem;padding:2px 9px;margin-left:6px;vertical-align:middle;}
+  .scorecard th.mx-namehd,.scorecard td.mx-name{position:sticky;left:0;z-index:2;min-width:190px;}
+  .scorecard th.mx-namehd{background:var(--lilac);}
+  .scorecard td.mx-name{background:#fff;box-shadow:1px 0 0 var(--line);}
+  .scorecard th.mx-tot,.scorecard td.mx-tot{background:var(--lilac);}
+  .scorecard input.mx-val.is-derived::placeholder{color:#9b8fae;font-style:italic;}
   .scorecard td.mx-name{font-weight:700;color:var(--purple-dark);cursor:pointer;}
   .scorecard td.mx-name:hover{text-decoration:underline;}
   .scorecard td.mx-owner,.scorecard td.mx-goal{color:var(--muted);}
@@ -529,7 +536,19 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
       <div style="flex:1;min-width:170px;"><label>Owner</label><select id="mx-owner" style="width:100%;"></select></div>
       <div style="width:130px;"><label>Unit</label>
-        <select id="mx-unit" style="width:100%;"><option value="number">Number</option><option value="currency">$ Currency</option><option value="percent">% Percent</option></select>
+        <select id="mx-unit" style="width:100%;" onchange="mxRenderLegend()"><option value="number">Number</option><option value="currency">$ Currency</option><option value="percent">% Percent</option></select>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="flex:1;min-width:190px;"><label>Is this goal weekly, monthly or quarterly?</label>
+        <select id="mx-period" style="width:100%;">
+          <option value="weekly">Weekly — a number every week</option>
+          <option value="monthly">Monthly — a number every month</option>
+          <option value="quarterly">Quarterly — a number every quarter</option>
+        </select>
+      </div>
+      <div style="width:170px;"><label>Roll weeks up by</label>
+        <select id="mx-rollup" style="width:100%;"><option value="sum">Adding them up</option><option value="avg">Averaging them</option></select>
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
@@ -1300,7 +1319,43 @@
   function normalizeMetric(m){ if(!m) return m;
     if(!m.direction) m.direction = (m.goalType==='lte') ? 'lower' : 'higher';
     if(m.tierPct===undefined||m.tierPct===null||m.tierPct==='') m.tierPct=10;
+    if(!m.period) m.period='weekly';
+    if(!m.rollup) m.rollup='sum';
     return m; }
+  /* columns for a metric's cadence — weekly, monthly or quarterly */
+  const PERIOD_COUNTS={weekly:26, monthly:12, quarterly:8};
+  function periodCols(period,n){
+    const out=[]; const t=new Date(); t.setHours(0,0,0,0);
+    if(period==='monthly'){
+      for(let i=n-1;i>=0;i--){ const s=new Date(t.getFullYear(), t.getMonth()-i, 1); const e=new Date(s.getFullYear(), s.getMonth()+1, 0);
+        out.push({ key:wkKey(s), label:s.toLocaleDateString(undefined,{month:'short'})+' '+String(s.getFullYear()).slice(2), start:s, end:e }); }
+      return out;
+    }
+    if(period==='quarterly'){
+      const cq=Math.floor(t.getMonth()/3);
+      for(let i=n-1;i>=0;i--){ const s=new Date(t.getFullYear(), (cq-i)*3, 1); const e=new Date(s.getFullYear(), s.getMonth()+3, 0);
+        out.push({ key:wkKey(s), label:'Q'+(Math.floor(s.getMonth()/3)+1)+' '+String(s.getFullYear()).slice(2), start:s, end:e }); }
+      return out;
+    }
+    weekStarts(n,weekStartDay).forEach(d=>{ const e=new Date(d.getTime()+6*86400000);
+      out.push({ key:wkKey(d), label:wkLabel(d), start:new Date(d), end:e }); });
+    return out;
+  }
+  /* a cell's value: what was typed in directly, or rolled up from the weekly numbers */
+  function cellValue(m,col){
+    const vals=m.values||{};
+    const direct=vals[col.key];
+    const hasDirect=!(direct===undefined||direct===null||direct===''||isNaN(Number(direct)));
+    let derived=null;
+    if((m.period||'weekly')!=='weekly'){
+      const inside=[];
+      Object.keys(vals).forEach(k=>{ if(k===col.key) return; const d=parseAnyDate(k); if(!d) return;
+        if(d>=col.start && d<=col.end){ const n=Number(vals[k]); if(!isNaN(n)) inside.push(n); } });
+      if(inside.length){ const s=inside.reduce((a,b)=>a+b,0); derived=(m.rollup==='avg')?(s/inside.length):s; }
+    }
+    const eff = hasDirect ? Number(direct) : derived;
+    return { direct: hasDirect?String(direct):'', derived, eff };
+  }
   /* quarters — targets can be set per quarter, ahead of time */
   function quarterKeyOf(d){ return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1); }
   function quarterLabel(k){ const p=String(k).split('-Q'); return 'Q'+p[1]+' '+p[0]; }
@@ -1342,32 +1397,42 @@
     const list=metricsStore.filter(metricVisible);
     if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
     list.forEach(normalizeMetric);
-    const weeks=weekStarts(METRIC_WEEKS, weekStartDay);
-    let head='<tr><th class="lft">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
-    weeks.forEach(w=>{ head+='<th>'+wkLabel(w)+'</th>'; });
-    head+='<th>Avg</th><th>Trend</th></tr>';
+    let html='';
+    [['weekly','Weekly'],['monthly','Monthly'],['quarterly','Quarterly']].forEach(([p,label])=>{
+      const items=list.filter(m=>(m.period||'weekly')===p);
+      if(!items.length) return;
+      const cols=periodCols(p, PERIOD_COUNTS[p]);
+      html+='<h3 class="mx-sec">'+label+' goals <span>'+items.length+'</span></h3>'+buildScorecard(items,cols);
+    });
+    wrap.innerHTML=html;
+  }
+  function buildScorecard(items,cols){
+    let head='<tr><th class="lft mx-namehd">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
+    cols.forEach(c=>{ head+='<th>'+esc(c.label)+'</th>'; });
+    head+='<th class="mx-tot">Total</th><th class="mx-tot">Avg</th><th>Trend</th></tr>';
     let rows='';
-    list.forEach(m=>{
-      const vals=m.values||{}; let sum=0,cnt=0,cells=''; const editable=canEditMetric(m);
-      weeks.forEach(w=>{
-        const k=wkKey(w); const raw=vals[k];
-        const has=!(raw===undefined||raw===null||raw==='');
-        const n=Number(raw); const num=has&&!isNaN(n);
-        if(num){ sum+=n; cnt++; }
-        const cls = !has ? '' : tierOfGoal(m,n,goalForDate(m,w));
+    items.forEach(m=>{
+      const editable=canEditMetric(m); let sum=0,cnt=0,cells='';
+      cols.forEach(c=>{
+        const cv=cellValue(m,c); const has=cv.eff!==null && !isNaN(cv.eff);
+        if(has){ sum+=cv.eff; cnt++; }
+        const cls = !has ? '' : tierOfGoal(m,cv.eff,goalForDate(m,c.start));
+        const ph = (cv.derived!==null && !cv.direct) ? esc(fmtVal(m,cv.derived)) : '';
         const inner = editable
-          ? '<input class="mx-val" value="'+(has?esc(String(raw)):'')+'" onchange="setMetricValue(\''+m.id+'\',\''+k+'\',this.value)">'
-          : (has?esc(fmtVal(m,n)):'—');
+          ? '<input class="mx-val'+(ph?' is-derived':'')+'" value="'+esc(cv.direct)+'" placeholder="'+ph+'" title="'+(ph?'Rolled up from the weekly numbers — type here to override':'')+'" onchange="setMetricValue(\''+m.id+'\',\''+c.key+'\',this.value)">'
+          : (has?esc(fmtVal(m,cv.eff)):'—');
         cells+='<td class="mx-cell '+cls+'">'+inner+'</td>';
       });
-      const avg=cnt?fmtVal(m,sum/cnt):'—';
+      const total = (cnt && m.unit!=='percent') ? fmtVal(m,sum) : '—';
+      const avg = cnt?fmtVal(m,sum/cnt):'—';
       const badge = m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
       rows+='<tr><td class="lft mx-name" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
           + '<td class="lft mx-owner">'+esc(pmName(m.owner)||'—')+'</td>'
-          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells+'<td class="mx-avg">'+avg+'</td>'
+          + '<td class="lft mx-goal">'+goalLabel(m)+'</td>'+cells
+          + '<td class="mx-avg mx-tot">'+total+'</td><td class="mx-avg mx-tot">'+avg+'</td>'
           + '<td><button class="btn ghost sm" title="See goals vs actuals over time" onclick="openMetricChart(\''+m.id+'\')">📈</button></td></tr>';
     });
-    wrap.innerHTML='<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
+    return '<table class="scorecard"><thead>'+head+'</thead><tbody>'+rows+'</tbody></table>';
   }
   /* ----- quarterly target inputs inside the metric modal ----- */
   function mxRenderQuarters(m){
@@ -1422,17 +1487,17 @@
     Object.keys(vals).forEach(k=>{ const d=new Date(k+'T00:00:00'); if(!isNaN(d)) dates.push(d); });
     Object.keys(qg).forEach(k=>{ const r=quarterRange(k); if(r){ dates.push(r.start); dates.push(r.end); } });
     if(!dates.length){ const w=weekStarts(METRIC_WEEKS,weekStartDay); dates.push(w[0], w[w.length-1]); }
-    let min=new Date(Math.min.apply(null,dates.map(d=>d.getTime())));
-    let max=new Date(Math.max.apply(null,dates.map(d=>d.getTime())));
-    const pts=[]; let guard=0;
-    for(let d=alignWeekStart(min); d<=max && guard<260; d=new Date(d.getTime()+7*86400000), guard++){
-      const k=wkKey(d); const raw=vals[k];
-      const has=!(raw===undefined||raw===null||raw==='');
-      const g=goalForDate(m,d);
-      pts.push({ date:new Date(d), key:k, actual: has&&!isNaN(Number(raw))?Number(raw):null,
-                 goal: (g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) });
-    }
-    return pts;
+    const min=new Date(Math.min.apply(null,dates.map(d=>d.getTime())));
+    const max=new Date(Math.max.apply(null,dates.map(d=>d.getTime())));
+    // enough columns of this metric's cadence to cover the whole span, plus what's ahead
+    const per=m.period||'weekly';
+    const span=Math.max(1,(max-min)/86400000);
+    const need = per==='quarterly' ? Math.ceil(span/90)+2 : per==='monthly' ? Math.ceil(span/30)+2 : Math.ceil(span/7)+2;
+    const cols=periodCols(per, Math.min(need>PERIOD_COUNTS[per]?need:PERIOD_COUNTS[per], 200));
+    return cols.map(c=>{ const cv=cellValue(m,c); const g=goalForDate(m,c.start);
+      return { date:c.start, key:c.key, label:c.label,
+               actual:(cv.eff===null||isNaN(cv.eff))?null:cv.eff,
+               goal:(g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) }; });
   }
   function renderMetricChart(m){
     const pts=metricChartPoints(m);
@@ -1536,6 +1601,8 @@
     document.getElementById('mx-owner').innerHTML = ownerOptions(editing?(m.owner||''):myEmail);
     if(editing) normalizeMetric(m);
     set('mx-unit', editing?(m.unit||'number'):'number');
+    set('mx-period', editing?(m.period||'weekly'):'weekly');
+    set('mx-rollup', editing?(m.rollup||'sum'):'sum');
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
@@ -1617,6 +1684,8 @@
     if(source==='salesforce'){ const hit=sfReportIdFrom(rawRef); if(hit){ sourceRef=hit.id; sourceName=hit.name; } }
     const data={ name, owner:document.getElementById('mx-owner').value||'',
       unit:document.getElementById('mx-unit').value||'number',
+      period:document.getElementById('mx-period').value||'weekly',
+      rollup:document.getElementById('mx-rollup').value||'sum',
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
