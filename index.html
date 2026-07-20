@@ -92,8 +92,19 @@
   .scorecard tbody tr:hover{background:#fcfaff;}
   .scorecard input.mx-val{width:62px;border:1px solid transparent;text-align:center;background:transparent;font-size:13px;font-weight:600;padding:4px;border-radius:5px;color:var(--ink);}
   .scorecard input.mx-val:focus{outline:none;background:#fff;border-color:var(--purple-light);box-shadow:0 0 0 2px rgba(142,79,184,.2);}
-  .mx-cell.ok{background:rgba(46,158,107,.16);}
-  .mx-cell.bad{background:rgba(216,83,59,.13);}
+  .mx-cell.great{background:rgba(23,105,53,.30);}
+  .mx-cell.good{background:rgba(46,158,107,.20);}
+  .mx-cell.warn{background:rgba(233,194,39,.34);}
+  .mx-cell.bad{background:rgba(216,83,59,.20);}
+  .mx-legend{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fbf9fe;}
+  .mx-legend .lg-tt{font-size:11.5px;color:var(--muted);margin:0 0 6px;font-weight:700;letter-spacing:.02em;}
+  .mx-legend .lg-row{display:flex;align-items:center;gap:10px;padding:5px 2px;font-size:13px;border-bottom:1px solid var(--line);}
+  .mx-legend .lg-row:last-child{border-bottom:none;}
+  .lg-sw{width:16px;height:16px;border-radius:4px;flex:0 0 auto;}
+  .lg-op{width:24px;color:var(--muted);font-weight:700;text-align:center;}
+  .lg-num{font-weight:700;color:var(--ink);}
+  .lg-lab{margin-left:auto;font-size:11.5px;color:var(--muted);}
+  .mx-wkbar{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);}
   .mx-avg{font-weight:700;background:var(--lilac);}
   .mx-src{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;letter-spacing:.03em;}
   .mx-src.sf{background:#e0edff;color:#1a63c4;}
@@ -488,24 +499,26 @@
       </div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
-      <div style="width:165px;"><label>Goal</label>
-        <select id="mx-goaltype" onchange="mxToggleBetween()" style="width:100%;">
-          <option value="gte">At least (≥)</option><option value="lte">At most (≤)</option>
-          <option value="eq">Equal to (=)</option><option value="between">Between</option>
+      <div style="width:120px;"><label>Target</label><input type="number" id="mx-goal" step="any" style="width:100%;" oninput="mxRenderLegend()"></div>
+      <div style="flex:1;min-width:175px;"><label>Direction</label>
+        <select id="mx-dir" onchange="mxRenderLegend()" style="width:100%;">
+          <option value="higher">Higher is better ↑</option>
+          <option value="lower">Lower is better ↓</option>
         </select>
       </div>
-      <div style="width:120px;"><label>Target</label><input type="number" id="mx-goal" step="any" style="width:100%;"></div>
-      <div style="width:120px;display:none;" id="mx-goal2-wrap"><label>and</label><input type="number" id="mx-goal2" step="any" style="width:100%;"></div>
+      <div style="width:110px;"><label>Step %</label><input type="number" id="mx-pct" step="any" value="10" style="width:100%;" oninput="mxRenderLegend()"></div>
     </div>
+    <div id="mxLegend" class="mx-legend"></div>
     <label style="margin-top:12px;display:block;">Where does this number come from?</label>
     <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
       <option value="manual">Manual entry — someone types it in weekly</option>
-      <option value="salesforce">Salesforce</option>
+      <option value="salesforce">Salesforce report</option>
       <option value="connect">AWS Connect</option>
     </select>
     <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
-      <label id="mx-srcref-label">Source query</label>
-      <input type="text" id="mx-srcref" placeholder="" style="width:100%;">
+      <label id="mx-srcref-label">Source</label>
+      <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
+      <datalist id="sfReportList"></datalist>
       <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
     </div>
     <div class="lock-err" id="mxErr"></div>
@@ -830,7 +843,14 @@
   <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
   <div class="mx-toolbar">
     <button class="btn sm admin-only" onclick="openMetricModal()">➕ New metric</button>
-    <p class="mx-hint">Green = hit the target, red = missed. Click a metric name to edit it. Type straight into a week to record the number.</p>
+    <p class="mx-hint">Click a metric name to edit it. Type straight into a week to record the number.</p>
+    <span class="mx-wkbar">Week starts
+      <select id="mx-weekstart" onchange="setWeekStart(this.value)">
+        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
+        <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
+    </span>
   </div>
   <div class="mx-wrap" id="metricsWrap"></div>
 </div>
@@ -1198,25 +1218,51 @@
   async function ensureMetrics(){ if(!metricsLoaded) await dbLoadMetrics(); renderMetrics(); }
   function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
   function canEditMetric(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
+  /* week columns — start day is configurable, defaults to Sunday */
+  let weekStartDay=0;
+  function loadWeekStart(){ try{ const v=localStorage.getItem(KEY+'_weekstart'); weekStartDay = (v===null)?0:(Number(v)||0); }catch(e){ weekStartDay=0; }
+    const sel=document.getElementById('mx-weekstart'); if(sel) sel.value=String(weekStartDay); }
+  function setWeekStart(v){ weekStartDay=Number(v)||0; try{ localStorage.setItem(KEY+'_weekstart', String(weekStartDay)); }catch(e){} renderMetrics(); }
   function wkKey(d){ const p=n=>String(n).length<2?'0'+n:''+n; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
   function wkLabel(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
-  function weekEndings(n){ const out=[]; const t=new Date(); t.setHours(0,0,0,0); const sun=new Date(t); sun.setDate(t.getDate()-t.getDay()); for(let i=n-1;i>=0;i--){ const w=new Date(sun); w.setDate(sun.getDate()-i*7); out.push(w); } return out; }
+  function weekStarts(n,startDay){ const sd=Number(startDay)||0; const t=new Date(); t.setHours(0,0,0,0);
+    const back=(t.getDay()-sd+7)%7; const cur=new Date(t); cur.setDate(t.getDate()-back);
+    const out=[]; for(let i=n-1;i>=0;i--){ const w=new Date(cur); w.setDate(cur.getDate()-i*7); out.push(w); } return out; }
   function fmtVal(m,v){ if(v===''||v===null||v===undefined||isNaN(Number(v))) return '—'; const n=Number(v); const s=(Math.round(n*100)/100).toLocaleString(); if(m.unit==='currency') return '$'+s; if(m.unit==='percent') return s+'%'; return s; }
-  function meets(m,v){ const g=Number(m.goal), g2=Number(m.goal2); if(isNaN(v)||m.goal===''||m.goal===undefined||m.goal===null) return false;
-    if(m.goalType==='lte') return v<=g;
-    if(m.goalType==='eq') return v===g;
-    if(m.goalType==='between'){ const lo=Math.min(g,g2), hi=Math.max(g,g2); return v>=lo && v<=hi; }
-    return v>=g; }
-  function goalLabel(m){ if(m.goal===''||m.goal===undefined||m.goal===null) return '—';
-    if(m.goalType==='lte') return '≤ '+fmtVal(m,m.goal);
-    if(m.goalType==='eq') return '= '+fmtVal(m,m.goal);
-    if(m.goalType==='between') return fmtVal(m,m.goal)+' – '+fmtVal(m,m.goal2);
-    return '≥ '+fmtVal(m,m.goal); }
+  /* goal model: target + direction (higher/lower is better) + step % between tiers */
+  function normalizeMetric(m){ if(!m) return m;
+    if(!m.direction) m.direction = (m.goalType==='lte') ? 'lower' : 'higher';
+    if(m.tierPct===undefined||m.tierPct===null||m.tierPct==='') m.tierPct=10;
+    return m; }
+  function tierBands(m){ const g=Number(m.goal); const p=(Number(m.tierPct)||0)/100;
+    if(m.goal===''||m.goal===undefined||m.goal===null||isNaN(g)) return null;
+    return (m.direction==='lower') ? { great:g*(1-p), good:g, warn:g*(1+p) } : { great:g*(1+p), good:g, warn:g*(1-p) }; }
+  function tierOf(m,v){ const b=tierBands(m); if(!b||isNaN(v)) return '';
+    if(m.direction==='lower'){ if(v<=b.great) return 'great'; if(v<=b.good) return 'good'; if(v<=b.warn) return 'warn'; return 'bad'; }
+    if(v>=b.great) return 'great'; if(v>=b.good) return 'good'; if(v>=b.warn) return 'warn'; return 'bad'; }
+  function goalLabel(m){ if(m.goal===''||m.goal===undefined||m.goal===null) return '—'; return (m.direction==='lower'?'≤ ':'≥ ')+fmtVal(m,m.goal); }
+  const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
+  function mxRenderLegend(){
+    const box=document.getElementById('mxLegend'); if(!box) return;
+    const gEl=document.getElementById('mx-goal'); if(!gEl) return;
+    const m={ goal: gEl.value===''?'':Number(gEl.value), unit:(document.getElementById('mx-unit')||{}).value||'number',
+              direction:(document.getElementById('mx-dir')||{}).value||'higher', tierPct:(document.getElementById('mx-pct')||{}).value };
+    const b=tierBands(m);
+    if(!b){ box.innerHTML='<p class="lg-tt">Enter a target to preview the colour bands.</p>'; return; }
+    const low = m.direction==='lower';
+    const row=(color,op,val,lab)=>'<div class="lg-row"><span class="lg-sw" style="background:'+color+'"></span><span class="lg-op">'+op+'</span><span class="lg-num">'+fmtVal(m,val)+'</span><span class="lg-lab">'+lab+'</span></div>';
+    box.innerHTML='<p class="lg-tt">HOW WEEKS WILL BE GRADED</p>'
+      + row(TIER_COLORS.great, low?'≤':'≥', b.great, 'Smashed it')
+      + row(TIER_COLORS.good,  low?'≤':'≥', b.good,  'Hit the target')
+      + row(TIER_COLORS.warn,  low?'≤':'≥', b.warn,  'Just off')
+      + '<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-op">'+(low?'>':'<')+'</span><span class="lg-num">'+fmtVal(m,b.warn)+'</span><span class="lg-lab">Missed</span></div>';
+  }
   function renderMetrics(){
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
     const list=metricsStore.filter(metricVisible);
     if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
-    const weeks=weekEndings(METRIC_WEEKS);
+    list.forEach(normalizeMetric);
+    const weeks=weekStarts(METRIC_WEEKS, weekStartDay);
     let head='<tr><th class="lft">Metric</th><th class="lft">Owner</th><th class="lft">Goal</th>';
     weeks.forEach(w=>{ head+='<th>'+wkLabel(w)+'</th>'; });
     head+='<th>Avg</th></tr>';
@@ -1228,7 +1274,7 @@
         const has=!(raw===undefined||raw===null||raw==='');
         const n=Number(raw); const num=has&&!isNaN(n);
         if(num){ sum+=n; cnt++; }
-        const cls = !has ? '' : (meets(m,n)?'ok':'bad');
+        const cls = !has ? '' : tierOf(m,n);
         const inner = editable
           ? '<input class="mx-val" value="'+(has?esc(String(raw)):'')+'" onchange="setMetricValue(\''+m.id+'\',\''+k+'\',this.value)">'
           : (has?esc(fmtVal(m,n)):'—');
@@ -1253,28 +1299,70 @@
     set('mx-id', editing?m.id:'');
     set('mx-name', editing?(m.name||''):'');
     document.getElementById('mx-owner').innerHTML = ownerOptions(editing?(m.owner||''):myEmail);
+    if(editing) normalizeMetric(m);
     set('mx-unit', editing?(m.unit||'number'):'number');
-    set('mx-goaltype', editing?(m.goalType||'gte'):'gte');
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
-    set('mx-goal2', (editing && m.goal2!==undefined && m.goal2!==null)?m.goal2:'');
+    set('mx-dir', editing?(m.direction||'higher'):'higher');
+    set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
     set('mx-source', editing?(m.source||'manual'):'manual');
-    set('mx-srcref', editing?(m.sourceRef||''):'');
+    set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
-    mxToggleBetween(); mxToggleSource();
+    mxToggleSource(); mxRenderLegend();
     document.getElementById('metricModal').classList.add('show');
     setTimeout(()=>{ const el=document.getElementById('mx-name'); if(el) el.focus(); },60);
   }
   function closeMetricModal(){ document.getElementById('metricModal').classList.remove('show'); }
-  function mxToggleBetween(){ const t=document.getElementById('mx-goaltype').value; document.getElementById('mx-goal2-wrap').style.display = (t==='between')?'block':'none'; }
+  /* Salesforce report catalogue — pick an existing saved report by name,
+     or paste a report link / ID from Salesforce (always works, never stale). */
+  const SF_REPORTS=[
+    {id:'00OOO000002fLIf2AM', name:'Churn Last WEEK (rc)', folder:'Admin Team'},
+    {id:'00OOO000002fMUr2AM', name:'Churn LAST WEEK', folder:'Q4 Data'},
+    {id:'00OOO0000045WRZ2A2', name:'(Response Date) of Churn Last WEEK', folder:'Admin Team'},
+    {id:'00OOO0000045VC92AM', name:'(Response Date) of Churn Last WEEK (rc)', folder:'OPS Reports'},
+    {id:'00OOO0000056EgX2AU', name:'Ashleys Churn Last WEEK (rc)', folder:'Ashley'},
+    {id:'00OOO0000045UHh2AM', name:'Churn based on req disco date', folder:'OPS Reports'},
+    {id:'00OOO0000063y0z2AA', name:'Churn last 3 months', folder:'All Herd Members'},
+    {id:'00OOO0000077avZ2AQ', name:'Churn by Community', folder:'Dan Community Dashboard'},
+    {id:'00OOO000004V5cE2AS', name:'Churn & Breakage 1.0', folder:'Kneal and Curtis'},
+    {id:'00OOO0000061SYH2A2', name:'Churn & Breakage 2025', folder:'For Garry'},
+    {id:'00OOO0000065hiP2AQ', name:'Churn & Breakage 1.0 Q4 2025', folder:'Q4 Data'},
+    {id:'00OOO0000065i8D2AQ', name:'Churn 1.0 Q4 2025', folder:'Q4 Data'},
+    {id:'00OOO0000077avf2AA', name:'Weekly Miss Count', folder:'Loyalty & Churn Coverage'},
+    {id:'00OOO000005gfK12AI', name:'Live Dates -Missed & Not Missed - Weekly', folder:'Assurance Team'},
+    {id:'00OOO000002AZZd2AO', name:'Abandon Cart Statuses Weekly - Marketing', folder:'All Herd Members'},
+    {id:'00O2R000003nWREUA2', name:'"Active" TV Users', folder:'All Herd Members'},
+    {id:'00O2R000003ogjpUAA', name:'> 30 Days Overdue', folder:'All Herd Members'}
+  ];
+  function populateReportList(){
+    const dl=document.getElementById('sfReportList'); if(!dl) return;
+    dl.innerHTML=SF_REPORTS.map(r=>'<option value="'+esc(r.name)+'">'+esc(r.folder)+'</option>').join('');
+  }
+  function sfReportIdFrom(text){
+    const t=String(text||'').trim();
+    const byName=SF_REPORTS.find(r=>r.name.toLowerCase()===t.toLowerCase());
+    if(byName) return {id:byName.id, name:byName.name};
+    const m=t.match(/00O[A-Za-z0-9]{12,15}/);       // report ID, incl. pasted URLs
+    if(m) { const known=SF_REPORTS.find(r=>r.id.indexOf(m[0])===0||m[0].indexOf(r.id)===0);
+            return {id:m[0], name: known?known.name:t}; }
+    return null;
+  }
+  function mxResolveReport(){
+    if((document.getElementById('mx-source')||{}).value!=='salesforce') return;
+    const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
+    const hit=sfReportIdFrom(inp.value);
+    if(hit){ inp.value=hit.name; note.innerHTML='✅ Linked to report <b>'+esc(hit.id)+'</b>. The scheduled sync will pull this report’s total each week.'; }
+    else if(inp.value.trim()){ note.textContent='Not recognised yet — pick a report from the list, or paste the report link from Salesforce and it will be matched automatically.'; }
+  }
   function mxToggleSource(){
     const s=document.getElementById('mx-source').value;
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
     const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
     if(s==='manual'){ wrap.style.display='none'; return; }
     wrap.style.display='block';
-    if(s==='salesforce'){ lab.textContent='Salesforce query (SOQL)'; inp.placeholder="SELECT COUNT() FROM Opportunity WHERE StageName='Closed Won'";
-      note.textContent='Saved with the metric so the scheduled sync knows what to pull. Until the Salesforce sync is switched on, enter the weekly numbers by hand.'; }
+    if(s==='salesforce'){ populateReportList();
+      lab.textContent='Salesforce report'; inp.placeholder='Start typing a report name, or paste a report link…';
+      note.textContent='Pick one of your saved Salesforce reports, or paste its link. Until the sync is switched on, enter the weekly numbers by hand.'; }
     else { lab.textContent='AWS Connect metric'; inp.placeholder='e.g. CONTACTS_HANDLED · Queue: Support';
       note.textContent='Saved with the metric so the scheduled sync knows what to pull. Until the Connect sync is switched on, enter the weekly numbers by hand.'; }
   }
@@ -1283,13 +1371,17 @@
     const name=document.getElementById('mx-name').value.trim();
     if(!name){ err.textContent='Give the metric a name.'; return; }
     const id=document.getElementById('mx-id').value;
-    const gv=document.getElementById('mx-goal').value, g2v=document.getElementById('mx-goal2').value;
+    const gv=document.getElementById('mx-goal').value, pv=document.getElementById('mx-pct').value;
+    const source=document.getElementById('mx-source').value||'manual';
+    const rawRef=document.getElementById('mx-srcref').value.trim();
+    let sourceRef=rawRef, sourceName=rawRef;
+    if(source==='salesforce'){ const hit=sfReportIdFrom(rawRef); if(hit){ sourceRef=hit.id; sourceName=hit.name; } }
     const data={ name, owner:document.getElementById('mx-owner').value||'',
       unit:document.getElementById('mx-unit').value||'number',
-      goalType:document.getElementById('mx-goaltype').value||'gte',
-      goal: gv===''?'':Number(gv), goal2: g2v===''?'':Number(g2v),
-      source:document.getElementById('mx-source').value||'manual',
-      sourceRef:document.getElementById('mx-srcref').value.trim() };
+      goal: gv===''?'':Number(gv),
+      direction:document.getElementById('mx-dir').value||'higher',
+      tierPct: pv===''?10:Number(pv),
+      source, sourceRef, sourceName };
     let m;
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
@@ -1964,7 +2056,7 @@
     store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
   }
   (async function init(){
-    loadMetricsLocal();
+    loadMetricsLocal(); loadWeekStart();
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked){ setMyIdentity(data.session.user); loadTeamUsersCache(); } }catch(e){ reviewUnlocked=false; }
       if(/type=(invite|recovery)/.test(INITIAL_HASH)){ applyTheme(); renderForm(); showSetPassword(); return; }
