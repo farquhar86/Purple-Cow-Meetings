@@ -163,6 +163,49 @@
   .mx-src.sf{background:#e0edff;color:#1a63c4;}
   .mx-src.connect{background:#ffe9d6;color:#b8641a;}
   .mx-empty{max-width:560px;margin:50px auto;text-align:center;color:var(--muted);}
+  /* ---- meetings ---- */
+  .mtg-wrap{padding:22px 34px 70px;max-width:1000px;}
+  .mtg-card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);}
+  .mtg-card:hover{border-color:var(--purple-light);}
+  .mtg-card h3{margin:0 0 3px;color:var(--purple-dark);font-size:1.05rem;}
+  .mtg-card .mtg-meta{font-size:.85rem;color:var(--muted);}
+  .mtg-badge{display:inline-block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:2px 9px;border-radius:999px;background:var(--lilac-2);color:var(--purple-dark);}
+  .mtg-avs{margin-left:auto;display:flex;align-items:center;}
+  .mtg-avs img,.mtg-avs .tm-initials{width:30px;height:30px;margin-left:-8px;border:2px solid #fff;border-radius:50%;}
+  .mtg-avs .more{margin-left:-8px;width:30px;height:30px;border-radius:50%;background:var(--lilac-2);color:var(--purple-dark);font-size:.7rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border:2px solid #fff;}
+  .mtg-top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+  .mtg-datenav{display:flex;align-items:center;gap:8px;}
+  .mtg-datenav .btn{padding:6px 11px;}
+  .mtg-date{font-weight:700;color:var(--purple-dark);min-width:210px;text-align:center;}
+  .mtg-when{font-size:.85rem;color:var(--muted);}
+  .mtg-attend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 16px;}
+  .mtg-att{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 3px;font-size:.82rem;}
+  .mtg-att img,.mtg-att .tm-initials{width:22px;height:22px;border-radius:50%;}
+  .mtg-sec{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+  .mtg-sec-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--lilac);border-bottom:1px solid var(--line);}
+  .mtg-sec-hd h3{margin:0;font-size:1rem;color:var(--purple-dark);flex:1;}
+  .mtg-sec-hd .btn{padding:5px 10px;}
+  .mtg-sec-bd{padding:14px 16px;}
+  .mtg-corevals{white-space:pre-wrap;font-size:.92rem;line-height:1.6;color:var(--ink);}
+  .mtg-note{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+  .mtg-note img,.mtg-note .tm-initials{width:34px;height:34px;border-radius:50%;flex:0 0 auto;margin-top:2px;}
+  .mtg-bubble{background:#eef0f2;border-radius:14px;padding:9px 14px;font-size:.92rem;position:relative;flex:1;}
+  .mtg-bubble .who{font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px;}
+  .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
+  .mtg-note:hover .mtg-bubble .del{opacity:1;}
+  .mtg-addrow{display:flex;gap:8px;margin-top:10px;}
+  .mtg-addrow input{flex:1;}
+  .mtg-pri{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);}
+  .mtg-pri:last-child{border-bottom:none;}
+  .mtg-pri input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;cursor:pointer;}
+  .mtg-pri .who{font-size:.74rem;color:var(--muted);margin-left:auto;}
+  .mtg-pri.done .ptxt{text-decoration:line-through;color:var(--muted);}
+  .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
+  .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
+  .mtg-mx{display:flex;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:.9rem;}
+  .mtg-mx:last-child{border-bottom:none;}
+  .mtg-mx .v{font-weight:700;}
+  .mtg-back{background:none;border:none;color:var(--purple);cursor:pointer;font-weight:600;padding:0;margin-bottom:12px;font-size:.9rem;}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -536,6 +579,63 @@
     <div style="margin-top:10px;"><button class="btn ghost sm" onclick="syncSlackPhotos()">🔄 Sync photos from Slack</button></div>
     <div class="lock-err" id="teamsErr"></div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- Create / edit meeting modal -->
+<div class="modal-ov no-print" id="mtgModal" onclick="if(event.target===this)closeMeetingCreate()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">🗓️ <span id="mtgModalTitle">New meeting</span></h3>
+    <input type="hidden" id="mtg-id">
+    <label>Title <span class="req">*</span></label>
+    <input type="text" id="mtg-title" placeholder="e.g. Head of Department Daily Standup" style="width:100%;">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="flex:1;min-width:150px;"><label>Type</label>
+        <select id="mtg-type" style="width:100%;">
+          <option value="once">One-time</option>
+          <option value="daily">Recurring — daily</option>
+          <option value="weekly">Recurring — weekly</option>
+          <option value="biweekly">Recurring — every 2 weeks</option>
+          <option value="monthly">Recurring — monthly</option>
+        </select>
+      </div>
+      <div style="width:150px;"><label>Date</label><input type="date" id="mtg-date" style="width:100%;"></div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="width:120px;"><label>Time</label><input type="time" id="mtg-time" style="width:100%;"></div>
+      <div style="width:110px;"><label>Length (min)</label><input type="number" id="mtg-dur" value="30" step="5" style="width:100%;"></div>
+      <div style="flex:1;min-width:170px;"><label>Time zone</label><select id="mtg-tz" style="width:100%;"></select></div>
+    </div>
+    <label style="margin-top:10px;display:block;">Attendees</label>
+    <div id="mtg-attendees" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    <div class="lock-err" id="mtgErr"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn danger sm" id="mtgDeleteBtn" onclick="deleteMeeting2()" style="display:none;margin-right:auto;">Delete</button>
+      <button class="btn ghost" onclick="closeMeetingCreate()">Cancel</button>
+      <button class="btn" onclick="saveMeeting2()">Save meeting</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add section modal -->
+<div class="modal-ov no-print" id="mtgSecModal" onclick="if(event.target===this)closeAddSection()">
+  <div class="modal" style="text-align:left;">
+    <h3 style="text-align:center;">➕ Add a section</h3>
+    <label>Section title</label>
+    <input type="text" id="sec-title" placeholder="e.g. Wins this week" style="width:100%;">
+    <label style="margin-top:10px;display:block;">Type</label>
+    <select id="sec-type" style="width:100%;">
+      <option value="text">Editable text (shared across every meeting)</option>
+      <option value="notes">Notes everyone adds (like Good News)</option>
+      <option value="priorities">Priorities — a to-do list carried to the next meeting</option>
+      <option value="issues">Issues list</option>
+      <option value="metrics">Metrics snapshot</option>
+    </select>
+    <div class="lock-err" id="secErr"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn ghost" onclick="closeAddSection()">Cancel</button>
+      <button class="btn" onclick="saveAddSection()">Add section</button>
+    </div>
   </div>
 </div>
 
@@ -958,13 +1058,12 @@
 
 <!-- ====================== SECTION: MEETINGS ====================== -->
 <div id="screen-meetings" style="display:none;">
-  <div class="sec-head"><h1>🗓️ Meetings</h1><p>Run a focused weekly meeting that drives decisions.</p></div>
-  <div class="sec-body">
-    <div class="sec-emoji">🗓️</div>
-    <h2>Weekly meeting</h2>
-    <p>A structured agenda that pulls your scorecard, priorities, to-dos, and issues into one flow — with notes and follow-up. We'll build this next.</p>
-    <span class="sec-soon">Coming soon</span>
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div><h1>🗓️ Meetings</h1><p>Your meetings — shared agendas everyone fills in together.</p></div>
+    <button class="btn" onclick="openMeetingCreate()">➕ New meeting</button>
   </div>
+  <div id="mtgListView" class="mtg-wrap"></div>
+  <div id="mtgDetailView" class="mtg-wrap" style="display:none;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1765,6 +1864,269 @@
     persistMetric(m); renderMetrics();
   }
 
+  /* ================= MEETINGS ================= */
+  const KNOWN_ATTENDEES=['brad@purplecowinternet.com','ashley.burke@purplecowinternet.com','rei.colina@purplecowinternet.com','joe@purplecowinternet.com','krystina@purplecowinternet.com','holly.carver@purplecowinternet.com','curtis@purplecowinternet.com'];
+  const TIMEZONES=['America/Halifax','America/St_Johns','America/Toronto','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Vancouver','UTC','Europe/London'];
+  const CORE_VALS=`Fight for Every Customer:
+We are relentless to win, keep, and delight every customer. We write what's possible.
+
+Scrappy & Resourceful:
+We tackle challenges with grit, creativity, skill and a commitment to industry-leading service and price.
+
+Let's Go!:
+Action beats perfection, move fast, and adapt quickly to grow and serve.
+
+1HAG:
+Saved 55,147 herd members from the big guys / Dec 31st 2026
+
+3HAG:
+Saved 100,000 herd members from the big guys / Oct 1 2028
+
+BHAG:
+Half the homes in the Atlantic Provinces are purple homes!
+
+Core Purpose:
+1. To make the home radically more affordable.
+
+One Phrase Strategy:
+Herd Life`;
+  let mtgsStore=[], mtgItems=[], mtgLoaded=false, curMtgId=null, curMtgDate=null;
+  function loadMtgLocal(){ try{ mtgsStore=JSON.parse(localStorage.getItem(KEY+'_mtgs')||'[]')||[]; mtgItems=JSON.parse(localStorage.getItem(KEY+'_mtgitems')||'[]')||[]; }catch(e){ mtgsStore=[]; mtgItems=[]; } }
+  function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
+  function dbUpsertMtg(m){ if(!USE_DB) return; sb.from('mtgs').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('mtg save',r.error); }); }
+  function dbDeleteMtg(id){ if(!USE_DB) return; sb.from('mtgs').delete().eq('id',id).then(()=>{}); sb.from('mtg_items').delete().eq('meeting_id',id).then(()=>{}); }
+  function dbUpsertItem(it){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error) console.warn('item save',r.error); }); }
+  function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
+  async function dbLoadMeetings(){
+    if(!USE_DB){ mtgLoaded=true; return; }
+    try{ const a=await sb.from('mtgs').select('id,data'); if(a.error) throw a.error; mtgsStore=(a.data||[]).map(x=>x.data).filter(Boolean);
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) throw b.error;
+      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
+      saveMtgLocal();
+    }catch(e){ console.warn('meetings load failed — using local cache',e); }
+    finally{ mtgLoaded=true; }
+  }
+  async function ensureMeetingsV2(){ if(!mtgLoaded) await dbLoadMeetings(); seedMeetings(); if(curMtgId && mtgsStore.some(m=>m.id===curMtgId)) renderMeetingView(); else renderMeetingsList(); }
+
+  function mtgStepDays(type){ return {daily:1,weekly:7,biweekly:14}[type]||0; }
+  function stepDate(d,type,dir){ const x=new Date(d);
+    if(type==='monthly'){ x.setMonth(x.getMonth()+dir); return x; }
+    const s=mtgStepDays(type); if(!s) return x; x.setDate(x.getDate()+dir*s); return x; }
+  function occurrenceOnOrAfter(m,target){
+    const base=new Date((m.date||wkKey(new Date()))+'T00:00:00'); base.setHours(0,0,0,0);
+    const t=new Date(target); t.setHours(0,0,0,0);
+    if(m.type==='once'||!m.type) return base;
+    if(m.type==='daily') return t>=base?t:base;
+    let d=new Date(base), guard=0; while(d<t && guard<600){ d=stepDate(d,m.type,1); guard++; } return d;
+  }
+  function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
+  function mtgVisible(m){ if(myRole!=='team') return true; return (m.attendees||[]).indexOf(myEmail)>=0; }
+  function myMeetings(){ const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    if(mine.length) return mine; return canManageUsers()?mtgsStore.slice():mine; }
+
+  function renderMeetingsList(){
+    document.getElementById('mtgListView').style.display='';
+    document.getElementById('mtgDetailView').style.display='none';
+    const box=document.getElementById('mtgListView');
+    const list=myMeetings();
+    if(!list.length){ box.innerHTML='<div class="mx-empty">No meetings yet — click <b>➕ New meeting</b> to create one.</div>'; return; }
+    box.innerHTML=list.map(m=>{
+      const next=occurrenceOnOrAfter(m,new Date());
+      const typeLabel = (m.type==='once'||!m.type)?'One-time':('Recurring · '+m.type);
+      const av=(m.attendees||[]); const shown=av.slice(0,6).map(e=>avatarHtml(e)).join('');
+      const more=av.length>6?('<span class="more">+'+(av.length-6)+'</span>'):'';
+      return '<div class="mtg-card" onclick="openMeeting(\''+m.id+'\')">'
+        + '<div><h3>'+esc(m.title||'Untitled meeting')+'</h3>'
+        + '<div class="mtg-meta"><span class="mtg-badge">'+esc(typeLabel)+'</span> &nbsp; '
+        + esc(fmtMtgDate(next))+(m.time?(' · '+esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))):'')+'</div></div>'
+        + '<div class="mtg-avs">'+shown+more+'</div></div>';
+    }).join('');
+  }
+  function fmtTime(t){ if(!t) return ''; const p=t.split(':'); let h=Number(p[0]); const ap=h>=12?'pm':'am'; h=h%12||12; return h+':'+p[1]+ap; }
+  function tzShort(tz){ if(!tz) return ''; const p=tz.split('/'); return (p[1]||tz).replace('_',' '); }
+
+  function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
+    curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView(); window.scrollTo({top:0}); }
+  function backToMeetings(){ curMtgId=null; renderMeetingsList(); }
+  function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=stepDate(curMtgDate,m.type,dir); renderMeetingView(); }
+
+  function renderMeetingView(){
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m){ renderMeetingsList(); return; }
+    document.getElementById('mtgListView').style.display='none';
+    const box=document.getElementById('mtgDetailView'); box.style.display='';
+    const recurring=!(m.type==='once'||!m.type);
+    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const nav = recurring
+      ? '<div class="mtg-datenav"><button class="btn ghost" onclick="mtgNav(-1)">◀</button>'
+        + '<span class="mtg-date">'+esc(fmtMtgDate(curMtgDate))+'</span>'
+        + '<button class="btn ghost" onclick="mtgNav(1)">▶</button></div>'
+      : '<span class="mtg-date">'+esc(fmtMtgDate(curMtgDate))+'</span>';
+    const attend='<div class="mtg-attend">'+(m.attendees||[]).map(e=>'<span class="mtg-att">'+avatarHtml(e)+esc(pmName(e))+'</span>').join('')+'</div>';
+    let html='<button class="mtg-back" onclick="backToMeetings()">← All meetings</button>'
+      + '<div class="mtg-top"><h1 style="margin:0;color:var(--purple-dark);font-size:1.4rem;flex:1;">'+esc(m.title)+'</h1>'
+      + '<button class="btn ghost sm" onclick="openMeetingCreate(\''+m.id+'\')">⚙ Edit meeting</button>'
+      + '<button class="btn ghost sm" onclick="ensureMeetingsRefresh()">↻ Refresh</button></div>'
+      + '<div class="mtg-top">'+nav+'<span class="mtg-when">'+(m.time?(esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))+' · '+esc(String(m.dur||30))+' min'):'')+'</span></div>'
+      + attend;
+    (m.sections||[]).forEach(sec=>{ html+=renderSection(m,sec,canEdit); });
+    html+='<div style="margin-top:6px;"><button class="btn ghost sm" onclick="openAddSection()">➕ Add section</button></div>';
+    box.innerHTML=html;
+  }
+  async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
+
+  function instKey(){ return wkKey(curMtgDate); }
+  function prevInstKey(m){ return wkKey(stepDate(curMtgDate,m.type||'daily',-1)); }
+  function itemsFor(section,inst){ return mtgItems.filter(it=>it.meeting_id===curMtgId && it.section===section && it.inst===inst)
+    .sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
+  function addItem(section,inst,data){ const it={id:uid(),meeting_id:curMtgId,section,inst,data:Object.assign({author:myEmail,t:Date.now()},data)}; mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it); return it; }
+  function saveItem(it){ saveMtgLocal(); dbUpsertItem(it); }
+  function delItem(id){ mtgItems=mtgItems.filter(x=>x.id!==id); saveMtgLocal(); dbDeleteItem(id); }
+
+  function renderSection(m,sec,canEdit){
+    const bodyId='secbody-'+sec.id;
+    let body='';
+    if(sec.type==='text'){
+      const it=mtgItems.find(x=>x.meeting_id===m.id && x.section===sec.id && x.inst==='static');
+      const txt=(it&&it.data&&it.data.text)||'';
+      body = canEdit
+        ? '<textarea class="mtg-corevals" style="width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:10px;" onchange="saveText(\''+sec.id+'\',this.value)">'+esc(txt)+'</textarea>'
+        : '<div class="mtg-corevals">'+esc(txt||'—')+'</div>';
+    } else if(sec.type==='notes'){
+      const rows=itemsFor(sec.id,instKey());
+      body = rows.length ? rows.map(it=>noteHtml(it,canEdit)).join('') : '<div class="mtg-empty">No notes yet — be the first to add one.</div>';
+      if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add your note…" onkeydown="if(event.key===\'Enter\')addNote(\''+sec.id+'\')"><button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
+    } else if(sec.type==='priorities'){
+      const rows=itemsFor(sec.id,instKey());
+      body = rows.length ? rows.map(it=>priHtml(it,sec.id,canEdit,true)).join('') : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
+      if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a priority for this meeting…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')"><button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>';
+    } else if(sec.type==='prioritiesPrev'){
+      const src=sec.sourceSection||'today';
+      const rows=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===prevInstKey(m)).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
+      body = rows.length ? rows.map(it=>priHtml(it,src,canEdit,false)).join('') : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
+    } else if(sec.type==='issues'){
+      const rows=itemsFor(sec.id,instKey());
+      body = rows.length ? rows.map(it=>issueHtml(it,sec.id,canEdit)).join('') : '<div class="mtg-empty">No issues raised yet.</div>';
+      if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add an issue to discuss…" onkeydown="if(event.key===\'Enter\')addIssue(\''+sec.id+'\')"><button class="btn sm" onclick="addIssue(\''+sec.id+'\')">Add</button></div>';
+    } else if(sec.type==='metrics'){
+      body = renderMetricSnapshot();
+    }
+    const del = canEdit ? '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '';
+    return '<div class="mtg-sec"><div class="mtg-sec-hd"><h3>'+esc(sec.title)+'</h3>'+del+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
+  }
+  function noteHtml(it,canEdit){ const mine=it.data.author===myEmail;
+    return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
+      +esc(it.data.text||'')+((mine||canManageUsers())?'<span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
+  function priHtml(it,section,canEdit,editable){ const done=!!it.data.done;
+    return '<div class="mtg-pri'+(done?' done':'')+'">'
+      +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
+      +'<span class="ptxt">'+esc(it.data.text||'')+'</span>'
+      +'<span class="who">'+esc(pmName(it.data.author))+'</span>'
+      +(editable&&(it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
+      +'</div>'; }
+  function issueHtml(it,section,canEdit){ const solved=!!it.data.done;
+    return '<div class="mtg-pri'+(solved?' done':'')+'">'
+      +'<input type="checkbox" '+(solved?'checked':'')+' '+(canEdit?'':'disabled')+' title="Mark solved" onchange="togglePri(\''+it.id+'\',this.checked)">'
+      +'<span class="ptxt">'+esc(it.data.text||'')+'</span>'
+      +'<span class="who">'+esc(pmName(it.data.author))+'</span>'
+      +((it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
+      +'</div>'; }
+  function renderMetricSnapshot(){
+    if(!metricsStore.length) return '<div class="mtg-empty">No metrics yet — add them in the Metrics section.</div>';
+    const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
+    return metricsStore.filter(metricVisible).map(m=>{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
+      const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
+      const dot=t?'<span style="color:'+({great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'}[t])+'">●</span> ':'';
+      return '<div class="mtg-mx"><span>'+dot+esc(m.name)+'</span><span class="v">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span></div>';
+    }).join(''); }
+
+  function saveText(section,val){ let it=mtgItems.find(x=>x.meeting_id===curMtgId && x.section===section && x.inst==='static');
+    if(!it){ it={id:uid(),meeting_id:curMtgId,section,inst:'static',data:{type:'text',author:myEmail,t:Date.now()}}; mtgItems.push(it); }
+    it.data.text=val; it.data.editedBy=myEmail; it.data.editedAt=Date.now(); saveItem(it); }
+  function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); }
+  function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); }
+  function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); }
+  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); renderMeetingView(); }
+
+  /* create / edit meeting */
+  function openMeetingCreate(id){
+    if(!isManager()) return;
+    const editing=!!id; const m=editing?mtgsStore.find(x=>x.id===id):null;
+    const set=(i,v)=>{ const e=document.getElementById(i); if(e) e.value=v; };
+    document.getElementById('mtgModalTitle').textContent=editing?'Edit meeting':'New meeting';
+    document.getElementById('mtg-tz').innerHTML=TIMEZONES.map(t=>'<option value="'+t+'">'+esc(tzShort(t))+'</option>').join('');
+    set('mtg-id',editing?m.id:''); set('mtg-title',editing?(m.title||''):'');
+    set('mtg-type',editing?(m.type||'once'):'daily');
+    set('mtg-date',editing?(m.date||wkKey(new Date())):wkKey(new Date()));
+    set('mtg-time',editing?(m.time||'09:00'):'09:00');
+    set('mtg-dur',editing?(m.dur||30):30);
+    set('mtg-tz',editing?(m.tz||'America/Halifax'):'America/Halifax');
+    const chosen=editing?(m.attendees||[]):KNOWN_ATTENDEES.slice();
+    const pool=(teamUsers&&teamUsers.length)?teamUsers.map(u=>u.email):KNOWN_ATTENDEES;
+    document.getElementById('mtg-attendees').innerHTML=pool.map(e=>'<label class="mtg-att" style="cursor:pointer;"><input type="checkbox" value="'+esc(e)+'"'+(chosen.indexOf(e)>=0?' checked':'')+'> '+esc(pmName(e))+'</label>').join('');
+    document.getElementById('mtgErr').textContent='';
+    document.getElementById('mtgDeleteBtn').style.display=editing?'inline-block':'none';
+    document.getElementById('mtgModal').classList.add('show');
+  }
+  function closeMeetingCreate(){ document.getElementById('mtgModal').classList.remove('show'); }
+  function saveMeeting2(){
+    const err=document.getElementById('mtgErr'); err.textContent='';
+    const title=document.getElementById('mtg-title').value.trim(); if(!title){ err.textContent='Give the meeting a title.'; return; }
+    const id=document.getElementById('mtg-id').value;
+    const attendees=Array.prototype.slice.call(document.querySelectorAll('#mtg-attendees input:checked')).map(c=>c.value);
+    const data={ title, type:document.getElementById('mtg-type').value, date:document.getElementById('mtg-date').value||wkKey(new Date()),
+      time:document.getElementById('mtg-time').value, dur:Number(document.getElementById('mtg-dur').value)||30,
+      tz:document.getElementById('mtg-tz').value, attendees };
+    let m;
+    if(id){ m=mtgsStore.find(x=>x.id===id); if(!m){ closeMeetingCreate(); return; } Object.assign(m,data); }
+    else { m=Object.assign({id:uid(), sections:[{id:'notes',type:'notes',title:'Notes'},{id:'today',type:'priorities',title:'To-dos for next time'}], t:Date.now(), by:myEmail}, data); mtgsStore.push(m); }
+    saveMtgLocal(); dbUpsertMtg(m); closeMeetingCreate();
+    curMtgId=m.id; curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView();
+  }
+  function deleteMeeting2(){ const id=document.getElementById('mtg-id').value; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
+    confirmModal('Delete the meeting "'+m.title+'" and everything in it?', ()=>{ mtgsStore=mtgsStore.filter(x=>x.id!==id); mtgItems=mtgItems.filter(x=>x.meeting_id!==id); saveMtgLocal(); dbDeleteMtg(id); closeMeetingCreate(); backToMeetings(); }, 'Delete meeting'); }
+
+  /* sections */
+  function openAddSection(){ document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes'; document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
+  function closeAddSection(){ document.getElementById('mtgSecModal').classList.remove('show'); }
+  function saveAddSection(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    const title=document.getElementById('sec-title').value.trim(); if(!title){ document.getElementById('secErr').textContent='Give the section a title.'; return; }
+    const type=document.getElementById('sec-type').value;
+    if(!m.sections) m.sections=[]; m.sections.push({id:'s'+Date.now().toString(36), type, title});
+    saveMtgLocal(); dbUpsertMtg(m); closeAddSection(); renderMeetingView(); }
+  function deleteSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    confirmModal('Remove this section from the meeting?', ()=>{ m.sections=(m.sections||[]).filter(s=>s.id!==sid); saveMtgLocal(); dbUpsertMtg(m);
+      mtgItems=mtgItems.filter(x=>!(x.meeting_id===m.id && x.section===sid)); saveMtgLocal(); renderMeetingView(); }, 'Remove section'); }
+
+  function seedMeetings(){
+    if(!mtgsStore.some(m=>m.id==='seed-standup')){
+      const today=wkKey(new Date());
+      const standup={ id:'seed-standup', title:'Head of Department Daily Standup', type:'daily', date:today, time:'09:00', dur:15, tz:'America/Halifax',
+        attendees:KNOWN_ATTENDEES.slice(),
+        sections:[ {id:'cv',type:'text',title:'Core Values'},
+          {id:'pgn',type:'notes',title:'Personal Good News'},
+          {id:'prgn',type:'notes',title:'Professional Good News'},
+          {id:'yest',type:'prioritiesPrev',title:'Priorities you and your team are working through — yesterday? (done / not done)',sourceSection:'today'},
+          {id:'today',type:'priorities',title:'Priorities you and your team are working through — today?'} ],
+        t:Date.now(), by:'system' };
+      mtgsStore.push(standup); dbUpsertMtg(standup);
+      const cvItem={id:'seed-standup_cv', meeting_id:'seed-standup', section:'cv', inst:'static', data:{type:'text',text:CORE_VALS,author:'system',t:Date.now()}};
+      if(!mtgItems.some(x=>x.id===cvItem.id)){ mtgItems.push(cvItem); dbUpsertItem(cvItem); }
+    }
+    if(!mtgsStore.some(m=>m.id==='seed-l10')){
+      const today=wkKey(new Date());
+      const l10={ id:'seed-l10', title:'Weekly Leadership L10', type:'weekly', date:today, time:'10:00', dur:90, tz:'America/Halifax',
+        attendees:KNOWN_ATTENDEES.slice(),
+        sections:[ {id:'sgn',type:'notes',title:'Good News'},
+          {id:'mx',type:'metrics',title:'Scorecard'},
+          {id:'iss',type:'issues',title:'Issues List (IDS)'},
+          {id:'yest',type:'prioritiesPrev',title:'Rocks — last week (done / not done)',sourceSection:'today'},
+          {id:'today',type:'priorities',title:'Rocks — this week'} ],
+        t:Date.now(), by:'system' };
+      mtgsStore.push(l10); dbUpsertMtg(l10);
+    }
+    saveMtgLocal();
+  }
+
   /* ---------- access / screens ---------- */
   function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
   function openMgr(){ showScreen('login'); const p=document.getElementById('loginPw'); if(p){ p.value=''; setTimeout(()=>p.focus(),60); } const er=document.getElementById('loginErr'); if(er) er.textContent=''; window.scrollTo({top:0}); }
@@ -1792,7 +2154,7 @@
       } else { err.textContent='Incorrect password. Try again.'; }
     }
   }
-  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; metricsLoaded=false; applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
+  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; metricsLoaded=false; mtgLoaded=false; curMtgId=null; applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
   function updateFab(){
     const b=document.getElementById('mgrBtn');
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
@@ -1809,7 +2171,7 @@
   function navTo(sec){
     currentSection=sec; closeAcctMenu();
     if(sec==='priorities'){ gotoDash(); }
-    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='metrics') ensureMetrics(); window.scrollTo({top:0}); }
+    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
@@ -2423,7 +2785,7 @@
     store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
   }
   (async function init(){
-    loadMetricsLocal(); loadWeekStart();
+    loadMetricsLocal(); loadWeekStart(); loadMtgLocal();
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked){ setMyIdentity(data.session.user); loadTeamUsersCache(); } }catch(e){ reviewUnlocked=false; }
       if(/type=(invite|recovery)/.test(INITIAL_HASH)){ applyTheme(); renderForm(); showSetPassword(); return; }
