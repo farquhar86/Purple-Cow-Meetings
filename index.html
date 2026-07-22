@@ -1950,23 +1950,30 @@ Herd Life`;
   }
   function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
   function mtgVisible(m){ if(myRole!=='team') return true; return (m.attendees||[]).indexOf(myEmail)>=0; }
-  function myMeetings(){ const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
-    if(mine.length) return mine; return canManageUsers()?mtgsStore.slice():mine; }
-
+  let mtgShowAll=true;   // admins default to seeing every meeting
+  function setMtgFilter(all){ mtgShowAll=all; renderMeetingsList(); }
   function renderMeetingsList(){
     document.getElementById('mtgListView').style.display='';
     document.getElementById('mtgDetailView').style.display='none';
     const box=document.getElementById('mtgListView');
-    const list=myMeetings();
-    if(!list.length){ box.innerHTML='<div class="mx-empty">No meetings yet — click <b>➕ New meeting</b> to create one.</div>'; return; }
-    box.innerHTML=list.map(m=>{
+    const admin=canManageUsers();
+    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    let list = (admin && mtgShowAll) ? mtgsStore.slice() : mine;
+    if(!list.length && admin) list=mtgsStore.slice();
+    let toggle='';
+    if(admin){ toggle='<div style="display:flex;gap:6px;margin-bottom:16px;">'
+      + '<button class="btn '+(mtgShowAll?'':'ghost')+' sm" onclick="setMtgFilter(true)">All meetings ('+mtgsStore.length+')</button>'
+      + '<button class="btn '+(mtgShowAll?'ghost':'')+' sm" onclick="setMtgFilter(false)">Just mine ('+mine.length+')</button></div>'; }
+    if(!list.length){ box.innerHTML=toggle+'<div class="mx-empty">No meetings yet — click <b>➕ New meeting</b> to create one.</div>'; return; }
+    box.innerHTML=toggle+list.map(m=>{
       const next=occurrenceOnOrAfter(m,new Date());
       const typeLabel = (m.type==='once'||!m.type)?'One-time':('Recurring · '+m.type);
       const av=(m.attendees||[]); const shown=av.slice(0,6).map(e=>avatarHtml(e)).join('');
       const more=av.length>6?('<span class="more">+'+(av.length-6)+'</span>'):'';
+      const notMine = admin && av.indexOf(myEmail)<0 ? '<span class="mtg-badge" style="background:#f0eaf7;color:var(--muted);">not attending</span> ' : '';
       return '<div class="mtg-card" onclick="openMeeting(\''+m.id+'\')">'
         + '<div><h3>'+esc(m.title||'Untitled meeting')+'</h3>'
-        + '<div class="mtg-meta"><span class="mtg-badge">'+esc(typeLabel)+'</span> &nbsp; '
+        + '<div class="mtg-meta">'+notMine+'<span class="mtg-badge">'+esc(typeLabel)+'</span> &nbsp; '
         + esc(fmtMtgDate(next))+(m.time?(' · '+esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))):'')+'</div></div>'
         + '<div class="mtg-avs">'+shown+more+'</div></div>';
     }).join('');
