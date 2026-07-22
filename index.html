@@ -44,6 +44,7 @@
   /* ---- app sidebar (Ninety-style shell) ---- */
   #appSidebar{position:fixed;inset:0 auto 0 0;width:236px;background:#fff;border-right:1px solid var(--line);display:none;flex-direction:column;z-index:300;}
   body.app-shell #appSidebar{display:flex;}
+  body.app-shell .topright{display:none;}
   body.presenting #appSidebar{display:none !important;}
   .sb-brand{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line);}
   .sb-logo{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-weight:800;font-size:.72rem;letter-spacing:-.5px;}
@@ -206,6 +207,26 @@
   .mtg-mx:last-child{border-bottom:none;}
   .mtg-mx .v{font-weight:700;}
   .mtg-back{background:none;border:none;color:var(--purple);cursor:pointer;font-weight:600;padding:0;margin-bottom:12px;font-size:.9rem;}
+  .att-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:4px;}
+  .att-opt{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:10px;padding:7px 10px;cursor:pointer;transition:.12s;background:#fff;}
+  .att-opt:hover{border-color:var(--purple-light);}
+  .att-opt.on{border-color:var(--purple);background:var(--lilac);}
+  .att-opt img,.att-opt .tm-initials{width:30px;height:30px;border-radius:50%;flex:0 0 auto;}
+  .att-opt .nm{font-size:.86rem;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .att-opt .tick{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;color:#fff;}
+  .att-opt.on .tick{background:var(--purple);border-color:var(--purple);}
+  .att-select-all{font-size:.8rem;color:var(--purple);cursor:pointer;font-weight:600;}
+  /* gantt inside a meeting rock */
+  .rock-row{border-bottom:1px solid var(--line);}
+  .rock-hd{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;}
+  .rock-hd .caret{color:var(--muted);transition:.15s;font-size:.8rem;}
+  .rock-hd.open .caret{transform:rotate(90deg);}
+  .rock-hd .rk-title{font-weight:600;flex:1;}
+  .rock-gantt{padding:6px 4px 14px;display:none;}
+  .rock-hd.open + .rock-gantt{display:block;}
+  .rk-badge{font-size:.66rem;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;}
+  .rk-badge.complete{background:rgba(46,158,107,.16);color:#176935;}
+  .rk-badge.scheduled{background:var(--lilac-2);color:var(--purple-dark);}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -606,8 +627,11 @@
       <div style="width:110px;"><label>Length (min)</label><input type="number" id="mtg-dur" value="30" step="5" style="width:100%;"></div>
       <div style="flex:1;min-width:170px;"><label>Time zone</label><select id="mtg-tz" style="width:100%;"></select></div>
     </div>
-    <label style="margin-top:10px;display:block;">Attendees</label>
-    <div id="mtg-attendees" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;">
+      <label style="margin:0;">Attendees</label>
+      <span class="att-select-all" onclick="mtgAttToggleAll()">Select all / none</span>
+    </div>
+    <div id="mtg-attendees" class="att-grid"></div>
     <div class="lock-err" id="mtgErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
       <button class="btn danger sm" id="mtgDeleteBtn" onclick="deleteMeeting2()" style="display:none;margin-right:auto;">Delete</button>
@@ -620,7 +644,8 @@
 <!-- Add section modal -->
 <div class="modal-ov no-print" id="mtgSecModal" onclick="if(event.target===this)closeAddSection()">
   <div class="modal" style="text-align:left;">
-    <h3 style="text-align:center;">➕ Add a section</h3>
+    <h3 style="text-align:center;"><span id="secModalTitle">➕ Add a section</span></h3>
+    <input type="hidden" id="sec-id">
     <label>Section title</label>
     <input type="text" id="sec-title" placeholder="e.g. Wins this week" style="width:100%;">
     <label style="margin-top:10px;display:block;">Type</label>
@@ -628,13 +653,16 @@
       <option value="text">Editable text (shared across every meeting)</option>
       <option value="notes">Notes everyone adds (like Good News)</option>
       <option value="priorities">Priorities — a to-do list carried to the next meeting</option>
+      <option value="prioritiesPrev">Last meeting's priorities (check done / not done)</option>
       <option value="issues">Issues list</option>
       <option value="metrics">Metrics snapshot</option>
+      <option value="qpriorities">This quarter's priorities (with Gantt)</option>
     </select>
+    <p class="block-desc" id="secTypeNote" style="margin-top:6px;font-size:.78rem;"></p>
     <div class="lock-err" id="secErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
       <button class="btn ghost" onclick="closeAddSection()">Cancel</button>
-      <button class="btn" onclick="saveAddSection()">Add section</button>
+      <button class="btn" onclick="saveAddSection()"><span id="secSaveLabel">Add section</span></button>
     </div>
   </div>
 </div>
@@ -1303,7 +1331,8 @@
      to the manage-users function, photos are fetched automatically on invite
      and stored on the account — which then takes priority over this list. */
   const SLACK_AVATARS={
-    'brad@purplecowinternet.com':'https://secure.gravatar.com/avatar/7e8f4c35a853d8d6970a1c31b3ba4271.jpg?s=512&d=https%3A%2F%2Fa.slack-edge.com%2Fdf10d%2Fimg%2Favatars%2Fava_0009-512.png',
+    'brad@purplecowinternet.com':'https://avatars.slack-edge.com/2024-01-10/6454436319010_7289de34f962684e642b_original.png',
+    'farquharbradley@gmail.com':'https://avatars.slack-edge.com/2024-01-10/6454436319010_7289de34f962684e642b_original.png',
     'curtis@purplecowinternet.com':'https://avatars.slack-edge.com/2025-04-08/8726614068019_402d9b6a7f5c52d63d2f_original.png',
     'ashley.burke@purplecowinternet.com':'https://avatars.slack-edge.com/2024-04-08/6952105578592_e4003a2cc6e8513f96a2_original.jpg',
     'rei.colina@purplecowinternet.com':'https://avatars.slack-edge.com/2025-07-01/9133115885058_946d97d20ef80024b9c4_original.jpg',
@@ -2009,9 +2038,13 @@ Herd Life`;
       if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add an issue to discuss…" onkeydown="if(event.key===\'Enter\')addIssue(\''+sec.id+'\')"><button class="btn sm" onclick="addIssue(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='metrics'){
       body = renderMetricSnapshot();
+    } else if(sec.type==='qpriorities'){
+      body = renderQuarterRocks(sec.id);
     }
-    const del = canEdit ? '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '';
-    return '<div class="mtg-sec"><div class="mtg-sec-hd"><h3>'+esc(sec.title)+'</h3>'+del+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
+    const tools = canEdit
+      ? '<button class="btn ghost sm" title="Edit section" onclick="openEditSection(\''+sec.id+'\')">✎</button>'
+        + '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '';
+    return '<div class="mtg-sec"><div class="mtg-sec-hd"><h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
   }
   function noteHtml(it,canEdit){ const mine=it.data.author===myEmail;
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
@@ -2039,6 +2072,28 @@ Herd Life`;
       return '<div class="mtg-mx"><span>'+dot+esc(m.name)+'</span><span class="v">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span></div>';
     }).join(''); }
 
+  function renderQuarterRocks(secId){
+    const q=(typeof cur==='function')?cur():null;
+    if(!q){ return '<div class="mtg-empty">No quarter loaded.</div>'; }
+    const rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
+    if(!rocks.length) return '<div class="mtg-empty">No scheduled or completed priorities this quarter yet. Add them in the Priorities section.</div>';
+    const head='<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click one to see its timeline.</div>';
+    return head+rocks.map(e=>{
+      const done=isComplete(e); const st=done?'complete':'scheduled';
+      const pct=priProgress(e);
+      const rid='rk-'+secId+'-'+e.id;
+      return '<div class="rock-row">'
+        + '<div class="rock-hd" id="'+rid+'" onclick="toggleRock(\''+rid+'\')">'
+        + '<span class="caret">▶</span>'
+        + '<span class="rk-title">'+esc(e.title||'Untitled')+'</span>'
+        + '<span class="who" style="font-size:.74rem;color:var(--muted);">'+esc(pmName(e.pm)||'')+'</span>'
+        + '<span class="rk-badge '+st+'">'+(done?'Complete':(pct+'%'))+'</span>'
+        + '</div>'
+        + '<div class="rock-gantt">'+ganttHTML(e)+'</div></div>';
+    }).join('');
+  }
+  function toggleRock(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+  function priProgress(e){ const plan=e.plan||[]; if(!plan.length) return 0; const s=plan.reduce((a,p)=>a+(Number(p&&p.pct)||0),0); return Math.round(s/plan.length); }
   function saveText(section,val){ let it=mtgItems.find(x=>x.meeting_id===curMtgId && x.section===section && x.inst==='static');
     if(!it){ it={id:uid(),meeting_id:curMtgId,section,inst:'static',data:{type:'text',author:myEmail,t:Date.now()}}; mtgItems.push(it); }
     it.data.text=val; it.data.editedBy=myEmail; it.data.editedAt=Date.now(); saveItem(it); }
@@ -2062,17 +2117,22 @@ Herd Life`;
     set('mtg-tz',editing?(m.tz||'America/Halifax'):'America/Halifax');
     const chosen=editing?(m.attendees||[]):KNOWN_ATTENDEES.slice();
     const pool=(teamUsers&&teamUsers.length)?teamUsers.map(u=>u.email):KNOWN_ATTENDEES;
-    document.getElementById('mtg-attendees').innerHTML=pool.map(e=>'<label class="mtg-att" style="cursor:pointer;"><input type="checkbox" value="'+esc(e)+'"'+(chosen.indexOf(e)>=0?' checked':'')+'> '+esc(pmName(e))+'</label>').join('');
+    document.getElementById('mtg-attendees').innerHTML=pool.map(e=>{ const on=chosen.indexOf(e)>=0;
+      return '<div class="att-opt'+(on?' on':'')+'" data-email="'+esc(e)+'" onclick="mtgAttToggle(this)">'
+        + avatarHtml(e) + '<span class="nm">'+esc(pmName(e))+'</span><span class="tick">'+(on?'✓':'')+'</span></div>'; }).join('');
     document.getElementById('mtgErr').textContent='';
     document.getElementById('mtgDeleteBtn').style.display=editing?'inline-block':'none';
     document.getElementById('mtgModal').classList.add('show');
   }
   function closeMeetingCreate(){ document.getElementById('mtgModal').classList.remove('show'); }
+  function mtgAttToggle(el){ const on=el.classList.toggle('on'); el.querySelector('.tick').textContent=on?'✓':''; }
+  function mtgAttToggleAll(){ const opts=document.querySelectorAll('#mtg-attendees .att-opt'); const anyOff=Array.prototype.some.call(opts,o=>!o.classList.contains('on'));
+    opts.forEach(o=>{ o.classList.toggle('on',anyOff); o.querySelector('.tick').textContent=anyOff?'✓':''; }); }
   function saveMeeting2(){
     const err=document.getElementById('mtgErr'); err.textContent='';
     const title=document.getElementById('mtg-title').value.trim(); if(!title){ err.textContent='Give the meeting a title.'; return; }
     const id=document.getElementById('mtg-id').value;
-    const attendees=Array.prototype.slice.call(document.querySelectorAll('#mtg-attendees input:checked')).map(c=>c.value);
+    const attendees=Array.prototype.slice.call(document.querySelectorAll('#mtg-attendees .att-opt.on')).map(c=>c.getAttribute('data-email'));
     const data={ title, type:document.getElementById('mtg-type').value, date:document.getElementById('mtg-date').value||wkKey(new Date()),
       time:document.getElementById('mtg-time').value, dur:Number(document.getElementById('mtg-dur').value)||30,
       tz:document.getElementById('mtg-tz').value, attendees };
@@ -2086,12 +2146,20 @@ Herd Life`;
     confirmModal('Delete the meeting "'+m.title+'" and everything in it?', ()=>{ mtgsStore=mtgsStore.filter(x=>x.id!==id); mtgItems=mtgItems.filter(x=>x.meeting_id!==id); saveMtgLocal(); dbDeleteMtg(id); closeMeetingCreate(); backToMeetings(); }, 'Delete meeting'); }
 
   /* sections */
-  function openAddSection(){ document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes'; document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
+  function openAddSection(){ document.getElementById('sec-id').value=''; document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes';
+    document.getElementById('secModalTitle').textContent='➕ Add a section'; document.getElementById('secSaveLabel').textContent='Add section';
+    document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
+  function openEditSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; const sec=(m.sections||[]).find(s=>s.id===sid); if(!sec) return;
+    document.getElementById('sec-id').value=sid; document.getElementById('sec-title').value=sec.title||''; document.getElementById('sec-type').value=sec.type||'notes';
+    document.getElementById('secModalTitle').textContent='✎ Edit section'; document.getElementById('secSaveLabel').textContent='Save changes';
+    document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
   function closeAddSection(){ document.getElementById('mtgSecModal').classList.remove('show'); }
   function saveAddSection(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const title=document.getElementById('sec-title').value.trim(); if(!title){ document.getElementById('secErr').textContent='Give the section a title.'; return; }
-    const type=document.getElementById('sec-type').value;
-    if(!m.sections) m.sections=[]; m.sections.push({id:'s'+Date.now().toString(36), type, title});
+    const type=document.getElementById('sec-type').value; const sid=document.getElementById('sec-id').value;
+    if(!m.sections) m.sections=[];
+    if(sid){ const sec=m.sections.find(s=>s.id===sid); if(sec){ sec.title=title; sec.type=type; } }
+    else { m.sections.push({id:'s'+Date.now().toString(36), type, title}); }
     saveMtgLocal(); dbUpsertMtg(m); closeAddSection(); renderMeetingView(); }
   function deleteSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     confirmModal('Remove this section from the meeting?', ()=>{ m.sections=(m.sections||[]).filter(s=>s.id!==sid); saveMtgLocal(); dbUpsertMtg(m);
@@ -2118,11 +2186,20 @@ Herd Life`;
         attendees:KNOWN_ATTENDEES.slice(),
         sections:[ {id:'sgn',type:'notes',title:'Good News'},
           {id:'mx',type:'metrics',title:'Scorecard'},
+          {id:'qp',type:'qpriorities',title:'Quarterly Priorities (Rocks)'},
           {id:'iss',type:'issues',title:'Issues List (IDS)'},
-          {id:'yest',type:'prioritiesPrev',title:'Rocks — last week (done / not done)',sourceSection:'today'},
-          {id:'today',type:'priorities',title:'Rocks — this week'} ],
+          {id:'yest',type:'prioritiesPrev',title:'To-Dos — last week (done / not done)',sourceSection:'today'},
+          {id:'today',type:'priorities',title:'To-Dos — this week'} ],
         t:Date.now(), by:'system' };
       mtgsStore.push(l10); dbUpsertMtg(l10);
+    }
+    // migration: give the existing L10 the quarterly-priorities section if it doesn't have one
+    const l10x=mtgsStore.find(m=>m.id==='seed-l10');
+    if(l10x && !(l10x.sections||[]).some(s=>s.type==='qpriorities')){
+      const iss=(l10x.sections||[]).findIndex(s=>s.id==='iss');
+      const secQP={id:'qp',type:'qpriorities',title:'Quarterly Priorities (Rocks)'};
+      if(iss>=0) l10x.sections.splice(iss,0,secQP); else l10x.sections.push(secQP);
+      dbUpsertMtg(l10x);
     }
     saveMtgLocal();
   }
