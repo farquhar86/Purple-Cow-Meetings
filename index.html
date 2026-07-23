@@ -39,11 +39,13 @@
   #confirmModal{z-index:500;}
   #setpwModal{z-index:520;}
   body.role-team .admin-only{display:none !important;}
+  body:not(.can-manage) .manage-only{display:none !important;}
   .role-pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--line);color:var(--muted);margin-left:8px;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em;}
   .role-guide{margin:12px 0 2px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;background:#fbf9fe;}
   .rg-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);}
   .rg-row:last-child{border-bottom:none;}
   .rg-name{flex:0 0 84px;font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 0;border-radius:6px;text-align:center;}
+  .rg-name.sup{background:var(--purple);color:#fff;}
   .rg-name.adm{background:#efe7fb;color:var(--purple-dark);}
   .rg-name.led{background:#e0edff;color:#1a63c4;}
   .rg-name.tm{background:var(--line);color:var(--muted);}
@@ -561,7 +563,7 @@
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
   </nav>
   <div class="sb-bottom">
-    <button class="sb-add admin-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
+    <button class="sb-add manage-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
     <div class="sb-menu" id="sbAcctMenu">
       <div class="sb-menu-hd"><b id="sbMenuName">Account</b><br><span id="sbMenuEmail"></span></div>
       <button onclick="closeAcctMenu();logout();">Log out</button>
@@ -691,9 +693,10 @@
       <button class="btn" onclick="addTeamUser()">Send invite</button>
     </div>
     <div class="role-guide">
-      <div class="rg-row"><span class="rg-name adm">Admin</span><div class="rg-desc">Full access to everything. <b>Only Admins can manage people</b> — invite, remove, and change roles here in this panel — plus create/delete quarters, edit the Core Values page, and manage every meeting.</div></div>
-      <div class="rg-row"><span class="rg-name led">Leadership</span><div class="rg-desc">Full access to all planning — view and edit every priority, metric, meeting and issue, and create new ones. Sees all meetings. <b>Cannot manage people</b> or change roles.</div></div>
-      <div class="rg-row"><span class="rg-name tm">Team</span><div class="rg-desc">Focused view. Sees only the priorities and metrics they <b>own or have a task on</b>, and only meetings they're invited to. Can update their own items and fill in meeting agendas, but <b>can't create new priorities or metrics</b>, and can't manage people.</div></div>
+      <div class="rg-row"><span class="rg-name sup">Super Admin</span><div class="rg-desc">Everything Admin can do, <b>plus sees every meeting</b> across the company (not just their own). Reserved for the owner.</div></div>
+      <div class="rg-row"><span class="rg-name adm">Admin</span><div class="rg-desc">Full access to planning, and <b>can manage people</b> — invite, remove, and change roles here. Sees <b>only their own meetings</b> (ones they're an attendee on).</div></div>
+      <div class="rg-row"><span class="rg-name led">Leadership</span><div class="rg-desc">Full access to all planning — view and edit priorities, metrics and issues, and create new ones. Sees <b>only their own meetings</b>. <b>Cannot manage people</b> or change roles.</div></div>
+      <div class="rg-row"><span class="rg-name tm">Team</span><div class="rg-desc">Focused view. Sees only the priorities and metrics they <b>own or have a task on</b>, and only meetings they're invited to. Can update their own items and fill in agendas, but <b>can't create new priorities or metrics</b>, and can't manage people.</div></div>
     </div>
     <div style="margin-top:10px;"><button class="btn ghost sm" onclick="syncSlackPhotos()">🔄 Sync photos from Slack</button></div>
     <div class="lock-err" id="teamsErr"></div>
@@ -1068,7 +1071,7 @@
         <button class="btn" onclick="gotoForm()">📝 View intake form</button>
         <button class="btn" onclick="togglePresent()" id="presentBtn">▶ Presentation mode</button>
         <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
-        <button class="btn admin-only" onclick="openTeamsModal()">⚙ Team</button>
+        <button class="btn manage-only" onclick="openTeamsModal()">⚙ Team</button>
         <span id="roleLabel" class="role-pill"></span>
         <button class="btn" onclick="logout()">Log out</button>
       </div>
@@ -1459,10 +1462,11 @@
   let myRole='admin', myEmail='';
   function setMyIdentity(u){ myEmail=(u&&u.email)||''; myRole=(u&&u.app_metadata&&u.app_metadata.role)||'admin'; applyRoleUI(); }
   function canCreate(){ return myRole!=='team'; }
-  function canManageUsers(){ return myRole==='admin' || myRole==='leadership'; }
+  function isSuperAdmin(){ return myRole==='superadmin'; }
+  function canManageUsers(){ return myRole==='admin' || myRole==='superadmin'; }
   function teamVisible(e){ if(myRole!=='team') return true; if(!e||e.type!=='priority') return true; return e.pm===myEmail || (e.plan||[]).some(p=>p&&p.owner===myEmail); }
-  function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = myRole? (myRole.charAt(0).toUpperCase()+myRole.slice(1)) : ''; if(typeof updateSidebarAccount==='function') updateSidebarAccount(); }
-  function roleName(r){ r=r||'admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
+  function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); document.body.classList.toggle('can-manage', canManageUsers()); document.body.classList.toggle('is-super', isSuperAdmin()); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = roleName(myRole); if(typeof updateSidebarAccount==='function') updateSidebarAccount(); }
+  function roleName(r){ r=r||'admin'; if(r==='superadmin') return 'Super Admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
   async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
   function pmName(p){ return p ? (p.indexOf('@')>=0 ? p.split('@')[0] : p) : ''; }
   /* ---------- profile photos (from Slack) ----------
@@ -1505,7 +1509,7 @@
       const {users}=await callUserFn({action:'list'});
       teamUsers=users||[];
       if(!users||!users.length){ box.innerHTML='<p class="empty">No users yet.</p>'; return; }
-      const roleSel=(u)=>{ const cur=u.role||'admin'; const opt=(v,l)=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`; return `<select onchange="setUserRole('${u.id}',this.value,this)">${opt('admin','Admin')}${opt('leadership','Leadership')}${opt('team','Team')}</select>`; };
+      const roleSel=(u)=>{ const cur=u.role||'admin'; const opt=(v,l)=>`<option value="${v}"${cur===v?' selected':''}>${l}</option>`; return `<select onchange="setUserRole('${u.id}',this.value,this)">${opt('superadmin','Super Admin')}${opt('admin','Admin')}${opt('leadership','Leadership')}${opt('team','Team')}</select>`; };
       const statusCell=(u)=>{ const active=!!u.last_sign_in_at; return active ? '<span class="status-pill ok" title="Has set a password and logged in">● Active</span>' : '<span class="status-pill wait" title="Invited — has not set a password / logged in yet">● Pending</span>'; };
       box.innerHTML='<table class="dash-tbl"><thead><tr><th>Person</th><th>Role</th><th>Status</th><th>Added</th><th></th></tr></thead><tbody>'+users.map(u=>`<tr><td><span class="tm-cell">${avatarHtml(u.email)}<span>${esc(u.email||'')}</span></span></td><td>${roleSel(u)}</td><td>${statusCell(u)}</td><td>${u.created_at?fmtShort(u.created_at.slice(0,10)):''}</td><td><button class="btn danger sm" onclick="removeTeamUser('${u.id}','${esc((u.email||'').replace(/'/g,''))}')">Remove</button></td></tr>`).join('')+'</tbody></table>';
     }catch(e){ box.innerHTML='<p class="validation">'+esc(e.message)+'</p>'; }
@@ -2170,28 +2174,27 @@ Herd Life`;
     let d=new Date(base), guard=0; while(d<t && guard<600){ d=stepDate(d,m.type,1); guard++; } return d;
   }
   function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
-  function mtgVisible(m){ if(myRole!=='team') return true; return (m.attendees||[]).indexOf(myEmail)>=0; }
-  let mtgShowAll=true;   // admins default to seeing every meeting
+  function mtgVisible(m){ return isSuperAdmin() || (m.attendees||[]).indexOf(myEmail)>=0; }
+  let mtgShowAll=true;   // super admin default to seeing every meeting
   function setMtgFilter(all){ mtgShowAll=all; renderMeetingsList(); }
   function renderMeetingsList(){
     document.getElementById('mtgListView').style.display='';
     document.getElementById('mtgDetailView').style.display='none';
     const box=document.getElementById('mtgListView');
-    const admin=canManageUsers();
+    const seeAll=isSuperAdmin();
     const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
-    let list = (admin && mtgShowAll) ? mtgsStore.slice() : mine;
-    if(!list.length && admin) list=mtgsStore.slice();
+    let list = (seeAll && mtgShowAll) ? mtgsStore.slice() : mine;
     let toggle='';
-    if(admin){ toggle='<div style="display:flex;gap:6px;margin-bottom:16px;">'
+    if(seeAll){ toggle='<div style="display:flex;gap:6px;margin-bottom:16px;">'
       + '<button class="btn '+(mtgShowAll?'':'ghost')+' sm" onclick="setMtgFilter(true)">All meetings ('+mtgsStore.length+')</button>'
       + '<button class="btn '+(mtgShowAll?'ghost':'')+' sm" onclick="setMtgFilter(false)">Just mine ('+mine.length+')</button></div>'; }
-    if(!list.length){ box.innerHTML=toggle+'<div class="mx-empty">No meetings yet — click <b>➕ New meeting</b> to create one.</div>'; return; }
+    if(!list.length){ box.innerHTML=toggle+'<div class="mx-empty">'+(seeAll?'No meetings yet — click <b>➕ New meeting</b> to create one.':'You\'re not on any meetings yet. Create one, or ask to be added as an attendee.')+'</div>'; return; }
     box.innerHTML=toggle+list.map(m=>{
       const next=occurrenceOnOrAfter(m,new Date());
       const typeLabel = (m.type==='once'||!m.type)?'One-time':('Recurring · '+m.type);
       const av=(m.attendees||[]); const shown=av.slice(0,6).map(e=>avatarHtml(e)).join('');
       const more=av.length>6?('<span class="more">+'+(av.length-6)+'</span>'):'';
-      const notMine = admin && av.indexOf(myEmail)<0 ? '<span class="mtg-badge" style="background:#f0eaf7;color:var(--muted);">not attending</span> ' : '';
+      const notMine = seeAll && av.indexOf(myEmail)<0 ? '<span class="mtg-badge" style="background:#f0eaf7;color:var(--muted);">not attending</span> ' : '';
       return '<div class="mtg-card" onclick="openMeeting(\''+m.id+'\')">'
         + '<div><h3>'+esc(m.title||'Untitled meeting')+'</h3>'
         + '<div class="mtg-meta">'+notMine+'<span class="mtg-badge">'+esc(typeLabel)+'</span> &nbsp; '

@@ -31,7 +31,7 @@ Deno.serve(async (req) => {
     const admin = createClient(url, serviceKey);
     const body = await req.json().catch(() => ({}));
 
-    const ROLES = ["admin", "leadership", "team"];
+    const ROLES = ["superadmin", "admin", "leadership", "team"];
 
     // Look up a teammate's Slack profile photo by email.
     // Needs a Supabase secret SLACK_BOT_TOKEN with scopes: users:read, users:read.email
