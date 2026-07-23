@@ -238,6 +238,12 @@
   .mtg-pri input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;cursor:pointer;}
   .mtg-pri .who{font-size:.74rem;color:var(--muted);margin-left:auto;}
   .mtg-pri.done .ptxt{text-decoration:line-through;color:var(--muted);}
+  .mtg-prigroup{margin-bottom:14px;}
+  .mtg-prigroup-hd{display:flex;align-items:center;gap:8px;padding:5px 4px;border-bottom:2px solid var(--lilac-2);margin-bottom:2px;}
+  .mtg-prigroup-hd img,.mtg-prigroup-hd .tm-initials{width:24px;height:24px;border-radius:50%;}
+  .mtg-prigroup-hd .nm{font-weight:700;font-size:.86rem;color:var(--purple-dark);}
+  .mtg-prigroup-hd .cnt{margin-left:auto;font-size:.72rem;font-weight:700;color:var(--muted);background:var(--lilac);border-radius:999px;padding:1px 9px;}
+  .mtg-prigroup .mtg-pri{padding-left:8px;}
   .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
   .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
   .mtg-mx{display:flex;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:.9rem;}
@@ -2185,8 +2191,8 @@ Herd Life`;
   function tzShort(tz){ if(!tz) return ''; const p=tz.split('/'); return (p[1]||tz).replace('_',' '); }
 
   function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
-    curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView(); window.scrollTo({top:0}); }
-  function backToMeetings(){ curMtgId=null; renderMeetingsList(); }
+    curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
+  function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
   function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=stepDate(curMtgDate,m.type,dir); renderMeetingView(); }
 
   function renderMeetingView(){
@@ -2218,6 +2224,25 @@ Herd Life`;
     enableIssueDrag();
   }
   async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
+  /* live sync — quietly pull others' additions every few seconds while you're in a meeting */
+  let mtgPollTimer=null;
+  function startMtgPolling(){ if(mtgPollTimer||!USE_DB) return; mtgPollTimer=setInterval(mtgPoll, 10000); }
+  function stopMtgPolling(){ if(mtgPollTimer){ clearInterval(mtgPollTimer); mtgPollTimer=null; } }
+  function mtgSig(items){ return items.map(i=>i.id+':'+((i.data&&i.data.t)||'')+':'+((i.data&&i.data.status)||'')+':'+((i.data&&i.data.editedAt)||'')+':'+((i.data&&i.data.done)?1:0)).sort().join('|'); }
+  async function mtgPoll(){
+    if(!USE_DB || screen!=='meetings' || !curMtgId) return;
+    const ae=document.activeElement; if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable)) return;   // don't interrupt typing
+    if(document.getElementById('issueModal').classList.contains('show')) return;
+    if(document.getElementById('mtgModal').classList.contains('show')) return;
+    try{
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) return;
+      const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
+      const changed = mtgSig(fresh)!==mtgSig(mtgItems);
+      const a=await sb.from('mtgs').select('id,data'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
+      mtgItems=fresh; saveMtgLocal();
+      if(changed && screen==='meetings' && curMtgId && !document.getElementById('issueModal').classList.contains('show')) renderMeetingView();
+    }catch(e){}
+  }
 
   function instKey(){ return wkKey(curMtgDate); }
   function prevInstKey(m){ return wkKey(stepDate(curMtgDate,m.type||'daily',-1)); }
@@ -2237,17 +2262,17 @@ Herd Life`;
         ? '<textarea class="mtg-corevals" style="width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;padding:10px;" onchange="saveText(\''+sec.id+'\',this.value)">'+esc(txt)+'</textarea>'
         : '<div class="mtg-corevals">'+esc(txt||'—')+'</div>';
     } else if(sec.type==='notes'){
-      const rows=itemsFor(sec.id,instKey());
+      const rows=itemsFor(sec.id,instKey()).slice().sort(byContributor);
       body = rows.length ? rows.map(it=>noteHtml(it,canEdit)).join('') : '<div class="mtg-empty">No notes yet — be the first to add one.</div>';
       if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add your note…" onkeydown="if(event.key===\'Enter\')addNote(\''+sec.id+'\')"><button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
-      body = rows.length ? rows.map(it=>priHtml(it,sec.id,canEdit,true)).join('') : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
+      body = rows.length ? priGroupsHtml(rows,sec.id,canEdit,true) : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
       if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a priority for this meeting…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')"><button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='prioritiesPrev'){
       const src=sec.sourceSection||'today';
       const rows=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===prevInstKey(m)).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
-      body = rows.length ? rows.map(it=>priHtml(it,src,canEdit,false)).join('') : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
+      body = rows.length ? priGroupsHtml(rows,src,canEdit,false) : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
     } else if(sec.type==='issues'){
       body = renderIssueBoard(m,sec.id,canEdit);
     } else if(sec.type==='metrics'){
@@ -2266,13 +2291,27 @@ Herd Life`;
   function noteHtml(it,canEdit){ const mine=it.data.author===myEmail;
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
       +esc(it.data.text||'')+((mine||canManageUsers())?'<span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
-  function priHtml(it,section,canEdit,editable){ const done=!!it.data.done;
+  function priHtml(it,section,canEdit,editable,hideWho){ const done=!!it.data.done;
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
       +'<span class="ptxt">'+esc(it.data.text||'')+'</span>'
-      +'<span class="who">'+esc(pmName(it.data.author))+'</span>'
+      +(hideWho?'':'<span class="who">'+esc(pmName(it.data.author))+'</span>')
       +(editable&&(it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
+  /* everyone's entries in the same order everywhere — alphabetical by first name */
+  function byContributor(a,b){ const na=String(pmName((a.data&&a.data.author)||'')).toLowerCase(), nb=String(pmName((b.data&&b.data.author)||'')).toLowerCase();
+    return na.localeCompare(nb) || (((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
+  /* group priority items by the person who added them */
+  function priGroupsHtml(rows,section,canEdit,editable){
+    const groups=new Map();
+    rows.slice().sort(byContributor).forEach(it=>{ const a=it.data.author||''; if(!groups.has(a)) groups.set(a,[]); groups.get(a).push(it); });
+    const keys=Array.from(groups.keys()).sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
+    return keys.map(a=>{ const items=groups.get(a); const total=items.length; const doneN=items.filter(it=>it.data.done).length;
+      return '<div class="mtg-prigroup"><div class="mtg-prigroup-hd">'+avatarHtml(a)+'<span class="nm">'+esc(pmName(a)||'Unassigned')+(a===myEmail?' (you)':'')+'</span>'
+        +'<span class="cnt">'+doneN+'/'+total+'</span></div>'
+        +items.map(it=>priHtml(it,section,canEdit,editable,true)).join('')+'</div>';
+    }).join('');
+  }
   function issueHtml(it,section,canEdit){ const solved=!!it.data.done;
     return '<div class="mtg-pri'+(solved?' done':'')+'">'
       +'<input type="checkbox" '+(solved?'checked':'')+' '+(canEdit?'':'disabled')+' title="Mark solved" onchange="togglePri(\''+it.id+'\',this.checked)">'
@@ -2582,7 +2621,7 @@ Herd Life`;
       } else { err.textContent='Incorrect password. Try again.'; }
     }
   }
-  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; metricsLoaded=false; mtgLoaded=false; curMtgId=null; applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
+  function logout(){ reviewUnlocked=false; myRole='admin'; myEmail=''; metricsLoaded=false; mtgLoaded=false; curMtgId=null; stopMtgPolling(); applyRoleUI(); try{ sessionStorage.removeItem(KEY+'_unlocked'); }catch(e){} document.body.classList.remove('presenting'); presenting=false; prioOpenId=null; if(USE_DB&&sb&&sb.auth) sb.auth.signOut(); showScreen('login'); window.scrollTo({top:0}); }
   function updateFab(){
     const b=document.getElementById('mgrBtn');
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
@@ -2599,7 +2638,7 @@ Herd Life`;
   function navTo(sec){
     currentSection=sec; closeAcctMenu();
     if(sec==='priorities'){ gotoDash(); }
-    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
