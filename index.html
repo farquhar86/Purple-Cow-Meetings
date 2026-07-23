@@ -40,6 +40,14 @@
   #setpwModal{z-index:520;}
   body.role-team .admin-only{display:none !important;}
   .role-pill{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--line);color:var(--muted);margin-left:8px;vertical-align:middle;text-transform:uppercase;letter-spacing:.03em;}
+  .role-guide{margin:12px 0 2px;border:1px solid var(--line);border-radius:10px;padding:6px 12px;background:#fbf9fe;}
+  .rg-row{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);}
+  .rg-row:last-child{border-bottom:none;}
+  .rg-name{flex:0 0 84px;font-size:.74rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:3px 0;border-radius:6px;text-align:center;}
+  .rg-name.adm{background:#efe7fb;color:var(--purple-dark);}
+  .rg-name.led{background:#e0edff;color:#1a63c4;}
+  .rg-name.tm{background:var(--line);color:var(--muted);}
+  .rg-desc{font-size:.8rem;color:var(--ink);line-height:1.5;}
   .status-pill{display:inline-block;font-size:.72rem;font-weight:700;white-space:nowrap;}
   .status-pill.ok{color:#128a3f;}
   .status-pill.wait{color:#c2820a;}
@@ -682,7 +690,11 @@
       </select>
       <button class="btn" onclick="addTeamUser()">Send invite</button>
     </div>
-    <p class="block-desc" style="margin:10px 0 0;font-size:.8rem;"><b>Admin</b> — full access, incl. managing people. &nbsp;<b>Leadership</b> — full access to planning. &nbsp;<b>Team</b> — sees only priorities they own or have a task on, and can't create new priorities.</p>
+    <div class="role-guide">
+      <div class="rg-row"><span class="rg-name adm">Admin</span><div class="rg-desc">Full access to everything. <b>Only Admins can manage people</b> — invite, remove, and change roles here in this panel — plus create/delete quarters, edit the Core Values page, and manage every meeting.</div></div>
+      <div class="rg-row"><span class="rg-name led">Leadership</span><div class="rg-desc">Full access to all planning — view and edit every priority, metric, meeting and issue, and create new ones. Sees all meetings. <b>Cannot manage people</b> or change roles.</div></div>
+      <div class="rg-row"><span class="rg-name tm">Team</span><div class="rg-desc">Focused view. Sees only the priorities and metrics they <b>own or have a task on</b>, and only meetings they're invited to. Can update their own items and fill in meeting agendas, but <b>can't create new priorities or metrics</b>, and can't manage people.</div></div>
+    </div>
     <div style="margin-top:10px;"><button class="btn ghost sm" onclick="syncSlackPhotos()">🔄 Sync photos from Slack</button></div>
     <div class="lock-err" id="teamsErr"></div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
