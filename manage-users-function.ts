@@ -104,7 +104,10 @@ Deno.serve(async (req) => {
     if (body.action === "setrole") {
       if (!body.id) return json({ error: "User id is required." }, 400);
       if (!ROLES.includes(body.role)) return json({ error: "Unknown role." }, 400);
-      const { error } = await admin.auth.admin.updateUserById(body.id, { app_metadata: { role: body.role } });
+      // Keep any existing metadata (like their Slack photo) and just change the role.
+      const existing = await admin.auth.admin.getUserById(body.id);
+      const meta = (existing.data?.user?.app_metadata || {}) as Record<string, unknown>;
+      const { error } = await admin.auth.admin.updateUserById(body.id, { app_metadata: { ...meta, role: body.role } });
       if (error) throw error;
       return json({ ok: true, role: body.role });
     }
