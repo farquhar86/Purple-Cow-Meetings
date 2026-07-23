@@ -70,7 +70,7 @@
   .sb-menu-hd b{color:var(--ink);}
   .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
   .sb-menu button:hover{background:var(--lilac);}
-  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
   body.presenting #screen-dash{margin-left:0 !important;}
   /* placeholder section pages */
   .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
@@ -81,6 +81,29 @@
   .sec-body h2{color:var(--purple-dark);margin:14px 0 8px;}
   .sec-body p{color:var(--muted);}
   .sec-soon{display:inline-block;margin-top:14px;background:var(--lilac-2);color:var(--purple-dark);font-weight:700;font-size:.8rem;padding:6px 14px;border-radius:999px;}
+  /* vision / core values page */
+  .vz-wrap{padding:26px 34px 70px;max-width:920px;}
+  .vz-strategy{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;border-radius:16px;padding:30px 34px;text-align:center;margin-bottom:22px;box-shadow:var(--shadow);}
+  .vz-strategy .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.12em;opacity:.8;}
+  .vz-strategy .big{font-size:2.6rem;font-weight:800;margin:6px 0 2px;letter-spacing:-.5px;}
+  .vz-purpose{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 26px;text-align:center;margin-bottom:26px;box-shadow:var(--shadow);}
+  .vz-purpose .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;}
+  .vz-purpose .txt{font-size:1.3rem;font-weight:700;color:var(--purple-dark);margin-top:6px;}
+  .vz-h{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin:8px 0 12px;}
+  .vz-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
+  .vz-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
+  .vz-card .vn{font-weight:800;color:var(--purple-dark);font-size:1.08rem;margin-bottom:8px;}
+  .vz-card .vd{color:var(--ink);font-size:.94rem;line-height:1.55;}
+  .vz-goals{display:flex;flex-direction:column;gap:12px;}
+  .vz-goal{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 22px;box-shadow:var(--shadow);}
+  .vz-goal .tag{flex:0 0 auto;width:64px;height:64px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-weight:800;}
+  .vz-goal .tag small{font-size:.6rem;font-weight:700;opacity:.9;}
+  .vz-goal .tag .n{font-size:1.5rem;line-height:1;}
+  .vz-goal.g1 .tag{background:var(--green);} .vz-goal.g3 .tag{background:var(--purple);} .vz-goal.gb .tag{background:var(--purple-dark);}
+  .vz-goal .gbody{flex:1;}
+  .vz-goal .gt{font-weight:700;color:var(--ink);font-size:1.02rem;}
+  .vz-goal .gwhen{font-size:.82rem;color:var(--muted);margin-top:2px;}
+  .vz-goal.gb .gt{font-style:italic;}
   /* ---- scorecard / metrics ---- */
   .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
   .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
@@ -513,6 +536,7 @@
   <div class="sb-brand"><span class="sb-logo">NM</span><span class="sb-org">Purple Cow</span></div>
   <nav class="sb-nav" id="sbNav">
     <button class="sb-item" data-sec="home" onclick="navTo('home')"><span class="sb-ic">🏠</span>Home</button>
+    <button class="sb-item" data-sec="vision" onclick="navTo('vision')"><span class="sb-ic">🧭</span>Core Values</button>
     <button class="sb-item" data-sec="metrics" onclick="navTo('metrics')"><span class="sb-ic">📈</span>Metrics</button>
     <button class="sb-item" data-sec="priorities" onclick="navTo('priorities')"><span class="sb-ic">🎯</span>Priorities</button>
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
@@ -1126,6 +1150,30 @@
     <h2>Home</h2>
     <p>This will become your dashboard — a snapshot of your priorities, this week's to-dos, key metrics, and upcoming meetings. Use the sidebar to jump into any section. <b>Priorities</b> is live now; the rest are on the way.</p>
     <span class="sec-soon">Overview coming soon</span>
+  </div>
+</div>
+
+<!-- ====================== SECTION: CORE VALUES / VISION ====================== -->
+<div id="screen-vision" style="display:none;">
+  <div class="sec-head"><h1>🧭 Core Values &amp; Vision</h1><p>What we stand for and where we're headed. Herd Life.</p></div>
+  <div class="vz-wrap">
+    <div class="vz-strategy"><div class="lbl">One Phrase Strategy</div><div class="big">Herd Life</div></div>
+
+    <div class="vz-purpose"><div class="lbl">Core Purpose</div><div class="txt">To make the home radically more affordable.</div></div>
+
+    <div class="vz-h">Core Values</div>
+    <div class="vz-values">
+      <div class="vz-card"><div class="vn">🥊 Fight for Every Customer</div><div class="vd">We are relentless to win, keep, and delight every customer. We write what's possible.</div></div>
+      <div class="vz-card"><div class="vn">🛠️ Scrappy &amp; Resourceful</div><div class="vd">We tackle challenges with grit, creativity, skill and a commitment to industry-leading service and price.</div></div>
+      <div class="vz-card"><div class="vn">🚀 Let's Go!</div><div class="vd">Action beats perfection, move fast, and adapt quickly to grow and serve.</div></div>
+    </div>
+
+    <div class="vz-h">The Climb — Herd Goals</div>
+    <div class="vz-goals">
+      <div class="vz-goal g1"><div class="tag"><small>1 YR</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Saved 55,147 herd members from the big guys</div><div class="gwhen">🎯 by Dec 31, 2026</div></div></div>
+      <div class="vz-goal g3"><div class="tag"><small>3 YR</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Saved 100,000 herd members from the big guys</div><div class="gwhen">🎯 by Oct 1, 2028</div></div></div>
+      <div class="vz-goal gb"><div class="tag"><small>BIG</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Half the homes in the Atlantic Provinces are purple homes!</div><div class="gwhen">The mountain top 🏔️</div></div></div>
+    </div>
   </div>
 </div>
 
@@ -2497,9 +2545,9 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','metrics','todos','issues','meetings'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
