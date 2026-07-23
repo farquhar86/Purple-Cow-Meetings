@@ -182,6 +182,15 @@
   .mtg-attend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 16px;}
   .mtg-att{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 3px;font-size:.82rem;}
   .mtg-att img,.mtg-att .tm-initials{width:22px;height:22px;border-radius:50%;}
+  .mtg-quote{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;border-radius:12px;padding:18px 22px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .mtg-quote .lead{font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;opacity:.75;margin-bottom:7px;}
+  .mtg-quote .q{font-size:1.08rem;font-style:italic;line-height:1.5;}
+  .mtg-quote .a{margin-top:9px;font-size:.78rem;opacity:.85;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .mtg-drag{cursor:grab;color:var(--muted);font-size:1.1rem;line-height:1;user-select:none;padding-right:2px;}
+  .mtg-drag:active{cursor:grabbing;}
+  .mtg-sec.dragging{opacity:.45;}
+  .mtg-sec.drop-above{box-shadow:0 -3px 0 var(--purple);}
+  .mtg-sec.drop-below{box-shadow:0 3px 0 var(--purple);}
   .mtg-sec{background:#fff;border:1px solid var(--line);border-radius:12px;margin-bottom:16px;overflow:hidden;}
   .mtg-sec-hd{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--lilac);border-bottom:1px solid var(--line);}
   .mtg-sec-hd h3{margin:0;font-size:1rem;color:var(--purple-dark);flex:1;}
@@ -221,7 +230,10 @@
   .rock-hd{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;}
   .rock-hd .caret{color:var(--muted);transition:.15s;font-size:.8rem;}
   .rock-hd.open .caret{transform:rotate(90deg);}
+  .rock-hd .rk-num{width:22px;text-align:right;color:var(--muted);font-weight:700;font-size:.85rem;flex:0 0 auto;}
   .rock-hd .rk-title{font-weight:600;flex:1;}
+  .rock-hd .rk-av{flex:0 0 auto;display:inline-flex;}
+  .rock-hd .rk-av img,.rock-hd .rk-av .tm-initials{width:28px;height:28px;border-radius:50%;}
   .rock-gantt{padding:6px 4px 14px;display:none;}
   .rock-hd.open + .rock-gantt{display:block;}
   .rk-badge{font-size:.66rem;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;}
@@ -1344,6 +1356,10 @@
   function avatarFor(email){ if(!email) return '';
     const u=(teamUsers||[]).find(x=>(x.email||'').toLowerCase()===String(email).toLowerCase());
     return (u && u.avatar) || SLACK_AVATARS[String(email).toLowerCase()] || ''; }
+  /* a PM/owner might be stored as an email OR a legacy first name — resolve to the account email so we get their photo */
+  function resolvePerson(p){ if(!p) return ''; if(String(p).indexOf('@')>=0) return p;
+    const hit=(teamUsers||[]).find(u=>pmName(u.email).toLowerCase()===String(p).toLowerCase());
+    return hit?hit.email:p; }
   function avatarHtml(email,cls){ const src=avatarFor(email);
     return src ? '<img class="'+(cls||'tm-avatar')+'" src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'">'
                : '<span class="tm-initials">'+esc(initialsOf(email))+'</span>'; }
@@ -1374,8 +1390,11 @@
   }
   async function setUserRole(id, role, selEl){
     const err=document.getElementById('teamsErr'); err.textContent='Saving role…';
-    try{ await callUserFn({action:'setrole',id,role}); const u=(teamUsers||[]).find(x=>x.id===id); if(u) u.role=role; err.textContent='✅ Role updated.'; }
-    catch(e){ err.textContent=e.message; loadTeamUsers(); }
+    try{ const r=await callUserFn({action:'setrole',id,role}); const u=(teamUsers||[]).find(x=>x.id===id); if(u) u.role=(r&&r.role)||role; err.textContent='✅ Role saved — '+roleName(role)+'.'; }
+    catch(e){ const msg=String(e.message||'');
+      if(/unknown action/i.test(msg)) err.innerHTML='⚠️ Role saving isn\'t live yet — the <b>manage-users</b> function in Supabase needs to be redeployed with the latest code.';
+      else err.textContent=msg;
+      loadTeamUsers(); }
   }
   async function addTeamUser(){
     const email=document.getElementById('newUserEmail').value.trim();
@@ -1919,6 +1938,29 @@ Core Purpose:
 
 One Phrase Strategy:
 Herd Life`;
+  const MTG_QUOTES=[
+    {q:"You miss 100% of the shots you don't take.",a:"Wayne Gretzky"},
+    {q:"It always seems impossible until it's done.",a:"Nelson Mandela"},
+    {q:"Hard work beats talent when talent doesn't work hard.",a:"Tim Notke"},
+    {q:"Our greatest glory is not in never falling, but in rising every time we fall.",a:"Confucius"},
+    {q:"It does not matter how slowly you go as long as you do not stop.",a:"Confucius"},
+    {q:"Believe you can and you're halfway there.",a:"Theodore Roosevelt"},
+    {q:"The harder the conflict, the greater the triumph.",a:"George Washington"},
+    {q:"Do not pray for an easy life; pray for the strength to endure a difficult one.",a:"Bruce Lee"},
+    {q:"A champion is someone who gets up when they can't.",a:"Jack Dempsey"},
+    {q:"Everything you've ever wanted is on the other side of fear.",a:"George Addair"},
+    {q:"Start where you are. Use what you have. Do what you can.",a:"Arthur Ashe"},
+    {q:"Fall seven times, stand up eight.",a:"Japanese proverb"},
+    {q:"The moment you doubt whether you can fly, you cease forever to be able to do it.",a:"J.M. Barrie"},
+    {q:"Being the underdog is the best seat in the house — nothing to lose, everything to prove.",a:"Herd Life"},
+    {q:"Nobody handed us a chance. So we built our own.",a:"Herd Life"},
+    {q:"They underestimated us. Good. Let's keep it that way — right up until we win.",a:"Herd Life"},
+    {q:"The giants forgot that David never asked permission.",a:"Herd Life"},
+    {q:"Great things are done by a series of small things brought together.",a:"Vincent van Gogh"},
+    {q:"If you're going through hell, keep going.",a:"Winston Churchill"},
+    {q:"Courage doesn't always roar. Sometimes it's the quiet voice saying 'I'll try again tomorrow.'",a:"Mary Anne Radmacher"}
+  ];
+  function mtgQuoteFor(date){ const d=date||new Date(); const wk=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000/7); return MTG_QUOTES[((wk%MTG_QUOTES.length)+MTG_QUOTES.length)%MTG_QUOTES.length]; }
   let mtgsStore=[], mtgItems=[], mtgLoaded=false, curMtgId=null, curMtgDate=null;
   function loadMtgLocal(){ try{ mtgsStore=JSON.parse(localStorage.getItem(KEY+'_mtgs')||'[]')||[]; mtgItems=JSON.parse(localStorage.getItem(KEY+'_mtgitems')||'[]')||[]; }catch(e){ mtgsStore=[]; mtgItems=[]; } }
   function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
@@ -2004,9 +2046,14 @@ Herd Life`;
       + '<button class="btn ghost sm" onclick="ensureMeetingsRefresh()">↻ Refresh</button></div>'
       + '<div class="mtg-top">'+nav+'<span class="mtg-when">'+(m.time?(esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))+' · '+esc(String(m.dur||30))+' min'):'')+'</span></div>'
       + attend;
+    if(recurring && m.type!=='daily'){ const qt=mtgQuoteFor(curMtgDate);
+      html+='<div class="mtg-quote"><div class="lead">💪 This week</div><div class="q">"'+esc(qt.q)+'"</div><div class="a">— '+esc(qt.a)+'</div></div>'; }
+    html+='<div id="mtgSections">';
     (m.sections||[]).forEach(sec=>{ html+=renderSection(m,sec,canEdit); });
-    html+='<div style="margin-top:6px;"><button class="btn ghost sm" onclick="openAddSection()">➕ Add section</button></div>';
+    html+='</div><div style="margin-top:6px;"><button class="btn ghost sm" onclick="openAddSection()">➕ Add section</button>'
+      +(canEdit?' <span style="color:var(--muted);font-size:.8rem;">· drag the ⠿ handle to reorder sections</span>':'')+'</div>';
     box.innerHTML=html;
+    if(canEdit) enableSectionDrag();
   }
   async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
 
@@ -2051,7 +2098,8 @@ Herd Life`;
     const tools = canEdit
       ? '<button class="btn ghost sm" title="Edit section" onclick="openEditSection(\''+sec.id+'\')">✎</button>'
         + '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '';
-    return '<div class="mtg-sec"><div class="mtg-sec-hd"><h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
+    const handle = canEdit ? '<span class="mtg-drag" title="Drag to reorder">⠿</span>' : '';
+    return '<div class="mtg-sec" data-sid="'+esc(sec.id)+'"><div class="mtg-sec-hd">'+handle+'<h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
   }
   function noteHtml(it,canEdit){ const mine=it.data.author===myEmail;
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
@@ -2071,35 +2119,84 @@ Herd Life`;
       +((it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
   function renderMetricSnapshot(){
-    if(!metricsStore.length) return '<div class="mtg-empty">No metrics yet — add them in the Metrics section.</div>';
+    const list=metricsStore.filter(metricVisible);
+    if(!list.length) return '<div class="mtg-empty">No metrics yet — add them in the Metrics section.</div>';
     const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
-    return metricsStore.filter(metricVisible).map(m=>{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
+    return '<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">Latest week vs goal. Click a metric to see the trend graph.</div>'
+      + list.map(m=>{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
       const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
-      const dot=t?'<span style="color:'+({great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'}[t])+'">●</span> ':'';
-      return '<div class="mtg-mx"><span>'+dot+esc(m.name)+'</span><span class="v">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span></div>';
+      const dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
+      const cid='mxsnap-'+m.id;
+      return '<div class="rock-row">'
+        +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
+        +'<span class="caret">▶</span>'
+        +'<span class="rk-title">'+dot+esc(m.name)+'</span>'
+        +'<span class="v" style="font-weight:700;">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span>'
+        +'</div><div class="rock-gantt">'+renderMetricChart(m)+'</div></div>';
     }).join(''); }
 
+  let rockSort='progDesc';
+  function setRockSort(v){ rockSort=v; renderMeetingView(); }
+  function rockScore(e){ return isComplete(e)?101:priProgress(e); }
+  function sortRocks(list){
+    const l=list.slice();
+    if(rockSort==='progDesc') l.sort((a,b)=>rockScore(b)-rockScore(a));
+    else if(rockSort==='progAsc') l.sort((a,b)=>rockScore(a)-rockScore(b));
+    else if(rockSort==='complete') l.sort((a,b)=>(isComplete(b)?1:0)-(isComplete(a)?1:0)||rockScore(b)-rockScore(a));
+    else if(rockSort==='pm') l.sort((a,b)=>String(pmName(resolvePerson(a.pm))).localeCompare(String(pmName(resolvePerson(b.pm))))||rockScore(b)-rockScore(a));
+    return l;
+  }
   function renderQuarterRocks(secId){
     const q=(typeof cur==='function')?cur():null;
     if(!q){ return '<div class="mtg-empty">No quarter loaded.</div>'; }
-    const rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
+    let rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
     if(!rocks.length) return '<div class="mtg-empty">No scheduled or completed priorities this quarter yet. Add them in the Priorities section.</div>';
-    const head='<div style="font-size:.82rem;color:var(--muted);margin-bottom:8px;">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click one to see its timeline.</div>';
-    return head+rocks.map(e=>{
+    rocks=sortRocks(rocks);
+    const opt=(v,l)=>'<option value="'+v+'"'+(rockSort===v?' selected':'')+'>'+l+'</option>';
+    const bar='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">'
+      + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click one for its timeline.</span>'
+      + '<span style="font-size:.82rem;color:var(--muted);">Sort: <select onchange="setRockSort(this.value)">'
+      + opt('progDesc','Most done first')+opt('progAsc','Least done first')+opt('complete','Complete first')+opt('pm','By owner')+'</select></span></div>';
+    return bar+rocks.map((e,i)=>{
       const done=isComplete(e); const st=done?'complete':'scheduled';
-      const pct=priProgress(e);
-      const rid='rk-'+secId+'-'+e.id;
+      const pct=priProgress(e); const rid='rk-'+secId+'-'+e.id;
+      const person=resolvePerson(e.pm);
+      const av=e.pm?('<span class="rk-av" title="'+esc(pmName(person))+'">'+avatarHtml(person)+'</span>'):'<span class="rk-av"></span>';
       return '<div class="rock-row">'
         + '<div class="rock-hd" id="'+rid+'" onclick="toggleRock(\''+rid+'\')">'
         + '<span class="caret">▶</span>'
+        + '<span class="rk-num">'+(i+1)+'</span>'
         + '<span class="rk-title">'+esc(e.title||'Untitled')+'</span>'
-        + '<span class="who" style="font-size:.74rem;color:var(--muted);">'+esc(pmName(e.pm)||'')+'</span>'
+        + av
         + '<span class="rk-badge '+st+'">'+(done?'Complete':(pct+'%'))+'</span>'
         + '</div>'
         + '<div class="rock-gantt">'+ganttHTML(e)+'</div></div>';
     }).join('');
   }
   function toggleRock(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+  let dragSid=null;
+  function enableSectionDrag(){
+    const cont=document.getElementById('mtgSections'); if(!cont) return;
+    cont.querySelectorAll('.mtg-drag').forEach(h=>{ h.setAttribute('draggable','true');
+      h.addEventListener('dragstart', e=>{ const s=h.closest('.mtg-sec'); dragSid=s.getAttribute('data-sid'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',dragSid); }catch(_){} setTimeout(()=>s.classList.add('dragging'),0); });
+      h.addEventListener('dragend', ()=>{ dragSid=null; cont.querySelectorAll('.mtg-sec').forEach(s=>s.classList.remove('dragging','drop-above','drop-below')); });
+    });
+    cont.querySelectorAll('.mtg-sec').forEach(sec=>{
+      sec.addEventListener('dragover', e=>{ if(!dragSid) return; e.preventDefault(); e.dataTransfer.dropEffect='move';
+        const r=sec.getBoundingClientRect(); const below=(e.clientY-r.top)>r.height/2;
+        sec.classList.toggle('drop-below',below); sec.classList.toggle('drop-above',!below); });
+      sec.addEventListener('dragleave', ()=>{ sec.classList.remove('drop-above','drop-below'); });
+      sec.addEventListener('drop', e=>{ if(!dragSid) return; e.preventDefault();
+        const below=sec.classList.contains('drop-below'); reorderSection(dragSid, sec.getAttribute('data-sid'), below); });
+    });
+  }
+  function reorderSection(fromSid,toSid,below){
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m||!m.sections||fromSid===toSid) return;
+    const secs=m.sections; const fi=secs.findIndex(s=>s.id===fromSid); if(fi<0) return;
+    const moved=secs.splice(fi,1)[0]; let ti=secs.findIndex(s=>s.id===toSid); if(ti<0){ secs.splice(fi,0,moved); return; }
+    secs.splice(below?ti+1:ti, 0, moved);
+    saveMtgLocal(); dbUpsertMtg(m); renderMeetingView();
+  }
   function priProgress(e){ const plan=e.plan||[]; if(!plan.length) return 0; const s=plan.reduce((a,p)=>a+(Number(p&&p.pct)||0),0); return Math.round(s/plan.length); }
   function saveText(section,val){ let it=mtgItems.find(x=>x.meeting_id===curMtgId && x.section===section && x.inst==='static');
     if(!it){ it={id:uid(),meeting_id:curMtgId,section,inst:'static',data:{type:'text',author:myEmail,t:Date.now()}}; mtgItems.push(it); }
@@ -2772,16 +2869,23 @@ Herd Life`;
     let min=parseD(dated[0].start), max=parseD(dated[0].end);
     dated.forEach(t=>{ const s=parseD(t.start),en=parseD(t.end); if(s<min)min=s; if(en>max)max=en; });
     const total=Math.max(1, daysBetween(min,max)+1);
+    const now=todayStart();
+    const todayIn = now>=min && now<=max;
+    const todayPct = todayIn ? (daysBetween(min,now)/total*100) : 0;
+    const todayMark = todayIn ? `<div class="today-line" style="left:${todayPct}%"></div>` : '';
+    let overdue=0;
     const rows=tasks.map(t=>{
       if(!(t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start)))
-        return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track"><span class="g-none">not scheduled</span></div></div>`;
+        return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
       const s=parseD(t.start),en=parseD(t.end);
       const left=daysBetween(min,s)/total*100;
       const width=Math.max(3,(daysBetween(s,en)+1)/total*100);
-      const od=isOverduePlan({end:t.end,pct:t.pct});
-      return `<div class="gantt-row"><div class="g-label">${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track"><div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
+      const od=isOverduePlan({end:t.end,pct:t.pct}); if(od) overdue++;
+      return `<div class="gantt-row"><div class="g-label">${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
     }).join('');
-    return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
+    const flag = overdue ? `<span style="color:var(--red);font-weight:700;">⚠ ${overdue} task${overdue===1?'':'s'} past due</span>` : `<span style="color:var(--green);">On track</span>`;
+    const legend = todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '';
+    return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${flag}${legend}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
   }
 
   /* ---------- new / edit quarter modal ---------- */
