@@ -104,6 +104,9 @@
   .vz-goal .gt{font-weight:700;color:var(--ink);font-size:1.02rem;}
   .vz-goal .gwhen{font-size:.82rem;color:var(--muted);margin-top:2px;}
   .vz-goal.gb .gt{font-style:italic;}
+  .vz-editcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);}
+  .vz-editcard label{font-size:.78rem;font-weight:700;color:var(--muted);}
+  .vz-editrow{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;}
   /* ---- scorecard / metrics ---- */
   .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
   .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
@@ -758,6 +761,7 @@
     <input type="text" id="sec-title" placeholder="e.g. Wins this week" style="width:100%;">
     <label style="margin-top:10px;display:block;">Type</label>
     <select id="sec-type" style="width:100%;">
+      <option value="vision">Core Values &amp; Vision (from the Core Values tab)</option>
       <option value="text">Editable text (shared across every meeting)</option>
       <option value="notes">Notes everyone adds (like Good News)</option>
       <option value="priorities">Priorities — a to-do list carried to the next meeting</option>
@@ -1155,26 +1159,11 @@
 
 <!-- ====================== SECTION: CORE VALUES / VISION ====================== -->
 <div id="screen-vision" style="display:none;">
-  <div class="sec-head"><h1>🧭 Core Values &amp; Vision</h1><p>What we stand for and where we're headed. Herd Life.</p></div>
-  <div class="vz-wrap">
-    <div class="vz-strategy"><div class="lbl">One Phrase Strategy</div><div class="big">Herd Life</div></div>
-
-    <div class="vz-purpose"><div class="lbl">Core Purpose</div><div class="txt">To make the home radically more affordable.</div></div>
-
-    <div class="vz-h">Core Values</div>
-    <div class="vz-values">
-      <div class="vz-card"><div class="vn">🥊 Fight for Every Customer</div><div class="vd">We are relentless to win, keep, and delight every customer. We write what's possible.</div></div>
-      <div class="vz-card"><div class="vn">🛠️ Scrappy &amp; Resourceful</div><div class="vd">We tackle challenges with grit, creativity, skill and a commitment to industry-leading service and price.</div></div>
-      <div class="vz-card"><div class="vn">🚀 Let's Go!</div><div class="vd">Action beats perfection, move fast, and adapt quickly to grow and serve.</div></div>
-    </div>
-
-    <div class="vz-h">The Climb — Herd Goals</div>
-    <div class="vz-goals">
-      <div class="vz-goal g1"><div class="tag"><small>1 YR</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Saved 55,147 herd members from the big guys</div><div class="gwhen">🎯 by Dec 31, 2026</div></div></div>
-      <div class="vz-goal g3"><div class="tag"><small>3 YR</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Saved 100,000 herd members from the big guys</div><div class="gwhen">🎯 by Oct 1, 2028</div></div></div>
-      <div class="vz-goal gb"><div class="tag"><small>BIG</small><span class="n">HAG</span></div><div class="gbody"><div class="gt">Half the homes in the Atlantic Provinces are purple homes!</div><div class="gwhen">The mountain top 🏔️</div></div></div>
-    </div>
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div><h1>🧭 Core Values &amp; Vision</h1><p>What we stand for and where we're headed. Herd Life.</p></div>
+    <button class="btn ghost admin-only" id="visionEditBtn" onclick="toggleVisionEdit()">✎ Edit</button>
   </div>
+  <div id="visionWrap" class="vz-wrap"></div>
 </div>
 
 <!-- ====================== SECTION: METRICS ====================== -->
@@ -2032,6 +2021,56 @@
     persistMetric(m); renderMetrics();
   }
 
+  /* ================= CORE VALUES / VISION ================= */
+  const DEFAULT_VISION={
+    strategy:'Herd Life',
+    purpose:'To make the home radically more affordable.',
+    values:[
+      {emoji:'🥊',name:'Fight for Every Customer',desc:"We are relentless to win, keep, and delight every customer. We write what's possible."},
+      {emoji:'🛠️',name:'Scrappy & Resourceful',desc:'We tackle challenges with grit, creativity, skill and a commitment to industry-leading service and price.'},
+      {emoji:'🚀',name:"Let's Go!",desc:'Action beats perfection, move fast, and adapt quickly to grow and serve.'}
+    ],
+    goals:[
+      {cls:'g1',sub:'1 YR',tag:'HAG',text:'Saved 55,147 herd members from the big guys',when:'🎯 by Dec 31, 2026'},
+      {cls:'g3',sub:'3 YR',tag:'HAG',text:'Saved 100,000 herd members from the big guys',when:'🎯 by Oct 1, 2028'},
+      {cls:'gb',sub:'BIG',tag:'HAG',text:'Half the homes in the Atlantic Provinces are purple homes!',when:'The mountain top 🏔️'}
+    ]
+  };
+  let visionData=JSON.parse(JSON.stringify(DEFAULT_VISION)), visionEditing=false;
+  function loadVisionLocal(){ try{ const v=localStorage.getItem(KEY+'_vision'); if(v) visionData=JSON.parse(v); }catch(e){} }
+  function saveVisionLocal(){ try{ localStorage.setItem(KEY+'_vision',JSON.stringify(visionData)); }catch(e){} }
+  function dbUpsertVision(){ if(!USE_DB) return; sb.from('mtgs').upsert({id:'app-vision',data:visionData}).then(r=>{ if(r.error) console.warn('vision save',r.error); }); }
+  function visionDisplayHtml(){ const v=visionData;
+    return '<div class="vz-strategy"><div class="lbl">One Phrase Strategy</div><div class="big">'+esc(v.strategy||'')+'</div></div>'
+      + '<div class="vz-purpose"><div class="lbl">Core Purpose</div><div class="txt">'+esc(v.purpose||'')+'</div></div>'
+      + '<div class="vz-h">Core Values</div><div class="vz-values">'
+      + (v.values||[]).map(c=>'<div class="vz-card"><div class="vn">'+esc(c.emoji||'')+' '+esc(c.name||'')+'</div><div class="vd">'+esc(c.desc||'')+'</div></div>').join('')
+      + '</div><div class="vz-h">The Climb — Herd Goals</div><div class="vz-goals">'
+      + (v.goals||[]).map(g=>'<div class="vz-goal '+esc(g.cls||'g1')+'"><div class="tag"><small>'+esc(g.sub||'')+'</small><span class="n">'+esc(g.tag||'HAG')+'</span></div><div class="gbody"><div class="gt">'+esc(g.text||'')+'</div><div class="gwhen">'+esc(g.when||'')+'</div></div></div>').join('')
+      + '</div>';
+  }
+  function renderVision(){ const wrap=document.getElementById('visionWrap'); if(!wrap) return;
+    const btn=document.getElementById('visionEditBtn');
+    if(!visionEditing){ if(btn) btn.textContent='✎ Edit'; wrap.innerHTML=visionDisplayHtml(); return; }
+    if(btn) btn.textContent='✕ Cancel';
+    const v=visionData; const ta=(id,val,ph)=>'<textarea id="'+id+'" rows="2" style="width:100%;" placeholder="'+(ph||'')+'">'+esc(val||'')+'</textarea>';
+    const inp=(id,val)=>'<input id="'+id+'" style="width:100%;" value="'+esc(val||'')+'">';
+    let h='<div class="vz-editcard"><label>One Phrase Strategy</label>'+inp('v-strategy',v.strategy)
+      +'<label style="margin-top:10px;display:block;">Core Purpose</label>'+inp('v-purpose',v.purpose)
+      +'<label style="margin-top:14px;display:block;font-weight:800;">Core Values</label>';
+    (v.values||[]).forEach((c,i)=>{ h+='<div class="vz-editrow"><div style="display:flex;gap:8px;"><input id="v-vemoji-'+i+'" style="width:56px;" value="'+esc(c.emoji||'')+'"><input id="v-vname-'+i+'" style="flex:1;" value="'+esc(c.name||'')+'" placeholder="Value name"></div>'+ta('v-vdesc-'+i,c.desc,'Description')+'</div>'; });
+    h+='<label style="margin-top:14px;display:block;font-weight:800;">Herd Goals</label>';
+    (v.goals||[]).forEach((g,i)=>{ h+='<div class="vz-editrow"><div style="display:flex;gap:8px;"><input id="v-gsub-'+i+'" style="width:70px;" value="'+esc(g.sub||'')+'" placeholder="1 YR"><input id="v-gtext-'+i+'" style="flex:1;" value="'+esc(g.text||'')+'" placeholder="Goal"></div><input id="v-gwhen-'+i+'" style="width:100%;margin-top:6px;" value="'+esc(g.when||'')+'" placeholder="Target date"></div>'; });
+    h+='<div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;"><button class="btn ghost" onclick="toggleVisionEdit()">Cancel</button><button class="btn" onclick="saveVision()">Save changes</button></div></div>';
+    wrap.innerHTML=h;
+  }
+  function toggleVisionEdit(){ if(!canManageUsers()){ return; } visionEditing=!visionEditing; renderVision(); }
+  function saveVision(){ const gv=id=>{ const e=document.getElementById(id); return e?e.value:''; };
+    visionData.strategy=gv('v-strategy'); visionData.purpose=gv('v-purpose');
+    (visionData.values||[]).forEach((c,i)=>{ c.emoji=gv('v-vemoji-'+i); c.name=gv('v-vname-'+i); c.desc=gv('v-vdesc-'+i); });
+    (visionData.goals||[]).forEach((g,i)=>{ g.sub=gv('v-gsub-'+i); g.text=gv('v-gtext-'+i); g.when=gv('v-gwhen-'+i); });
+    saveVisionLocal(); dbUpsertVision(); visionEditing=false; renderVision(); }
+
   /* ================= MEETINGS ================= */
   const KNOWN_ATTENDEES=['brad@purplecowinternet.com','ashley.burke@purplecowinternet.com','rei.colina@purplecowinternet.com','joe@purplecowinternet.com','krystina@purplecowinternet.com','holly.carver@purplecowinternet.com','curtis@purplecowinternet.com'];
   const TIMEZONES=['America/Halifax','America/St_Johns','America/Toronto','America/New_York','America/Chicago','America/Denver','America/Los_Angeles','America/Vancouver','UTC','Europe/London'];
@@ -2090,7 +2129,9 @@ Herd Life`;
   function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
   async function dbLoadMeetings(){
     if(!USE_DB){ mtgLoaded=true; return; }
-    try{ const a=await sb.from('mtgs').select('id,data'); if(a.error) throw a.error; mtgsStore=(a.data||[]).map(x=>x.data).filter(Boolean);
+    try{ const a=await sb.from('mtgs').select('id,data'); if(a.error) throw a.error;
+      const rows=(a.data||[]); const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data){ visionData=vrow.data; saveVisionLocal(); }
+      mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean);
       const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) throw b.error;
       mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
       saveMtgLocal();
@@ -2213,6 +2254,8 @@ Herd Life`;
       body = renderMetricSnapshot();
     } else if(sec.type==='qpriorities'){
       body = renderQuarterRocks(sec.id);
+    } else if(sec.type==='vision'){
+      body = visionDisplayHtml();
     }
     const tools = canEdit
       ? '<button class="btn ghost sm" title="Edit section" onclick="openEditSection(\''+sec.id+'\')">✎</button>'
@@ -2556,7 +2599,7 @@ Herd Life`;
   function navTo(sec){
     currentSection=sec; closeAcctMenu();
     if(sec==='priorities'){ gotoDash(); }
-    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
+    else { showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
@@ -3177,7 +3220,7 @@ Herd Life`;
     store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
   }
   (async function init(){
-    loadMetricsLocal(); loadWeekStart(); loadMtgLocal();
+    loadMetricsLocal(); loadWeekStart(); loadMtgLocal(); loadVisionLocal();
     if(USE_DB){
       try{ const {data}=await sb.auth.getSession(); reviewUnlocked = !!(data && data.session); if(reviewUnlocked){ setMyIdentity(data.session.user); loadTeamUsersCache(); } }catch(e){ reviewUnlocked=false; }
       if(/type=(invite|recovery)/.test(INITIAL_HASH)){ applyTheme(); renderForm(); showSetPassword(); return; }
