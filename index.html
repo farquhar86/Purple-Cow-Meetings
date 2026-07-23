@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The March to 100,000 Herd Members — Quarterly Worksheet</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%236a2c8f'/%3E%3Cstop%20offset='1'%20stop-color='%234e1f6b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='64'%20height='64'%20rx='15'%20fill='url(%23g)'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='27'%20font-weight='bold'%20fill='white'%20text-anchor='middle'%3ENM%3C/text%3E%3C/svg%3E">
+
 <style>
   :root{
     --purple:#6a2c8f; --purple-dark:#4e1f6b; --purple-light:#8e4fb8;
@@ -239,6 +241,45 @@
   .rk-badge{font-size:.66rem;font-weight:700;text-transform:uppercase;padding:2px 8px;border-radius:999px;}
   .rk-badge.complete{background:rgba(46,158,107,.16);color:#176935;}
   .rk-badge.scheduled{background:var(--lilac-2);color:var(--purple-dark);}
+  /* issues kanban board */
+  .kb{display:flex;gap:12px;overflow-x:auto;padding-bottom:6px;}
+  .kb-col{flex:1;min-width:210px;background:var(--bg);border-radius:10px;padding:8px;}
+  .kb-col.drop{outline:2px dashed var(--purple-light);outline-offset:-2px;}
+  .kb-col-hd{display:flex;align-items:center;gap:7px;font-size:.82rem;font-weight:700;color:var(--ink);padding:4px 6px 8px;}
+  .kb-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;}
+  .kb-count{color:var(--muted);font-weight:600;}
+  .kb-card{background:#fff;border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:8px;cursor:pointer;box-shadow:0 1px 2px rgba(80,30,110,.05);}
+  .kb-card:hover{border-color:var(--purple-light);}
+  .kb-card.dragging{opacity:.4;}
+  .kb-card .kc-title{font-size:.9rem;font-weight:600;color:var(--ink);line-height:1.35;}
+  .kb-card .kc-meta{display:flex;align-items:center;gap:10px;margin-top:7px;font-size:.72rem;color:var(--muted);}
+  .kb-card .kc-meta img,.kb-card .kc-meta .tm-initials{width:18px;height:18px;border-radius:50%;}
+  .kb-add{width:100%;text-align:left;background:none;border:none;color:var(--purple);font-weight:600;font-size:.84rem;padding:7px 6px;cursor:pointer;border-radius:7px;}
+  .kb-add:hover{background:var(--lilac);}
+  /* issue detail modal + rich text */
+  .iss-title-input{width:100%;font-size:1.3rem;font-weight:800;color:var(--purple-dark);border:none;padding:4px 0;margin-bottom:6px;}
+  .iss-title-input:focus{outline:none;border-bottom:2px solid var(--purple-light);}
+  .iss-meta{font-size:.76rem;color:var(--muted);margin-bottom:10px;}
+  .iss-status-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+  .iss-status-row button{font-size:.76rem;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 11px;cursor:pointer;color:var(--muted);}
+  .iss-status-row button.on{color:#fff;border-color:transparent;font-weight:700;}
+  .rte-toolbar{display:flex;flex-wrap:wrap;gap:3px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;padding:5px;background:var(--lilac);}
+  .rte-toolbar button{border:none;background:#fff;border-radius:5px;padding:4px 9px;font-size:.82rem;cursor:pointer;color:var(--ink);min-width:30px;}
+  .rte-toolbar button:hover{background:var(--lilac-2);}
+  .rte{border:1px solid var(--line);border-radius:0 0 8px 8px;min-height:180px;max-height:340px;overflow-y:auto;padding:12px 14px;font-size:.92rem;line-height:1.6;}
+  .rte:focus{outline:none;box-shadow:inset 0 0 0 2px rgba(142,79,184,.18);}
+  .rte:empty:before{content:attr(data-ph);color:var(--muted);}
+  .rte h2{font-size:1.15rem;margin:.5em 0 .3em;color:var(--purple-dark);}
+  .rte h3{font-size:1rem;margin:.5em 0 .3em;color:var(--purple-dark);}
+  .rte table{border-collapse:collapse;margin:8px 0;width:auto;}
+  .rte th,.rte td{border:1px solid var(--line);padding:5px 9px;min-width:60px;text-align:left;}
+  .rte th{background:var(--lilac);font-weight:700;}
+  .rte p{margin:.4em 0;}
+  .iss-cmt{display:flex;gap:9px;margin-bottom:9px;}
+  .iss-cmt img,.iss-cmt .tm-initials{width:28px;height:28px;border-radius:50%;flex:0 0 auto;}
+  .iss-cmt .cb{background:var(--lilac);border-radius:12px;padding:8px 12px;flex:1;}
+  .iss-cmt .cb .who{font-size:.72rem;color:var(--muted);font-weight:700;}
+  .iss-cmt .cb .when{font-size:.68rem;color:var(--muted);font-weight:400;}
   .modal{background:#fff;border-radius:16px;max-width:380px;width:100%;padding:26px;box-shadow:0 24px 70px rgba(0,0,0,.35);text-align:center;}
   .modal h3{margin:8px 0 4px;color:var(--purple-dark);}
   .modal .lockicon{font-size:30px;}
@@ -612,6 +653,37 @@
     <div style="margin-top:10px;"><button class="btn ghost sm" onclick="syncSlackPhotos()">🔄 Sync photos from Slack</button></div>
     <div class="lock-err" id="teamsErr"></div>
     <div class="modal-actions"><button class="btn ghost" onclick="closeTeamsModal()">Close</button></div>
+  </div>
+</div>
+
+<!-- Issue detail modal (Notion-style card) -->
+<div class="modal-ov no-print" id="issueModal" onclick="if(event.target===this)closeIssue()">
+  <div class="modal modal-scroll" style="max-width:780px;text-align:left;">
+    <input type="hidden" id="iss-id">
+    <input type="text" id="iss-title" class="iss-title-input" placeholder="Issue title…" oninput="scheduleIssueSave()" onchange="saveIssueField()">
+    <div class="iss-meta" id="iss-meta"></div>
+    <div class="iss-status-row" id="iss-status-row"></div>
+    <div class="rte-toolbar">
+      <button title="Bold" onmousedown="event.preventDefault()" onclick="rte('bold')"><b>B</b></button>
+      <button title="Italic" onmousedown="event.preventDefault()" onclick="rte('italic')"><i>I</i></button>
+      <button title="Underline" onmousedown="event.preventDefault()" onclick="rte('underline')"><u>U</u></button>
+      <button title="Heading" onmousedown="event.preventDefault()" onclick="rteBlock('H2')">H2</button>
+      <button title="Subheading" onmousedown="event.preventDefault()" onclick="rteBlock('H3')">H3</button>
+      <button title="Normal text" onmousedown="event.preventDefault()" onclick="rteBlock('P')">¶</button>
+      <button title="Bullet list" onmousedown="event.preventDefault()" onclick="rte('insertUnorderedList')">•</button>
+      <button title="Numbered list" onmousedown="event.preventDefault()" onclick="rte('insertOrderedList')">1.</button>
+      <button title="Insert table" onmousedown="event.preventDefault()" onclick="rteTable()">▦</button>
+      <button title="Add row to table" onmousedown="event.preventDefault()" onclick="rteTableRow()">+ row</button>
+      <button title="Clear formatting" onmousedown="event.preventDefault()" onclick="rte('removeFormat')">✕</button>
+    </div>
+    <div id="iss-notes" class="rte" contenteditable="true" oninput="scheduleIssueSave()" onblur="saveIssueField()" data-ph="Write notes… paste tables from Notion or Excel, format text with the toolbar."></div>
+    <h4 style="margin:18px 0 8px;color:var(--purple-dark);">Comments</h4>
+    <div id="iss-comments"></div>
+    <div class="mtg-addrow"><input id="iss-comment-in" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')addIssueComment()"><button class="btn sm" onclick="addIssueComment()">Post</button></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn danger sm" id="issDeleteBtn" onclick="deleteIssue()" style="margin-right:auto;">Delete</button>
+      <button class="btn" onclick="saveIssueField();closeIssue()">Done</button>
+    </div>
   </div>
 </div>
 
@@ -2054,6 +2126,7 @@ Herd Life`;
       +(canEdit?' <span style="color:var(--muted);font-size:.8rem;">· drag the ⠿ handle to reorder sections</span>':'')+'</div>';
     box.innerHTML=html;
     if(canEdit) enableSectionDrag();
+    enableIssueDrag();
   }
   async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
 
@@ -2087,9 +2160,7 @@ Herd Life`;
       const rows=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===prevInstKey(m)).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
       body = rows.length ? rows.map(it=>priHtml(it,src,canEdit,false)).join('') : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
     } else if(sec.type==='issues'){
-      const rows=itemsFor(sec.id,instKey());
-      body = rows.length ? rows.map(it=>issueHtml(it,sec.id,canEdit)).join('') : '<div class="mtg-empty">No issues raised yet.</div>';
-      if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add an issue to discuss…" onkeydown="if(event.key===\'Enter\')addIssue(\''+sec.id+'\')"><button class="btn sm" onclick="addIssue(\''+sec.id+'\')">Add</button></div>';
+      body = renderIssueBoard(m,sec.id,canEdit);
     } else if(sec.type==='metrics'){
       body = renderMetricSnapshot();
     } else if(sec.type==='qpriorities'){
@@ -2174,6 +2245,91 @@ Herd Life`;
     }).join('');
   }
   function toggleRock(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+  /* ===== Issues kanban board (Notion-style) ===== */
+  const ISSUE_STATUSES=[{k:'notstarted',label:'Not started',c:'#9b8fae'},{k:'inprogress',label:'In progress',c:'#4a6cf7'},{k:'hasupdate',label:'Has update',c:'#8e4fb8'},{k:'done',label:'Done',c:'#2e9e6b'}];
+  function issueList(mid,secId){ return mtgItems.filter(it=>it.meeting_id===mid && it.section===secId && it.inst==='static').sort((a,b)=>((a.data&&a.data.ord)||(a.data&&a.data.t)||0)-((b.data&&b.data.ord)||(b.data&&b.data.t)||0)); }
+  function commentCount(id){ return mtgItems.filter(it=>it.section==='cmt:'+id).length; }
+  function renderIssueBoard(m,secId,canEdit){
+    const all=issueList(m.id,secId);
+    return '<div class="kb" data-sec="'+secId+'">'+ISSUE_STATUSES.map(st=>{
+      const cards=all.filter(it=>(it.data.status||'notstarted')===st.k);
+      let col='<div class="kb-col" data-status="'+st.k+'" data-sec="'+secId+'">'
+        +'<div class="kb-col-hd"><span class="kb-dot" style="background:'+st.c+'"></span>'+esc(st.label)+' <span class="kb-count">'+cards.length+'</span></div>';
+      col+=cards.map(it=>{ const cc=commentCount(it.id);
+        return '<div class="kb-card" draggable="'+(canEdit?'true':'false')+'" data-id="'+it.id+'" onclick="openIssue(\''+it.id+'\')">'
+          +'<div class="kc-title">'+esc(it.data.text||'Untitled')+'</div>'
+          +'<div class="kc-meta">'+avatarHtml(it.data.author)+(cc?('<span>💬 '+cc+'</span>'):'')+'</div></div>';
+      }).join('');
+      if(canEdit) col+='<button class="kb-add" onclick="newIssue(\''+secId+'\',\''+st.k+'\')">＋ New task</button>';
+      col+='</div>'; return col;
+    }).join('')+'</div>';
+  }
+  let issDragId=null;
+  function enableIssueDrag(){
+    document.querySelectorAll('#mtgSections .kb-card[draggable=true]').forEach(c=>{
+      c.addEventListener('dragstart',e=>{ issDragId=c.getAttribute('data-id'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',issDragId);}catch(_){}; setTimeout(()=>c.classList.add('dragging'),0); e.stopPropagation(); });
+      c.addEventListener('dragend',()=>{ issDragId=null; document.querySelectorAll('.kb-card').forEach(x=>x.classList.remove('dragging')); document.querySelectorAll('.kb-col').forEach(x=>x.classList.remove('drop')); });
+    });
+    document.querySelectorAll('#mtgSections .kb-col').forEach(col=>{
+      col.addEventListener('dragover',e=>{ if(!issDragId) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('drop'); });
+      col.addEventListener('dragleave',()=>col.classList.remove('drop'));
+      col.addEventListener('drop',e=>{ if(!issDragId) return; e.preventDefault(); e.stopPropagation(); const it=mtgItems.find(x=>x.id===issDragId);
+        if(it){ it.data.status=col.getAttribute('data-status'); it.data.editedAt=Date.now(); saveItem(it); } renderMeetingView(); });
+    });
+  }
+  function newIssue(secId,status){ const it=addItem(secId,'static',{type:'issue',text:'New task',status:status||'notstarted',notes:'',ord:Date.now()}); renderMeetingView(); openIssue(it.id); }
+
+  let curIssueId=null, issSaveTimer=null;
+  function openIssue(id){ const it=mtgItems.find(x=>x.id===id); if(!it) return; curIssueId=id;
+    const canEdit = true;
+    document.getElementById('iss-id').value=id;
+    document.getElementById('iss-title').value=it.data.text||'';
+    document.getElementById('iss-notes').innerHTML=it.data.notes||'';
+    renderIssueMeta(it); renderIssueStatusRow(it); renderIssueComments(id);
+    document.getElementById('issueModal').classList.add('show');
+    setTimeout(()=>{ if(!it.data.text||it.data.text==='New task'){ const t=document.getElementById('iss-title'); t.focus(); t.select(); } },60);
+  }
+  function renderIssueMeta(it){ const parts=[];
+    parts.push('Created by '+esc(pmName(it.data.author||'')));
+    if(it.data.editedAt){ parts.push('last edited '+esc(pmName(it.data.editedBy||it.data.author||''))+' · '+fmtWhen(it.data.editedAt)); }
+    document.getElementById('iss-meta').innerHTML=parts.join(' · '); }
+  function renderIssueStatusRow(it){ const cur=it.data.status||'notstarted';
+    document.getElementById('iss-status-row').innerHTML=ISSUE_STATUSES.map(st=>'<button class="'+(cur===st.k?'on':'')+'" style="'+(cur===st.k?'background:'+st.c+';':'')+'" onclick="setIssueStatus(\''+st.k+'\')">'+esc(st.label)+'</button>').join(''); }
+  function setIssueStatus(k){ const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return; it.data.status=k; it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueStatusRow(it); renderIssueMeta(it); renderMeetingView(); }
+  function fmtWhen(ts){ if(!ts) return ''; const d=new Date(ts); const now=Date.now(); const diff=(now-ts)/1000;
+    if(diff<60) return 'just now'; if(diff<3600) return Math.floor(diff/60)+'m ago'; if(diff<86400) return Math.floor(diff/3600)+'h ago';
+    return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
+  function closeIssue(){ if(issSaveTimer){ clearTimeout(issSaveTimer); saveIssueField(); } document.getElementById('issueModal').classList.remove('show'); curIssueId=null; renderMeetingView(); }
+  function scheduleIssueSave(){ if(issSaveTimer) clearTimeout(issSaveTimer); issSaveTimer=setTimeout(saveIssueField,700); }
+  function saveIssueField(){ const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
+    const title=document.getElementById('iss-title').value.trim();
+    const notes=document.getElementById('iss-notes').innerHTML;
+    let changed=false;
+    if((it.data.text||'')!==title){ it.data.text=title||'Untitled'; changed=true; }
+    if((it.data.notes||'')!==notes){ it.data.notes=notes; changed=true; }
+    if(changed){ it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeta(it); }
+  }
+  function deleteIssue(){ const id=curIssueId; if(!id) return;
+    confirmModal('Delete this issue and its comments?', ()=>{ delItem(id); mtgItems.filter(x=>x.section==='cmt:'+id).forEach(x=>dbDeleteItem(x.id)); mtgItems=mtgItems.filter(x=>x.section!=='cmt:'+id); saveMtgLocal(); document.getElementById('issueModal').classList.remove('show'); curIssueId=null; renderMeetingView(); }, 'Delete issue'); }
+  /* rich-text toolbar */
+  function rte(cmd){ document.getElementById('iss-notes').focus(); try{ document.execCommand(cmd,false,null); }catch(e){} scheduleIssueSave(); }
+  function rteBlock(tag){ document.getElementById('iss-notes').focus(); try{ document.execCommand('formatBlock',false,tag); }catch(e){} scheduleIssueSave(); }
+  function rteTable(){ document.getElementById('iss-notes').focus();
+    const html='<table><thead><tr><th>Column</th><th>Column</th></tr></thead><tbody><tr><td>&nbsp;</td><td>&nbsp;</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td></tr></tbody></table><p><br></p>';
+    try{ document.execCommand('insertHTML',false,html); }catch(e){} scheduleIssueSave(); }
+  function rteTableRow(){ const sel=window.getSelection(); if(!sel.rangeCount) return; let n=sel.anchorNode;
+    while(n && n.nodeName!=='TABLE'){ n=n.parentNode; } if(!n) return; const body=n.tBodies[0]||n; const cols=(n.rows[0]||{cells:[]}).cells.length||2;
+    const tr=document.createElement('tr'); for(let i=0;i<cols;i++){ const td=document.createElement('td'); td.innerHTML='&nbsp;'; tr.appendChild(td); } body.appendChild(tr); scheduleIssueSave(); }
+  /* comments (each is its own row — concurrency-safe) */
+  function renderIssueComments(id){ const box=document.getElementById('iss-comments');
+    const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
+    box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
+  function addIssueComment(){ const el=document.getElementById('iss-comment-in'); const v=(el.value||'').trim(); if(!v||!curIssueId) return; el.value='';
+    const it={id:uid(),meeting_id:curMtgId,section:'cmt:'+curIssueId,inst:'static',data:{type:'comment',text:v,author:myEmail,t:Date.now()}}; mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it);
+    const iss=mtgItems.find(x=>x.id===curIssueId); if(iss && (iss.data.status==='inprogress')){ iss.data.status='hasupdate'; saveItem(iss); }
+    renderIssueComments(curIssueId); }
+
   let dragSid=null;
   function enableSectionDrag(){
     const cont=document.getElementById('mtgSections'); if(!cont) return;
