@@ -1,0 +1,63 @@
+<!-- Purple Cow — Supabase "Invite user" email template.
+     Paste into Supabase → Authentication → Email Templates → Invite user → Message body (HTML).
+     Keep {{ .ConfirmationURL }} exactly as-is — Supabase fills it in. -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#faf7fd;margin:0;padding:24px 0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr>
+    <td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(80,30,110,0.10);">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(135deg,#6a2c8f,#4e1f6b);padding:34px 32px;text-align:center;">
+            <div style="display:inline-block;width:52px;height:52px;line-height:52px;border-radius:14px;background:rgba(255,255,255,0.15);color:#ffffff;font-size:20px;font-weight:800;letter-spacing:-1px;">NM</div>
+            <div style="color:#ffffff;font-size:22px;font-weight:800;margin-top:14px;">🐄 Welcome to the Herd!</div>
+            <div style="color:#e9d9f7;font-size:13px;margin-top:4px;letter-spacing:0.08em;text-transform:uppercase;">Purple Cow · Herd Life</div>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:34px 36px 10px;color:#221531;">
+            <p style="font-size:17px;font-weight:700;color:#4e1f6b;margin:0 0 12px;">You've been invited 🎉</p>
+            <p style="font-size:15px;line-height:1.6;margin:0 0 10px;">
+              You've been added to <strong>Purple Cow's planning app</strong> — where we track our priorities, metrics, and meetings on the march to 100,000 herd members.
+            </p>
+            <p style="font-size:15px;line-height:1.6;margin:0 0 26px;">
+              Click the button below to set your password and jump in. Let's go! 🚀
+            </p>
+
+            <!-- Button -->
+            <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 26px;">
+              <tr>
+                <td align="center" style="border-radius:10px;background:linear-gradient(135deg,#6a2c8f,#4e1f6b);">
+                  <a href="{{ .ConfirmationURL }}" target="_blank"
+                     style="display:inline-block;padding:14px 34px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">
+                    Set my password →
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <p style="font-size:13px;line-height:1.6;color:#6b5e78;margin:0 0 6px;">
+              If the button doesn't work, copy and paste this link into your browser:
+            </p>
+            <p style="font-size:12px;line-height:1.5;color:#6a2c8f;word-break:break-all;margin:0 0 6px;">
+              {{ .ConfirmationURL }}
+            </p>
+            <p style="font-size:12px;color:#9b8fae;margin:0 0 8px;">This link is valid for 24 hours. If it expires, just ask for a new invite.</p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="padding:22px 36px 30px;border-top:1px solid #e3d6ef;text-align:center;">
+            <div style="font-size:15px;font-weight:800;color:#4e1f6b;">Herd Life 💜</div>
+            <div style="font-size:12px;color:#9b8fae;margin-top:6px;">Purple Cow Internet · Making the home radically more affordable.</div>
+            <div style="font-size:11px;color:#c4b8d4;margin-top:8px;">If you weren't expecting this invite, you can safely ignore this email.</div>
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>

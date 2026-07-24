@@ -22,6 +22,8 @@
   .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,var(--purple),var(--purple-dark));}
   .login-card{background:#fff;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.3);padding:34px 30px;width:100%;max-width:400px;text-align:center;}
   .login-title{font-size:26px;font-weight:800;color:var(--purple-dark);margin:16px 0 4px;}
+  .linklike{background:none;border:none;color:var(--purple);font-size:14px;font-weight:600;cursor:pointer;padding:0;text-decoration:underline;}
+  .linklike:hover{color:var(--purple-dark);}
   .login-sub{font-size:14px;color:var(--muted);margin:0 0 20px;}
   .login-card input{width:100%;text-align:center;font-size:15px;padding:11px;margin-bottom:4px;}
   .login-divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px;margin:18px 0;}
@@ -202,6 +204,23 @@
   .mx-src.sf{background:#e0edff;color:#1a63c4;}
   .mx-src.connect{background:#ffe9d6;color:#b8641a;}
   .mx-empty{max-width:560px;margin:50px auto;text-align:center;color:var(--muted);}
+  /* scorecard cards (this-week focused) */
+  .sc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:6px 0;}
+  .sc-card{background:#fff;border:1px solid var(--line);border-left:5px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);transition:.12s;}
+  .sc-card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(80,30,110,.13);}
+  .sc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
+  .sc-name{font-weight:800;color:var(--purple-dark);font-size:1rem;}
+  .sc-top img,.sc-top .tm-initials{width:30px;height:30px;border-radius:50%;}
+  .sc-num-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .sc-big-wrap{display:flex;align-items:baseline;gap:6px;min-width:0;}
+  .sc-big{font-size:2rem;font-weight:800;color:var(--ink);border:none;width:100px;max-width:120px;padding:0;background:none;font-family:inherit;}
+  input.sc-big{border-bottom:2px dashed var(--line);}
+  input.sc-big:focus{outline:none;border-bottom-color:var(--purple-light);}
+  .sc-goalunit{font-size:.95rem;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .sc-tier{color:#fff;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .sc-meta{display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--muted);margin-top:12px;}
+  .sc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.78rem;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+  .sc-open{color:var(--purple);font-weight:600;white-space:nowrap;}
   /* ---- meetings ---- */
   .mtg-wrap{padding:22px 34px 70px;max-width:1000px;}
   .mtg-card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);}
@@ -637,6 +656,7 @@
       <input type="password" id="loginPw" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitMgr()" />
       <div class="lock-err" id="loginErr"></div>
       <button class="btn" style="width:100%;font-size:16px;padding:12px;" onclick="submitMgr()">Log in</button>
+      <button type="button" class="linklike" onclick="forgotPassword()" style="display:block;margin:12px auto 0;">Forgot password?</button>
       <div class="login-divider"><span>or</span></div>
       <button class="btn ghost" style="width:100%;" onclick="gotoForm()">📝 I'm here to fill out the intake form →</button>
     </div>
@@ -1107,15 +1127,12 @@
   <button id="exitPresentBtn" class="btn" onclick="togglePresent()">✕ Exit presentation</button>
   <div class="dash-top">
     <div class="hero-inner">
-      <h1>📊 Backend dashboard — <span id="dashQuarter">Quarter</span></h1>
+      <h1>🎯 Priorities — <span id="dashQuarter">Quarter</span></h1>
       <div class="dash-acts no-print">
         <button class="btn" onclick="refreshData()" title="Reload the latest shared data">↻ Refresh</button>
         <button class="btn" onclick="gotoForm()">📝 View intake form</button>
         <button class="btn" onclick="togglePresent()" id="presentBtn">▶ Presentation mode</button>
-        <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
-        <button class="btn manage-only" onclick="openTeamsModal()">⚙ Team</button>
-        <span id="roleLabel" class="role-pill"></span>
-        <button class="btn" onclick="logout()">Log out</button>
+        <span id="roleLabel" class="role-pill" style="display:none;"></span>
       </div>
       <p class="sub"><span id="dashTheme"></span> · <span id="dashGoal"></span></p>
     </div>
@@ -1126,11 +1143,9 @@
       <div class="mgroup">
         <span class="lbl">📅 Quarter</span>
         <select id="meetingSel" onchange="switchMeeting(this.value)"></select>
-        <button class="btn sm admin-only" onclick="openMeetingModal('new')">+ New</button>
         <button class="btn ghost sm admin-only" onclick="openMeetingModal('edit')">Edit theme &amp; goal</button>
         <button class="btn sm admin-only" onclick="copyFormLink()">🔗 Copy form link</button>
         <button class="btn ghost sm admin-only" onclick="openCarryModal()">↪ Carry over</button>
-        <button class="btn danger sm admin-only" onclick="deleteMeeting()">Delete</button>
       </div>
       <div class="mgroup admin-only" style="margin-left:auto;">
         <button class="btn sm" onclick="openNewPrioModal()">➕ New priority</button>
@@ -1196,9 +1211,7 @@
     <div class="hero-inner">
       <h1>⭐ Priority detail</h1>
       <div class="dash-acts no-print">
-        <button class="btn" onclick="gotoDash()">← Back to dashboard</button>
-        <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
-        <button class="btn" onclick="logout()">Log out</button>
+        <button class="btn" onclick="gotoDash()">← Back to priorities</button>
       </div>
       <p class="sub"><span id="prioCrumb"></span></p>
     </div>
@@ -1234,7 +1247,7 @@
   <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
   <div class="mx-toolbar">
     <button class="btn sm admin-only" onclick="openMetricModal()">➕ New metric</button>
-    <p class="mx-hint">Click a metric name to edit it. Type straight into a week to record the number.</p>
+    <p class="mx-hint">Type this week's number on each card. Click a card to see the full history and trend graph.</p>
     <span class="mx-wkbar">Week starts
       <select id="mx-weekstart" onchange="setWeekStart(this.value)">
         <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
@@ -1768,13 +1781,38 @@
       + row(TIER_COLORS.warn,  low?'≤':'≥', b.warn,  'Just off')
       + '<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-op">'+(low?'>':'<')+'</span><span class="lg-num">'+fmtVal(m,b.warn)+'</span><span class="lg-lab">Missed</span></div>';
   }
+  const TIER_LABEL={great:'Smashed it',good:'On target',warn:'Just off',bad:'Missed'};
+  function goalLabelShort(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return 'No goal set'; const wk=effectiveGoal(m,new Date()); return (m.direction==='lower'?'≤ ':'≥ ')+fmtTgt(m,wk)+' / week'; }
+  function colFor(w){ return {key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)}; }
   function renderMetrics(){
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
     const list=metricsStore.filter(metricVisible);
     if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
     list.forEach(normalizeMetric);
-    const cols=markCols(periodCols('weekly', PERIOD_COUNTS.weekly), 'weekly');
-    wrap.innerHTML=buildScorecard(list,cols);
+    const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
+    const cards=list.map(m=>{
+      const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
+      const gT=effectiveGoal(m,thisW);
+      const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
+      const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
+      const color=TIER_COLORS[tier]||'#c9bcd9';
+      const editable=canEditMetric(m);
+      let trend='<span style="color:var(--muted)">No prior week</span>';
+      if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
+        else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
+      const big = editable
+        ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
+        : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
+      const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+      return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
+        +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(m.owner)+'</span></div>'
+        +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
+        +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+        +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
+        +'<div class="sc-foot">'+trend+'<span class="sc-open">History &amp; graph →</span></div>'
+        +'</div>';
+    }).join('');
+    wrap.innerHTML='<div class="sc-cards">'+cards+'</div>';
   }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
@@ -1955,12 +1993,27 @@
          + '</span><span class="ch-key">Shaded area = beating the goal</span></div>'
          + svg + summary + tbl;
   }
+  let curChartMetricId=null;
   function openMetricChart(id){
-    const m=metricsStore.find(x=>x.id===id); if(!m) return;
+    const m=metricsStore.find(x=>x.id===id); if(!m) return; curChartMetricId=id;
     document.getElementById('chTitle').textContent='📈 '+m.name;
     document.getElementById('chSub').textContent=(m.direction==='lower'?'Lower is better':'Higher is better')+' · owner '+(pmName(m.owner)||'—');
-    document.getElementById('chBody').innerHTML=renderMetricChart(m);
+    const tools = canEditMetric(m) ? '<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn ghost sm" onclick="openMetricModal(\''+id+'\')">✎ Edit metric &amp; targets</button></div>' : '';
+    document.getElementById('chBody').innerHTML=tools+renderMetricChart(m)
+      + '<h4 style="margin:20px 0 8px;color:var(--purple-dark);">Weekly history <span style="font-weight:400;color:var(--muted);font-size:.85rem;">— type to add or correct past weeks</span></h4>'
+      + editableHistoryTable(m);
     document.getElementById('chartModal').classList.add('show');
+  }
+  function editableHistoryTable(m){
+    const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canEditMetric(m);
+    const rows=weeks.map(w=>{ const cv=cellValue(m,colFor(w)); const g=effectiveGoal(m,w); const has=cv.eff!==null&&!isNaN(cv.eff);
+      const t=has?tierOfGoal(m,cv.eff,g):''; const now=(wkKey(w)===wkKey(weekStarts(1,weekStartDay)[0]));
+      const inp = editable ? '<input class="mx-val" value="'+esc(cv.direct)+'" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(w)+'\',this.value)">' : (has?esc(fmtVal(m,cv.eff)):'—');
+      return '<tr><td class="lft">'+w.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(now?' <b style="color:var(--purple)">· now</b>':'')+'</td>'
+        +'<td class="'+(t?'mx-cell '+t:'')+'" style="text-align:center;">'+inp+'</td>'
+        +'<td style="text-align:center;color:var(--muted);">'+(g===''||g==null?'—':esc(fmtTgt(m,g)))+'</td></tr>';
+    }).join('');
+    return '<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Value</th><th>Weekly goal</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function closeChartModal(){ document.getElementById('chartModal').classList.remove('show'); }
   function openMetricModal(id){
@@ -2083,6 +2136,7 @@
     const v=String(val).trim();
     if(v===''){ delete m.values[key]; } else { const n=Number(v); m.values[key]= isNaN(n)?v:n; }
     persistMetric(m); renderMetrics();
+    if(curChartMetricId===id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(id);
   }
 
   /* ================= CORE VALUES / VISION ================= */
@@ -2654,6 +2708,18 @@ Herd Life`;
   /* ---------- access / screens ---------- */
   function fabClick(){ if(!reviewUnlocked){ openMgr(); return; } if(screen==='dash'){ gotoForm(); } else { gotoDash(); } }
   function openMgr(){ showScreen('login'); const p=document.getElementById('loginPw'); if(p){ p.value=''; setTimeout(()=>p.focus(),60); } const er=document.getElementById('loginErr'); if(er) er.textContent=''; window.scrollTo({top:0}); }
+  async function forgotPassword(){
+    const err=document.getElementById('loginErr');
+    if(!USE_DB){ err.textContent='Password reset needs the database connection.'; return; }
+    const email=(document.getElementById('loginEmail').value||'').trim();
+    if(!email){ err.style.color=''; err.textContent='Enter your email above first, then tap “Forgot password?”'; document.getElementById('loginEmail').focus(); return; }
+    err.style.color='var(--muted)'; err.textContent='Sending reset link…';
+    try{
+      const {error}=await sb.auth.resetPasswordForEmail(email,{ redirectTo: location.origin+location.pathname });
+      if(error) throw error;
+      err.style.color='var(--green)'; err.textContent='✅ If an account exists for '+email+', a reset link is on its way. Click it to set a new password.';
+    }catch(e){ err.style.color=''; err.textContent=e.message||'Could not send the reset link.'; }
+  }
   async function submitMgr(){
     const err=document.getElementById('loginErr');
     if(USE_DB){
@@ -3132,7 +3198,7 @@ Herd Life`;
     const e=cur().entries.find(x=>x.id===prioOpenId);
     const body=document.getElementById('prio-body');
     document.getElementById('prioCrumb').textContent = cur().name+' · '+(cur().theme||'');
-    if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to dashboard</button></div>'; return; }
+    if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to priorities</button></div>'; return; }
     syncPlan(e);
     const deptOpts=['',...DEPARTMENTS].map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
@@ -3200,7 +3266,7 @@ Herd Life`;
         ${ganttHTML(e)}
         <p class="sched-summary">As things slip, change the dates above — the timeline updates automatically.</p>
         <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn ghost" onclick="gotoDash()">← Back to dashboard</button>
+          <button class="btn ghost" onclick="gotoDash()">← Back to priorities</button>
           <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">Remove priority</button>
         </div>
       </div>
