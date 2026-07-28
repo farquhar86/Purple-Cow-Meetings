@@ -259,6 +259,7 @@
   .mtg-bubble{background:#eef0f2;border-radius:14px;padding:9px 14px;font-size:.92rem;position:relative;flex:1;}
   .mtg-bubble .who{font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px;}
   .mtg-bubble{white-space:pre-wrap;}
+  .mtg-noteimg{max-width:100%;max-height:280px;border-radius:10px;margin-top:8px;cursor:zoom-in;display:block;}
   .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
@@ -333,7 +334,16 @@
   .rte-toolbar{display:flex;flex-wrap:wrap;gap:3px;border:1px solid var(--line);border-bottom:none;border-radius:8px 8px 0 0;padding:5px;background:var(--lilac);}
   .rte-toolbar button{border:none;background:#fff;border-radius:5px;padding:4px 9px;font-size:.82rem;cursor:pointer;color:var(--ink);min-width:30px;}
   .rte-toolbar button:hover{background:var(--lilac-2);}
-  .rte{border:1px solid var(--line);border-radius:0 0 8px 8px;min-height:180px;max-height:340px;overflow-y:auto;padding:12px 14px;font-size:.92rem;line-height:1.6;}
+  .rte{border:1px solid var(--line);border-radius:0 0 8px 8px;min-height:200px;height:340px;max-height:75vh;overflow-y:auto;padding:12px 14px;font-size:.92rem;line-height:1.6;resize:vertical;}
+  .ctx-menu{position:absolute;z-index:600;display:none;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 30px rgba(40,15,60,.22);padding:6px;min-width:230px;max-width:300px;}
+  .ctx-menu.show{display:block;}
+  .ctx-hd{font-size:.72rem;font-weight:800;color:var(--purple-dark);padding:6px 8px 3px;text-transform:uppercase;letter-spacing:.03em;}
+  .ctx-sel{font-size:.78rem;color:var(--muted);padding:0 8px 7px;border-bottom:1px solid var(--line);margin-bottom:4px;font-style:italic;}
+  .ctx-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:7px;cursor:pointer;font-size:.9rem;color:var(--ink);}
+  .ctx-item:hover{background:var(--lilac);}
+  .ctx-item img,.ctx-item .tm-initials{width:22px;height:22px;border-radius:50%;flex:0 0 auto;}
+  .app-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--purple-dark);color:#fff;padding:11px 20px;border-radius:10px;font-size:.9rem;font-weight:600;box-shadow:var(--shadow);z-index:700;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;text-align:center;}
+  .app-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   .rte:focus{outline:none;box-shadow:inset 0 0 0 2px rgba(142,79,184,.18);}
   .rte:empty:before{content:attr(data-ph);color:var(--muted);}
   .rte h2{font-size:1.15rem;margin:.5em 0 .3em;color:var(--purple-dark);}
@@ -424,6 +434,11 @@
   .impact-opts label{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink);border:1px solid var(--line);padding:7px 12px;border-radius:8px;cursor:pointer;margin:0;}
   .impact-opts input{accent-color:var(--purple);}
   .prio-card{border-left:5px solid var(--purple);}
+  .prio-card.offtrack-risk{border-left-color:var(--red);background:linear-gradient(90deg,rgba(216,83,59,.06),transparent 60%);}
+  .prio-card.offtrack-behind{border-left-color:var(--amber);background:linear-gradient(90deg,rgba(224,163,46,.07),transparent 60%);}
+  .offtrack-chip{font-size:10px;font-weight:800;letter-spacing:.03em;padding:2px 8px;border-radius:999px;white-space:nowrap;}
+  .offtrack-chip.risk{background:#fbe4de;color:#b23823;}
+  .offtrack-chip.behind{background:#fdeede;color:#b9701a;}
   .prio-card h4{margin:0 0 4px;font-size:17px;color:var(--purple-dark);}
   .prio-card .why{font-size:13.5px;color:var(--muted);margin:0 0 10px;}
   .done-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin:0 0 4px;}
@@ -772,9 +787,12 @@
   </div>
 </div>
 
+<!-- right-click menu: turn selected note text into a to-do -->
+<div id="todoCtxMenu" class="ctx-menu no-print"></div>
+
 <!-- Issue detail modal (Notion-style card) -->
 <div class="modal-ov no-print" id="issueModal" onclick="if(event.target===this)closeIssue()">
-  <div class="modal modal-scroll" style="max-width:780px;text-align:left;">
+  <div class="modal modal-scroll" style="max-width:900px;width:94vw;text-align:left;">
     <input type="hidden" id="iss-id">
     <input type="text" id="iss-title" class="iss-title-input" placeholder="Issue title…" oninput="scheduleIssueSave()" onchange="saveIssueField()">
     <div class="iss-meta" id="iss-meta"></div>
@@ -791,6 +809,7 @@
       <button title="Insert table" onmousedown="event.preventDefault()" onclick="rteTable()">▦</button>
       <button title="Add row to table" onmousedown="event.preventDefault()" onclick="rteTableRow()">+ row</button>
       <button title="Clear formatting" onmousedown="event.preventDefault()" onclick="rte('removeFormat')">✕</button>
+      <button title="Turn the highlighted text into a To-Do" onmousedown="event.preventDefault()" onclick="todoFromToolbar(event)" style="margin-left:auto;color:var(--purple-dark);font-weight:700;">✅ To-Do</button>
     </div>
     <div id="iss-notes" class="rte" contenteditable="true" oninput="scheduleIssueSave()" onblur="saveIssueField()" data-ph="Write notes… paste tables from Notion or Excel, format text with the toolbar."></div>
     <h4 style="margin:18px 0 8px;color:var(--purple-dark);">Comments</h4>
@@ -1659,14 +1678,24 @@
   function saveMetricsLocal(){ try{ localStorage.setItem(KEY+'_metrics', JSON.stringify(metricsStore)); }catch(e){} }
   function persistMetric(m){ saveMetricsLocal(); dbUpsertMetric(m); }
   function dbUpsertMetric(m){ if(!USE_DB) return; sb.from('metrics').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('metric save failed', r.error); }); }
-  function dbDeleteMetric(id){ if(!USE_DB) return; sb.from('metrics').delete().eq('id',id).then(r=>{ if(r.error) console.warn('metric delete failed', r.error); }); }
+  function dbDeleteMetric(id){ if(!USE_DB) return; sb.from('metrics').delete().eq('id',id).then(r=>{ if(r.error) console.warn('metric delete failed', r.error); }); sb.from('metric_values').delete().eq('metric_id',id).then(()=>{}); }
+  /* each weekly number is its own row so two people never overwrite each other */
+  function dbUpsertMetricValue(mid,wk,value){ if(!USE_DB) return; sb.from('metric_values').upsert({id:mid+'|'+wk, metric_id:mid, wk:wk, value:value}).then(r=>{ if(r.error) console.warn('metric value save failed', r.error); }); }
+  function dbDeleteMetricValue(mid,wk){ if(!USE_DB) return; sb.from('metric_values').delete().eq('id',mid+'|'+wk).then(()=>{}); }
   async function dbLoadMetrics(){
     if(!USE_DB){ metricsLoaded=true; return; }
     try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error;
       const remote=(r.data||[]).map(x=>x.data).filter(Boolean);
       const byId={}; remote.forEach(m=>{ if(m&&m.id) byId[m.id]=m; });
-      // push up any metrics that only exist in this browser (e.g. created before the table existed)
-      (metricsStore||[]).forEach(m=>{ if(m&&m.id&&!byId[m.id]){ byId[m.id]=m; dbUpsertMetric(m); } });
+      // weekly numbers come from their own table
+      const vals={}; try{ const rv=await sb.from('metric_values').select('metric_id,wk,value'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
+      // recover any browser-only metrics or values (e.g. entered before the tables existed) — never overwrite what's already shared
+      (metricsStore||[]).forEach(lm=>{ if(!lm||!lm.id) return;
+        if(!byId[lm.id]){ byId[lm.id]=lm; dbUpsertMetric(lm); }
+        const rvals=vals[lm.id]=vals[lm.id]||{};
+        Object.keys(lm.values||{}).forEach(wk=>{ if(rvals[wk]===undefined && lm.values[wk]!=='' && lm.values[wk]!=null){ rvals[wk]=lm.values[wk]; dbUpsertMetricValue(lm.id,wk,lm.values[wk]); } });
+      });
+      Object.keys(byId).forEach(id=>{ byId[id].values = vals[id] || {}; });
       metricsStore=Object.values(byId); saveMetricsLocal();
     }
     catch(e){ console.warn('metrics load failed — using local cache', e); }
@@ -2141,7 +2170,7 @@
     let m;
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
-    if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); mxPendingBackfill=null; }
+    if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); Object.keys(mxPendingBackfill).forEach(wk=>dbUpsertMetricValue(m.id,wk,mxPendingBackfill[wk])); mxPendingBackfill=null; }
     persistMetric(m); closeMetricModal(); renderMetrics();
   }
   function deleteMetric(){
@@ -2154,8 +2183,9 @@
     const m=metricsStore.find(x=>x.id===id); if(!m||!canEditMetric(m)) return;
     if(!m.values) m.values={};
     const v=String(val).trim();
-    if(v===''){ delete m.values[key]; } else { const n=Number(v); m.values[key]= isNaN(n)?v:n; }
-    persistMetric(m); renderMetrics();
+    if(v===''){ delete m.values[key]; dbDeleteMetricValue(id,key); }
+    else { const n=Number(v); const stored=isNaN(n)?v:n; m.values[key]=stored; dbUpsertMetricValue(id,key,stored); }
+    saveMetricsLocal(); renderMetrics();
     if(curChartMetricId===id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(id);
   }
 
@@ -2355,6 +2385,21 @@ Herd Life`;
     enableIssueDrag();
   }
   async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
+  /* pull the latest for ONE section without disturbing the rest of the page */
+  async function refreshSection(secId){
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    const secEl=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
+    if(secEl) secEl.style.opacity='0.5';
+    if(USE_DB){ try{ const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(!b.error){
+      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); saveMtgLocal(); } }catch(_){} }
+    const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
+    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
+    const node=fresh.firstElementChild;
+    const cur=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
+    if(cur && node){ cur.replaceWith(node); if(canEdit) enableSectionDrag(); enableIssueDrag(); }
+    else renderMeetingView();
+  }
   /* live sync — quietly pull others' additions every few seconds while you're in a meeting */
   let mtgPollTimer=null;
   function startMtgPolling(){ if(mtgPollTimer||!USE_DB) return; mtgPollTimer=setInterval(mtgPoll, 10000); }
@@ -2395,7 +2440,10 @@ Herd Life`;
     } else if(sec.type==='notes'){
       const rows=itemsFor(sec.id,instKey()).slice().sort(byContributor);
       body = rows.length ? rows.map(it=>noteHtml(it,canEdit)).join('') : '<div class="mtg-empty">No notes yet — be the first to add one.</div>';
-      if(canEdit) body+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add your note…  (Enter to add · Shift+Enter for a new line)" onkeydown="mtgNoteKey(event,\''+sec.id+'\')"></textarea><button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
+      if(canEdit) body+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add your note…  (Enter to add · Shift+Enter for a new line · paste an image)" onkeydown="mtgNoteKey(event,\''+sec.id+'\')" onpaste="mtgNotePaste(event,\''+sec.id+'\')"></textarea>'
+        +'<input type="file" accept="image/*" id="imgin-'+sec.id+'" style="display:none" onchange="if(this.files[0])uploadNoteImage(\''+sec.id+'\',this.files[0]);this.value=\'\';">'
+        +'<button class="btn ghost sm" title="Attach an image" onclick="document.getElementById(\'imgin-'+sec.id+'\').click()">📎</button>'
+        +'<button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
       body = rows.length ? priGroupsHtml(rows,sec.id,canEdit,true) : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
@@ -2413,9 +2461,10 @@ Herd Life`;
     } else if(sec.type==='vision'){
       body = visionDisplayHtml();
     }
-    const tools = canEdit
+    const tools = '<button class="btn ghost sm" title="Refresh this section" onclick="event.stopPropagation();refreshSection(\''+sec.id+'\')">↻</button>'
+      + (canEdit
       ? '<button class="btn ghost sm" title="Edit section" onclick="openEditSection(\''+sec.id+'\')">✎</button>'
-        + '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '';
+        + '<button class="btn ghost sm" title="Remove section" onclick="deleteSection(\''+sec.id+'\')">✕</button>' : '');
     const handle = canEdit ? '<span class="mtg-drag" title="Drag to reorder">⠿</span>' : '';
     return '<div class="mtg-sec" data-sid="'+esc(sec.id)+'"><div class="mtg-sec-hd">'+handle+'<h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
   }
@@ -2432,8 +2481,9 @@ Herd Life`;
       return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
         +'<textarea id="edit-'+it.id+'" class="mtg-editta" onkeydown="mtgEditKey(event,\''+it.id+'\')">'+esc(it.data.text||'')+'</textarea>'
         +'<div class="mtg-editbtns"><button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div></div></div>'; }
+    const imgHtml = it.data.img ? '<div><img class="mtg-noteimg" src="'+esc(it.data.img)+'" alt="" onclick="window.open(this.src,\'_blank\')"></div>' : '';
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
-      +esc(it.data.text||'')
+      +esc(it.data.text||'')+imgHtml
       +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
   function priHtml(it,section,canEdit,editable,hideWho){ const done=!!it.data.done; const canE=canEditItem(it);
     if(editable && it.id===mtgEditItemId){
@@ -2476,10 +2526,12 @@ Herd Life`;
       const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
       const dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
       const cid='mxsnap-'+m.id;
+      const av=m.owner?('<span class="rk-av" title="'+esc(pmName(m.owner))+'">'+avatarHtml(m.owner)+'</span>'):'';
       return '<div class="rock-row">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
         +'<span class="caret">▶</span>'
         +'<span class="rk-title">'+dot+esc(m.name)+'</span>'
+        +av
         +'<span class="v" style="font-weight:700;">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span>'
         +'</div><div class="rock-gantt">'+renderMetricChart(m)+'</div></div>';
     }).join(''); }
@@ -2546,10 +2598,12 @@ Herd Life`;
   let issDragId=null;
   function enableIssueDrag(){
     document.querySelectorAll('#mtgSections .kb-card[draggable=true]').forEach(c=>{
+      if(c.dataset.dnd) return; c.dataset.dnd='1';
       c.addEventListener('dragstart',e=>{ issDragId=c.getAttribute('data-id'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',issDragId);}catch(_){}; setTimeout(()=>c.classList.add('dragging'),0); e.stopPropagation(); });
       c.addEventListener('dragend',()=>{ issDragId=null; document.querySelectorAll('.kb-card').forEach(x=>x.classList.remove('dragging')); document.querySelectorAll('.kb-col').forEach(x=>x.classList.remove('drop')); });
     });
     document.querySelectorAll('#mtgSections .kb-col').forEach(col=>{
+      if(col.dataset.dnd) return; col.dataset.dnd='1';
       col.addEventListener('dragover',e=>{ if(!issDragId) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('drop'); });
       col.addEventListener('dragleave',()=>col.classList.remove('drop'));
       col.addEventListener('drop',e=>{ if(!issDragId) return; e.preventDefault(); e.stopPropagation(); const it=mtgItems.find(x=>x.id===issDragId);
@@ -2603,6 +2657,51 @@ Herd Life`;
   function renderIssueComments(id){ const box=document.getElementById('iss-comments');
     const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
     box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
+  /* highlight text in an issue's notes → right-click → make it a to-do for someone this week */
+  let todoPendingText='';
+  function showTodoMenu(x,y,text){
+    todoPendingText=text;
+    const menu=document.getElementById('todoCtxMenu'); if(!menu) return;
+    const m=mtgsStore.find(mm=>mm.id===curMtgId);
+    let people=(m&&m.attendees&&m.attendees.length)?m.attendees.slice():((teamUsers||[]).map(u=>u.email));
+    people=people.slice().sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
+    const short=text.length>70?text.slice(0,70)+'…':text;
+    let html='<div class="ctx-hd">➕ Make a To-Do for this week</div><div class="ctx-sel">"'+esc(short)+'"</div>';
+    html+=people.map(em=>'<button class="ctx-item" onclick="makeTodoFromText(\''+esc(em)+'\')">'+avatarHtml(em)+'<span>'+esc(pmName(em))+'</span></button>').join('');
+    menu.innerHTML=html;
+    menu.style.display='block';
+    const mw=menu.offsetWidth||240, mh=menu.offsetHeight||260;
+    menu.style.left=Math.min(x, window.scrollX+document.documentElement.clientWidth-mw-8)+'px';
+    menu.style.top=Math.min(y, window.scrollY+document.documentElement.clientHeight-mh-8)+'px';
+    menu.classList.add('show');
+  }
+  function hideTodoMenu(){ const menu=document.getElementById('todoCtxMenu'); if(menu){ menu.classList.remove('show'); menu.style.display='none'; } }
+  function todoFromToolbar(ev){
+    if(ev){ ev.stopPropagation(); }
+    const sel=((window.getSelection&&window.getSelection().toString())||'').trim();
+    if(!sel){ showToast('Highlight some text in the notes first, then press ✅ To-Do'); return; }
+    let x=window.scrollX+120, y=window.scrollY+220;
+    if(ev&&ev.currentTarget&&ev.currentTarget.getBoundingClientRect){ const r=ev.currentTarget.getBoundingClientRect(); x=window.scrollX+r.left; y=window.scrollY+r.bottom+6; }
+    showTodoMenu(x,y,sel);
+  }
+  function makeTodoFromText(email){
+    const text=(todoPendingText||'').trim(); hideTodoMenu(); if(!text) return;
+    const m=mtgsStore.find(mm=>mm.id===curMtgId); if(!m){ return; }
+    const sec=(m.sections||[]).find(s=>s.type==='priorities');
+    if(!sec){ infoModal('This meeting has no To-Dos section to add to. Add one first (➕ Add section → Priorities).'); return; }
+    addItem(sec.id, instKey(), {type:'pri', text:text, done:false, author:email, assignedBy:myEmail, fromIssue:curIssueId});
+    showToast('✅ To-Do added for '+pmName(email)+' this week');
+  }
+  document.addEventListener('contextmenu', function(ev){
+    const notes=document.getElementById('iss-notes');
+    if(!notes || !notes.contains(ev.target)) return;
+    const sel=((window.getSelection&&window.getSelection().toString())||'').trim();
+    if(!sel) return;
+    ev.preventDefault(); showTodoMenu(ev.pageX, ev.pageY, sel);
+  });
+  document.addEventListener('click', function(ev){ const menu=document.getElementById('todoCtxMenu'); if(menu&&menu.classList.contains('show')&&!menu.contains(ev.target)) hideTodoMenu(); });
+  document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') hideTodoMenu(); });
+  function showToast(msg){ let t=document.getElementById('appToast'); if(!t){ t=document.createElement('div'); t.id='appToast'; t.className='app-toast'; document.body.appendChild(t); } t.textContent=msg; t.classList.add('show'); clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2600); }
   function addIssueComment(){ const el=document.getElementById('iss-comment-in'); const v=(el.value||'').trim(); if(!v||!curIssueId) return; el.value='';
     const it={id:uid(),meeting_id:curMtgId,section:'cmt:'+curIssueId,inst:'static',data:{type:'comment',text:v,author:myEmail,t:Date.now()}}; mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it);
     const iss=mtgItems.find(x=>x.id===curIssueId); if(iss && (iss.data.status==='inprogress')){ iss.data.status='hasupdate'; saveItem(iss); }
@@ -2611,11 +2710,12 @@ Herd Life`;
   let dragSid=null;
   function enableSectionDrag(){
     const cont=document.getElementById('mtgSections'); if(!cont) return;
-    cont.querySelectorAll('.mtg-drag').forEach(h=>{ h.setAttribute('draggable','true');
+    cont.querySelectorAll('.mtg-drag').forEach(h=>{ if(h.dataset.dnd) return; h.dataset.dnd='1'; h.setAttribute('draggable','true');
       h.addEventListener('dragstart', e=>{ const s=h.closest('.mtg-sec'); dragSid=s.getAttribute('data-sid'); e.dataTransfer.effectAllowed='move'; try{ e.dataTransfer.setData('text/plain',dragSid); }catch(_){} setTimeout(()=>s.classList.add('dragging'),0); });
       h.addEventListener('dragend', ()=>{ dragSid=null; cont.querySelectorAll('.mtg-sec').forEach(s=>s.classList.remove('dragging','drop-above','drop-below')); });
     });
     cont.querySelectorAll('.mtg-sec').forEach(sec=>{
+      if(sec.dataset.dropz) return; sec.dataset.dropz='1';
       sec.addEventListener('dragover', e=>{ if(!dragSid) return; e.preventDefault(); e.dataTransfer.dropEffect='move';
         const r=sec.getBoundingClientRect(); const below=(e.clientY-r.top)>r.height/2;
         sec.classList.toggle('drop-below',below); sec.classList.toggle('drop-above',!below); });
@@ -2636,6 +2736,24 @@ Herd Life`;
     if(!it){ it={id:uid(),meeting_id:curMtgId,section,inst:'static',data:{type:'text',author:myEmail,t:Date.now()}}; mtgItems.push(it); }
     it.data.text=val; it.data.editedBy=myEmail; it.data.editedAt=Date.now(); saveItem(it); }
   function focusAdd(section){ const el=document.getElementById('in-'+section); if(el){ el.focus(); } }
+  const MTG_BUCKET='meeting-uploads';
+  async function uploadNoteImage(section,file){
+    if(!file) return;
+    if(!USE_DB){ infoModal('Images need the database connection.'); return; }
+    if(!/^image\//.test(file.type||'')){ infoModal('Please choose an image file.'); return; }
+    if(file.size>6*1024*1024){ infoModal('That image is over 6MB — please use a smaller one.'); return; }
+    const ext=((file.name||'img').split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
+    const path=curMtgId+'/'+uid()+'.'+ext;
+    const btn=document.querySelector('#imgin-'+section); // just for reference
+    try{
+      const up=await sb.storage.from(MTG_BUCKET).upload(path,file,{upsert:false,contentType:file.type});
+      if(up.error) throw up.error;
+      const url=sb.storage.from(MTG_BUCKET).getPublicUrl(path).data.publicUrl;
+      const el=document.getElementById('in-'+section); const text=el?(el.value||'').trim():''; if(el) el.value='';
+      addItem(section,instKey(),{type:'note',text:text,img:url}); renderMeetingView(); focusAdd(section);
+    }catch(e){ infoModal('Image upload failed: '+(e.message||e)+'.\n\nMake sure the “meeting-uploads” storage bucket exists and is public (see supabase-storage.sql).'); }
+  }
+  function mtgNotePaste(ev,section){ const items=(ev.clipboardData&&ev.clipboardData.items)||[]; for(let i=0;i<items.length;i++){ const it=items[i]; if(it.type&&it.type.indexOf('image')===0){ const f=it.getAsFile(); if(f){ ev.preventDefault(); uploadNoteImage(section,f); return; } } } }
   function mtgNoteKey(ev,section){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addNote(section); } }
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
   function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); focusAdd(section); }
@@ -2956,11 +3074,15 @@ Herd Life`;
       <div class="commit-row">
         <button class="btn sm" onclick="openPrio('${e.id}')">Open priority · commit, size, schedule &amp; edit →</button>
       </div>` : '';
-    return `<div class="card prio-card rev-card ${e.committed?'committed-card':''}" style="${exp?'':'padding:14px 18px;'}">
+    const offClass = isAtRisk(e) ? ' offtrack-risk' : (isPrioBehind(e) ? ' offtrack-behind' : '');
+    const offChip = isAtRisk(e) ? '<span class="offtrack-chip risk" title="Off track — has an overdue task">⚠ OFF TRACK</span>'
+                  : (isPrioBehind(e) ? '<span class="offtrack-chip behind" title="Behind — progress hasn\'t kept up with the timeline">⏰ BEHIND</span>' : '');
+    return `<div class="card prio-card rev-card ${e.committed?'committed-card':''}${offClass}" style="${exp?'':'padding:14px 18px;'}">
       <div class="prio-meta">
         <span style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
           <button class="rm-toggle" onclick="toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button>
           <h4 class="prio-link" onclick="openPrio('${e.id}')" title="Open this priority's page" style="margin:0;">${esc(e.title)} <span style="font-size:13px;">↗</span></h4>
+          ${offChip}
         </span>
         <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${badges}</span>
       </div>
