@@ -344,6 +344,13 @@
   .ctx-item img,.ctx-item .tm-initials{width:22px;height:22px;border-radius:50%;flex:0 0 auto;}
   .app-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--purple-dark);color:#fff;padding:11px 20px;border-radius:10px;font-size:.9rem;font-weight:600;box-shadow:var(--shadow);z-index:700;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;text-align:center;}
   .app-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .iss-td{display:flex;align-items:center;gap:9px;padding:8px 4px;border-bottom:1px solid var(--line);font-size:.9rem;}
+  .iss-td:last-child{border-bottom:none;}
+  .iss-td input[type=checkbox]{width:17px;height:17px;flex:0 0 auto;cursor:pointer;}
+  .iss-td .td-text{flex:1;min-width:0;}
+  .iss-td.done .td-text{text-decoration:line-through;color:var(--muted);}
+  .iss-td .td-who{display:flex;align-items:center;gap:6px;font-size:.78rem;color:var(--muted);white-space:nowrap;}
+  .iss-td .td-who img,.iss-td .td-who .tm-initials{width:20px;height:20px;border-radius:50%;}
   .rte:focus{outline:none;box-shadow:inset 0 0 0 2px rgba(142,79,184,.18);}
   .rte:empty:before{content:attr(data-ph);color:var(--muted);}
   .rte h2{font-size:1.15rem;margin:.5em 0 .3em;color:var(--purple-dark);}
@@ -811,7 +818,8 @@
       <button title="Clear formatting" onmousedown="event.preventDefault()" onclick="rte('removeFormat')">✕</button>
       <button title="Turn the highlighted text into a To-Do" onmousedown="event.preventDefault()" onclick="todoFromToolbar(event)" style="margin-left:auto;color:var(--purple-dark);font-weight:700;">✅ To-Do</button>
     </div>
-    <div id="iss-notes" class="rte" contenteditable="true" oninput="scheduleIssueSave()" onblur="saveIssueField()" data-ph="Write notes… paste tables from Notion or Excel, format text with the toolbar."></div>
+    <div id="iss-notes" class="rte" contenteditable="true" oninput="scheduleIssueSave()" onkeydown="rteKey(event)" onblur="saveIssueField()" data-ph="Write notes… paste tables from Notion or Excel, format text with the toolbar."></div>
+    <div id="iss-todos-wrap" style="margin-top:18px;display:none;"><h4 style="margin:0 0 8px;color:var(--purple-dark);">✅ To-Dos from this issue</h4><div id="iss-todos"></div></div>
     <h4 style="margin:18px 0 8px;color:var(--purple-dark);">Comments</h4>
     <div id="iss-comments"></div>
     <div class="mtg-addrow"><input id="iss-comment-in" placeholder="Add a comment…" onkeydown="if(event.key==='Enter')addIssueComment()"><button class="btn sm" onclick="addIssueComment()">Post</button></div>
@@ -2618,7 +2626,7 @@ Herd Life`;
     document.getElementById('iss-id').value=id;
     document.getElementById('iss-title').value=it.data.text||'';
     document.getElementById('iss-notes').innerHTML=it.data.notes||'';
-    renderIssueMeta(it); renderIssueStatusRow(it); renderIssueComments(id);
+    renderIssueMeta(it); renderIssueStatusRow(it); renderIssueTodos(id); renderIssueComments(id);
     document.getElementById('issueModal').classList.add('show');
     setTimeout(()=>{ if(!it.data.text||it.data.text==='New task'){ const t=document.getElementById('iss-title'); t.focus(); t.select(); } },60);
   }
@@ -2645,6 +2653,41 @@ Herd Life`;
   function deleteIssue(){ const id=curIssueId; if(!id) return;
     confirmModal('Delete this issue and its comments?', ()=>{ delItem(id); mtgItems.filter(x=>x.section==='cmt:'+id).forEach(x=>dbDeleteItem(x.id)); mtgItems=mtgItems.filter(x=>x.section!=='cmt:'+id); saveMtgLocal(); document.getElementById('issueModal').classList.remove('show'); curIssueId=null; renderMeetingView(); }, 'Delete issue'); }
   /* rich-text toolbar */
+  function rteKey(ev){
+    // "- " or "* " at the start of a line → bullet list (like Notion)
+    if(ev.key===' '){
+      const sel=window.getSelection(); if(sel && sel.rangeCount){
+        const node=sel.anchorNode;
+        if(node && node.nodeType===3){ const before=node.textContent.slice(0,sel.anchorOffset);
+          if(before==='-' || before==='*'){
+            ev.preventDefault();
+            node.textContent=node.textContent.slice(sel.anchorOffset);
+            try{ const r=document.createRange(); r.setStart(node,0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }catch(e){}
+            try{ document.execCommand('insertUnorderedList'); }catch(e){}
+            scheduleIssueSave(); return;
+          }
+          if(before==='1.'){
+            ev.preventDefault();
+            node.textContent=node.textContent.slice(sel.anchorOffset);
+            try{ const r=document.createRange(); r.setStart(node,0); r.collapse(true); sel.removeAllRanges(); sel.addRange(r); }catch(e){}
+            try{ document.execCommand('insertOrderedList'); }catch(e){}
+            scheduleIssueSave(); return;
+          }
+        }
+      }
+    }
+    if(ev.key==='Enter' && !ev.shiftKey){
+      const sel=window.getSelection(); if(!sel || !sel.rangeCount) return;
+      let li=sel.anchorNode; while(li && li.nodeName!=='LI' && li.nodeName!=='BODY') li=li.parentNode;
+      if(li && li.nodeName==='LI' && (li.textContent||'').trim()===''){
+        ev.preventDefault();
+        try{ document.execCommand('outdent'); }catch(e){}
+        // if it was a top-level bullet, make sure we land in a normal paragraph
+        try{ let n=window.getSelection().anchorNode; while(n && n.nodeName!=='LI' && n.nodeName!=='BODY') n=n.parentNode; if(!(n&&n.nodeName==='LI')) document.execCommand('formatBlock',false,'P'); }catch(e){}
+        scheduleIssueSave();
+      }
+    }
+  }
   function rte(cmd){ document.getElementById('iss-notes').focus(); try{ document.execCommand(cmd,false,null); }catch(e){} scheduleIssueSave(); }
   function rteBlock(tag){ document.getElementById('iss-notes').focus(); try{ document.execCommand('formatBlock',false,tag); }catch(e){} scheduleIssueSave(); }
   function rteTable(){ document.getElementById('iss-notes').focus();
@@ -2654,6 +2697,18 @@ Herd Life`;
     while(n && n.nodeName!=='TABLE'){ n=n.parentNode; } if(!n) return; const body=n.tBodies[0]||n; const cols=(n.rows[0]||{cells:[]}).cells.length||2;
     const tr=document.createElement('tr'); for(let i=0;i<cols;i++){ const td=document.createElement('td'); td.innerHTML='&nbsp;'; tr.appendChild(td); } body.appendChild(tr); scheduleIssueSave(); }
   /* comments (each is its own row — concurrency-safe) */
+  function renderIssueTodos(id){
+    const wrap=document.getElementById('iss-todos-wrap'), box=document.getElementById('iss-todos'); if(!box) return;
+    const rows=mtgItems.filter(it=>it.data && it.data.fromIssue===id).sort((a,b)=>String(pmName(a.data.author)).toLowerCase().localeCompare(String(pmName(b.data.author)).toLowerCase()));
+    if(!rows.length){ if(wrap) wrap.style.display='none'; box.innerHTML=''; return; }
+    if(wrap) wrap.style.display='block';
+    box.innerHTML=rows.map(it=>{ const done=!!it.data.done;
+      return '<div class="iss-td'+(done?' done':'')+'">'
+        +'<input type="checkbox" '+(done?'checked':'')+' onchange="toggleIssueTodo(\''+it.id+'\',this.checked)">'
+        +'<span class="td-text">'+esc(it.data.text||'')+'</span>'
+        +'<span class="td-who">'+avatarHtml(it.data.author)+esc(pmName(it.data.author))+'</span></div>';
+    }).join(''); }
+  function toggleIssueTodo(itemId,checked){ const it=mtgItems.find(x=>x.id===itemId); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); renderIssueTodos(curIssueId); }
   function renderIssueComments(id){ const box=document.getElementById('iss-comments');
     const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
     box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
@@ -2691,6 +2746,7 @@ Herd Life`;
     if(!sec){ infoModal('This meeting has no To-Dos section to add to. Add one first (➕ Add section → Priorities).'); return; }
     addItem(sec.id, instKey(), {type:'pri', text:text, done:false, author:email, assignedBy:myEmail, fromIssue:curIssueId});
     showToast('✅ To-Do added for '+pmName(email)+' this week');
+    if(curIssueId && document.getElementById('issueModal').classList.contains('show')) renderIssueTodos(curIssueId);
   }
   document.addEventListener('contextmenu', function(ev){
     const notes=document.getElementById('iss-notes');
