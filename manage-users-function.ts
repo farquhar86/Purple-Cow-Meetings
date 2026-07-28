@@ -76,7 +76,10 @@ Deno.serve(async (req) => {
         body.email,
         body.redirectTo ? { redirectTo: body.redirectTo } : undefined,
       );
-      if (error) throw error;
+      if (error) {
+        const detail = (error as any)?.message || (error as any)?.name || (error as any)?.code || "unknown error";
+        return json({ error: "Invite failed — " + detail + ". This usually means the email couldn't be sent (check Custom SMTP / verified sender), or the person is already invited." }, 400);
+      }
       // Stamp the chosen role — and their Slack photo, if we can find one — onto the new account.
       const avatar = await slackAvatar(body.email);
       await admin.auth.admin.updateUserById(data.user.id, { app_metadata: { role, avatar } });

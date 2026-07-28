@@ -258,8 +258,14 @@
   .mtg-note img,.mtg-note .tm-initials{width:34px;height:34px;border-radius:50%;flex:0 0 auto;margin-top:2px;}
   .mtg-bubble{background:#eef0f2;border-radius:14px;padding:9px 14px;font-size:.92rem;position:relative;flex:1;}
   .mtg-bubble .who{font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px;}
+  .mtg-bubble{white-space:pre-wrap;}
   .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
-  .mtg-note:hover .mtg-bubble .del{opacity:1;}
+  .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
+  .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
+  .mtg-editta{width:100%;min-height:60px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:.92rem;margin-top:4px;}
+  .mtg-editbtns{display:flex;gap:6px;margin-top:7px;}
+  .mtg-editinp{flex:1;}
+  .mtg-addrow textarea{flex:1;min-height:40px;max-height:160px;resize:vertical;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.45;}
   .mtg-addrow{display:flex;gap:8px;margin-top:10px;}
   .mtg-addrow input{flex:1;}
   .mtg-pri{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);}
@@ -1247,6 +1253,7 @@
   <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
   <div class="mx-toolbar">
     <button class="btn sm admin-only" onclick="openMetricModal()">➕ New metric</button>
+    <button class="btn ghost sm" onclick="ensureMetrics()" title="Pull the latest numbers everyone has entered">↻ Refresh</button>
     <p class="mx-hint">Type this week's number on each card. Click a card to see the full history and trend graph.</p>
     <span class="mx-wkbar">Week starts
       <select id="mx-weekstart" onchange="setWeekStart(this.value)">
@@ -1509,7 +1516,14 @@
     if(!token) throw new Error('Please log in again.');
     const res=await fetch(SUPABASE_URL+'/functions/v1/manage-users',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify(payload)});
     let j; try{ j=await res.json(); }catch(e){ j={error:'Unexpected response ('+res.status+'). Is the manage-users function deployed?'}; }
-    if(!res.ok || (j&&j.error)) throw new Error((j&&j.error)||('Error '+res.status));
+    if(!res.ok || (j&&j.error)){
+      let msg = j && j.error;
+      if(msg && typeof msg==='object') msg = msg.message || msg.msg || msg.error_description || JSON.stringify(msg);
+      if(!msg || msg==='{}' || msg==='[object Object]'){
+        msg = 'The invite couldn\'t be sent (status '+res.status+'). This is almost always the email settings — check that Custom SMTP is on in Supabase, the sender is on your verified purplecowinternet.com domain, and look at Resend → Logs for the exact reason.';
+      }
+      throw new Error(msg);
+    }
     return j;
   }
   let teamUsers=[];
@@ -1648,11 +1662,17 @@
   function dbDeleteMetric(id){ if(!USE_DB) return; sb.from('metrics').delete().eq('id',id).then(r=>{ if(r.error) console.warn('metric delete failed', r.error); }); }
   async function dbLoadMetrics(){
     if(!USE_DB){ metricsLoaded=true; return; }
-    try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error; metricsStore=(r.data||[]).map(x=>x.data).filter(Boolean); saveMetricsLocal(); }
+    try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error;
+      const remote=(r.data||[]).map(x=>x.data).filter(Boolean);
+      const byId={}; remote.forEach(m=>{ if(m&&m.id) byId[m.id]=m; });
+      // push up any metrics that only exist in this browser (e.g. created before the table existed)
+      (metricsStore||[]).forEach(m=>{ if(m&&m.id&&!byId[m.id]){ byId[m.id]=m; dbUpsertMetric(m); } });
+      metricsStore=Object.values(byId); saveMetricsLocal();
+    }
     catch(e){ console.warn('metrics load failed — using local cache', e); }
     finally{ metricsLoaded=true; }
   }
-  async function ensureMetrics(){ if(!metricsLoaded) await dbLoadMetrics(); renderMetrics(); }
+  async function ensureMetrics(){ await dbLoadMetrics(); renderMetrics(); }
   function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
   function canEditMetric(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
   /* week columns — start day is configurable, defaults to Sunday */
@@ -2375,7 +2395,7 @@ Herd Life`;
     } else if(sec.type==='notes'){
       const rows=itemsFor(sec.id,instKey()).slice().sort(byContributor);
       body = rows.length ? rows.map(it=>noteHtml(it,canEdit)).join('') : '<div class="mtg-empty">No notes yet — be the first to add one.</div>';
-      if(canEdit) body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add your note…" onkeydown="if(event.key===\'Enter\')addNote(\''+sec.id+'\')"><button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
+      if(canEdit) body+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add your note…  (Enter to add · Shift+Enter for a new line)" onkeydown="mtgNoteKey(event,\''+sec.id+'\')"></textarea><button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
       body = rows.length ? priGroupsHtml(rows,sec.id,canEdit,true) : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
@@ -2399,15 +2419,32 @@ Herd Life`;
     const handle = canEdit ? '<span class="mtg-drag" title="Drag to reorder">⠿</span>' : '';
     return '<div class="mtg-sec" data-sid="'+esc(sec.id)+'"><div class="mtg-sec-hd">'+handle+'<h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
   }
-  function noteHtml(it,canEdit){ const mine=it.data.author===myEmail;
+  let mtgEditItemId=null;
+  function canEditItem(it){ return it && (it.data.author===myEmail || canManageUsers()); }
+  function editItem(id){ mtgEditItemId=id; renderMeetingView(); setTimeout(()=>{ const el=document.getElementById('edit-'+id); if(el){ el.focus(); if(el.setSelectionRange){ const n=el.value.length; try{ el.setSelectionRange(n,n); }catch(_){} } } },30); }
+  function cancelItemEdit(){ mtgEditItemId=null; renderMeetingView(); }
+  function saveItemEdit(id){ const el=document.getElementById('edit-'+id); const it=mtgItems.find(x=>x.id===id);
+    if(el && it && canEditItem(it)){ const v=(el.value||'').trim(); if(v){ it.data.text=v; it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); } }
+    mtgEditItemId=null; renderMeetingView(); }
+  function mtgEditKey(ev,id){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); saveItemEdit(id); } else if(ev.key==='Escape'){ ev.preventDefault(); cancelItemEdit(); } }
+  function noteHtml(it,canEdit){ const canE=canEditItem(it);
+    if(it.id===mtgEditItemId){
+      return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
+        +'<textarea id="edit-'+it.id+'" class="mtg-editta" onkeydown="mtgEditKey(event,\''+it.id+'\')">'+esc(it.data.text||'')+'</textarea>'
+        +'<div class="mtg-editbtns"><button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div></div></div>'; }
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
-      +esc(it.data.text||'')+((mine||canManageUsers())?'<span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
-  function priHtml(it,section,canEdit,editable,hideWho){ const done=!!it.data.done;
+      +esc(it.data.text||'')
+      +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
+  function priHtml(it,section,canEdit,editable,hideWho){ const done=!!it.data.done; const canE=canEditItem(it);
+    if(editable && it.id===mtgEditItemId){
+      return '<div class="mtg-pri"><input type="checkbox" '+(done?'checked':'')+' disabled>'
+        +'<input id="edit-'+it.id+'" class="mtg-editinp" value="'+esc(it.data.text||'')+'" onkeydown="mtgEditKey(event,\''+it.id+'\')">'
+        +'<button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
       +'<span class="ptxt">'+esc(it.data.text||'')+'</span>'
       +(hideWho?'':'<span class="who">'+esc(pmName(it.data.author))+'</span>')
-      +(editable&&(it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
+      +(editable&&canE?'<button class="x" title="Edit" onclick="editItem(\''+it.id+'\')">✎</button><button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
   /* everyone's entries in the same order everywhere — alphabetical by first name */
   function byContributor(a,b){ const na=String(pmName((a.data&&a.data.author)||'')).toLowerCase(), nb=String(pmName((b.data&&b.data.author)||'')).toLowerCase();
@@ -2598,9 +2635,11 @@ Herd Life`;
   function saveText(section,val){ let it=mtgItems.find(x=>x.meeting_id===curMtgId && x.section===section && x.inst==='static');
     if(!it){ it={id:uid(),meeting_id:curMtgId,section,inst:'static',data:{type:'text',author:myEmail,t:Date.now()}}; mtgItems.push(it); }
     it.data.text=val; it.data.editedBy=myEmail; it.data.editedAt=Date.now(); saveItem(it); }
-  function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); }
-  function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); }
-  function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); }
+  function focusAdd(section){ const el=document.getElementById('in-'+section); if(el){ el.focus(); } }
+  function mtgNoteKey(ev,section){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addNote(section); } }
+  function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
+  function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); focusAdd(section); }
+  function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
   function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); renderMeetingView(); }
 
   /* create / edit meeting */
