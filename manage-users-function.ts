@@ -78,12 +78,20 @@ Deno.serve(async (req) => {
       );
       if (error) {
         const detail = (error as any)?.message || (error as any)?.name || (error as any)?.code || "unknown error";
-        return json({ error: "Invite failed — " + detail + ". This usually means the email couldn't be sent (check Custom SMTP / verified sender), or the person is already invited." }, 400);
+        const already = /already|registered|exists/i.test(detail);
+        return json({ error: already
+          ? "That email already has an account. If they still need access, remove them from the list first, then invite again — or just have them use “Forgot password?” on the login screen."
+          : "Invite failed — " + detail + " (check Custom SMTP / verified sender in Supabase, or Resend → Logs)." }, 400);
       }
+      const newUser = data && data.user;
+      if (!newUser) return json({ error: "The invite was accepted but no account came back — try again in a moment." }, 500);
       // Stamp the chosen role — and their Slack photo, if we can find one — onto the new account.
-      const avatar = await slackAvatar(body.email);
-      await admin.auth.admin.updateUserById(data.user.id, { app_metadata: { role, avatar } });
-      return json({ user: { id: data.user.id, email: data.user.email, role, avatar }, invited: true });
+      // Do this in a try/catch so a metadata hiccup never turns a successful invite into an error.
+      try {
+        const avatar = await slackAvatar(body.email);
+        await admin.auth.admin.updateUserById(newUser.id, { app_metadata: { role, avatar } });
+      } catch (_metaErr) { /* invite email already sent; role can be set from the Team panel */ }
+      return json({ user: { id: newUser.id, email: newUser.email, role }, invited: true });
     }
 
     if (body.action === "syncavatars") {
