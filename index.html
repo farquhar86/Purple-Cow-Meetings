@@ -297,6 +297,10 @@
   .att-opt .tick{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line);flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem;color:#fff;}
   .att-opt.on .tick{background:var(--purple);border-color:var(--purple);}
   .att-select-all{font-size:.8rem;color:var(--purple);cursor:pointer;font-weight:600;}
+  .day-picker{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;}
+  .day-btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:.82rem;font-weight:700;color:var(--muted);min-width:46px;}
+  .day-btn:hover{border-color:var(--purple-light);}
+  .day-btn.on{background:var(--purple);border-color:var(--purple);color:#fff;}
   /* gantt inside a meeting rock */
   .rock-row{border-bottom:1px solid var(--line);}
   .rock-hd{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;}
@@ -846,7 +850,7 @@
     <input type="text" id="mtg-title" placeholder="e.g. Head of Department Daily Standup" style="width:100%;">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
       <div style="flex:1;min-width:150px;"><label>Type</label>
-        <select id="mtg-type" style="width:100%;">
+        <select id="mtg-type" style="width:100%;" onchange="mtgToggleDaysRow()">
           <option value="once">One-time</option>
           <option value="daily">Recurring — daily</option>
           <option value="weekly">Recurring — weekly</option>
@@ -855,6 +859,10 @@
         </select>
       </div>
       <div style="width:150px;"><label>Date</label><input type="date" id="mtg-date" style="width:100%;"></div>
+    </div>
+    <div id="mtg-days-row" style="display:none;margin-top:10px;">
+      <label>Which days does it run?</label>
+      <div id="mtg-days" class="day-picker"></div>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
       <div style="width:120px;"><label>Time</label><input type="time" id="mtg-time" style="width:100%;"></div>
@@ -2327,11 +2335,20 @@ Herd Life`;
   function stepDate(d,type,dir){ const x=new Date(d);
     if(type==='monthly'){ x.setMonth(x.getMonth()+dir); return x; }
     const s=mtgStepDays(type); if(!s) return x; x.setDate(x.getDate()+dir*s); return x; }
+  /* for a daily meeting, which weekdays it runs on (0=Sun..6=Sat); null = every day */
+  function mtgDays(m){ return (m && m.type==='daily' && Array.isArray(m.days) && m.days.length) ? m.days : null; }
+  /* step to the next/previous occurrence, honouring selected weekdays for daily meetings */
+  function occStep(m,date,dir){
+    if(m.type==='daily'){ const days=mtgDays(m); const x=new Date(date); let g=0;
+      do{ x.setDate(x.getDate()+dir); g++; } while(days && days.indexOf(x.getDay())<0 && g<14); return x; }
+    return stepDate(date,m.type,dir);
+  }
   function occurrenceOnOrAfter(m,target){
     const base=new Date((m.date||wkKey(new Date()))+'T00:00:00'); base.setHours(0,0,0,0);
     const t=new Date(target); t.setHours(0,0,0,0);
     if(m.type==='once'||!m.type) return base;
-    if(m.type==='daily') return t>=base?t:base;
+    if(m.type==='daily'){ const days=mtgDays(m); let d=t>=base?new Date(t):new Date(base); let g=0;
+      while(days && days.indexOf(d.getDay())<0 && g<14){ d.setDate(d.getDate()+1); g++; } return d; }
     let d=new Date(base), guard=0; while(d<t && guard<600){ d=stepDate(d,m.type,1); guard++; } return d;
   }
   function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
@@ -2352,7 +2369,8 @@ Herd Life`;
     if(!list.length){ box.innerHTML=toggle+'<div class="mx-empty">'+(seeAll?'No meetings yet — click <b>➕ New meeting</b> to create one.':'You\'re not on any meetings yet. Create one, or ask to be added as an attendee.')+'</div>'; return; }
     box.innerHTML=toggle+list.map(m=>{
       const next=occurrenceOnOrAfter(m,new Date());
-      const typeLabel = (m.type==='once'||!m.type)?'One-time':('Recurring · '+m.type);
+      let typeLabel = (m.type==='once'||!m.type)?'One-time':('Recurring · '+m.type);
+      if(m.type==='daily' && mtgDays(m)) typeLabel='Recurring · '+mtgDays(m).slice().sort().map(d=>DAY_NAMES[d]).join(', ');
       const av=(m.attendees||[]); const shown=av.slice(0,6).map(e=>avatarHtml(e)).join('');
       const more=av.length>6?('<span class="more">+'+(av.length-6)+'</span>'):'';
       const notMine = seeAll && av.indexOf(myEmail)<0 ? '<span class="mtg-badge" style="background:#f0eaf7;color:var(--muted);">not attending</span> ' : '';
@@ -2369,7 +2387,7 @@ Herd Life`;
   function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
     curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
   function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
-  function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=stepDate(curMtgDate,m.type,dir); renderMeetingView(); }
+  function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=occStep(m,curMtgDate,dir); renderMeetingView(); }
 
   function renderMeetingView(){
     const m=mtgsStore.find(x=>x.id===curMtgId); if(!m){ renderMeetingsList(); return; }
@@ -2436,7 +2454,7 @@ Herd Life`;
   }
 
   function instKey(){ return wkKey(curMtgDate); }
-  function prevInstKey(m){ return wkKey(stepDate(curMtgDate,m.type||'daily',-1)); }
+  function prevInstKey(m){ return wkKey(occStep(m,curMtgDate,-1)); }
   function itemsFor(section,inst){ return mtgItems.filter(it=>it.meeting_id===curMtgId && it.section===section && it.inst===inst)
     .sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
   function addItem(section,inst,data){ const it={id:uid(),meeting_id:curMtgId,section,inst,data:Object.assign({author:myEmail,t:Date.now()},data)}; mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it); return it; }
@@ -2848,11 +2866,16 @@ Herd Life`;
     document.getElementById('mtg-attendees').innerHTML=pool.map(e=>{ const on=chosen.indexOf(e)>=0;
       return '<div class="att-opt'+(on?' on':'')+'" data-email="'+esc(e)+'" onclick="mtgAttToggle(this)">'
         + avatarHtml(e) + '<span class="nm">'+esc(pmName(e))+'</span><span class="tick">'+(on?'✓':'')+'</span></div>'; }).join('');
+    mtgRenderDays(editing && Array.isArray(m.days) ? m.days : null); mtgToggleDaysRow();
     document.getElementById('mtgErr').textContent='';
     document.getElementById('mtgDeleteBtn').style.display=editing?'inline-block':'none';
     document.getElementById('mtgModal').classList.add('show');
   }
   function closeMeetingCreate(){ document.getElementById('mtgModal').classList.remove('show'); }
+  const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function mtgRenderDays(selected){ const sel = selected || [0,1,2,3,4,5,6];
+    document.getElementById('mtg-days').innerHTML=DAY_NAMES.map((n,i)=>'<button type="button" class="day-btn'+(sel.indexOf(i)>=0?' on':'')+'" data-day="'+i+'" onclick="this.classList.toggle(\'on\')">'+n+'</button>').join(''); }
+  function mtgToggleDaysRow(){ document.getElementById('mtg-days-row').style.display = (document.getElementById('mtg-type').value==='daily')?'block':'none'; }
   function mtgAttToggle(el){ const on=el.classList.toggle('on'); el.querySelector('.tick').textContent=on?'✓':''; }
   function mtgAttToggleAll(){ const opts=document.querySelectorAll('#mtg-attendees .att-opt'); const anyOff=Array.prototype.some.call(opts,o=>!o.classList.contains('on'));
     opts.forEach(o=>{ o.classList.toggle('on',anyOff); o.querySelector('.tick').textContent=anyOff?'✓':''; }); }
@@ -2861,7 +2884,12 @@ Herd Life`;
     const title=document.getElementById('mtg-title').value.trim(); if(!title){ err.textContent='Give the meeting a title.'; return; }
     const id=document.getElementById('mtg-id').value;
     const attendees=Array.prototype.slice.call(document.querySelectorAll('#mtg-attendees .att-opt.on')).map(c=>c.getAttribute('data-email'));
-    const data={ title, type:document.getElementById('mtg-type').value, date:document.getElementById('mtg-date').value||wkKey(new Date()),
+    const type=document.getElementById('mtg-type').value;
+    let days;
+    if(type==='daily'){ days=Array.prototype.slice.call(document.querySelectorAll('#mtg-days .day-btn.on')).map(b=>Number(b.getAttribute('data-day')));
+      if(!days.length){ err.textContent='Pick at least one day of the week.'; return; }
+      if(days.length===7) days=null; }   // every day = plain daily, no restriction
+    const data={ title, type, days, date:document.getElementById('mtg-date').value||wkKey(new Date()),
       time:document.getElementById('mtg-time').value, dur:Number(document.getElementById('mtg-dur').value)||30,
       tz:document.getElementById('mtg-tz').value, attendees };
     let m;

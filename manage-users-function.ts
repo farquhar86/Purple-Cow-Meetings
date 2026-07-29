@@ -77,11 +77,18 @@ Deno.serve(async (req) => {
         body.redirectTo ? { redirectTo: body.redirectTo } : undefined,
       );
       if (error) {
-        const detail = (error as any)?.message || (error as any)?.name || (error as any)?.code || "unknown error";
+        const e = error as any;
+        const bits: string[] = [];
+        if (e?.name) bits.push(String(e.name));
+        if (e?.status) bits.push("status " + e.status);
+        if (e?.code) bits.push("code " + e.code);
+        if (typeof e?.message === "string" && e.message && e.message !== "{}") bits.push(e.message);
+        let detail = bits.join(" · ");
+        if (!detail) { try { detail = JSON.stringify(e, Object.getOwnPropertyNames(e)); } catch { detail = String(e); } }
         const already = /already|registered|exists/i.test(detail);
         return json({ error: already
-          ? "That email already has an account. If they still need access, remove them from the list first, then invite again — or just have them use “Forgot password?” on the login screen."
-          : "Invite failed — " + detail + " (check Custom SMTP / verified sender in Supabase, or Resend → Logs)." }, 400);
+          ? "That email already has an account — remove them from the list first, then invite again (or use Forgot password)."
+          : "Invite failed — " + detail }, 400);
       }
       const newUser = data && data.user;
       if (!newUser) return json({ error: "The invite was accepted but no account came back — try again in a moment." }, 500);
