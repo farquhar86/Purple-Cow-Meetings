@@ -2740,7 +2740,7 @@ Herd Life`;
         +'<span class="td-text">'+esc(it.data.text||'')+'</span>'
         +'<span class="td-who">'+avatarHtml(it.data.author)+esc(pmName(it.data.author))+'</span></div>';
     }).join(''); }
-  function toggleIssueTodo(itemId,checked){ const it=mtgItems.find(x=>x.id===itemId); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); renderIssueTodos(curIssueId); }
+  function toggleIssueTodo(itemId,checked){ const it=mtgItems.find(x=>x.id===itemId); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); if(checked) popConfetti(); renderIssueTodos(curIssueId); }
   function renderIssueComments(id){ const box=document.getElementById('iss-comments');
     const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
     box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
@@ -2846,7 +2846,31 @@ Herd Life`;
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
   function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); focusAdd(section); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
-  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); renderMeetingView(); }
+  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
+  /* 🎉 celebrate a completed task */
+  let lastPointer={x:null,y:null};
+  if(typeof document!=='undefined') document.addEventListener('pointerdown',function(e){ lastPointer={x:e.clientX,y:e.clientY}; }, true);
+  function popConfetti(){
+    if(typeof document==='undefined') return;
+    if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const cv=document.createElement('canvas');
+    cv.className='no-print'; cv.style.cssText='position:fixed;inset:0;pointer-events:none;z-index:9999;';
+    cv.width=window.innerWidth; cv.height=window.innerHeight; document.body.appendChild(cv);
+    const ctx=cv.getContext('2d');
+    const colors=['#6a2c8f','#8e4fb8','#2e9e6b','#e0a32e','#d8533b','#4a6cf7','#ec4899'];
+    const ox=(lastPointer.x!=null)?lastPointer.x:window.innerWidth/2;
+    const oy=(lastPointer.y!=null)?lastPointer.y:window.innerHeight*0.4;
+    const parts=[];
+    for(let i=0;i<90;i++){ const a=Math.random()*Math.PI*2, sp=3+Math.random()*8;
+      parts.push({x:ox,y:oy,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-5,g:0.16+Math.random()*0.12,size:5+Math.random()*6,color:colors[i%colors.length],rot:Math.random()*6,vr:(Math.random()-0.5)*0.5}); }
+    let frame=0;
+    (function tick(){ frame++; ctx.clearRect(0,0,cv.width,cv.height);
+      parts.forEach(p=>{ p.vy+=p.g; p.x+=p.vx; p.y+=p.vy; p.rot+=p.vr;
+        ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot); ctx.globalAlpha=Math.max(0,1-frame/95); ctx.fillStyle=p.color;
+        ctx.fillRect(-p.size/2,-p.size/2,p.size,p.size*0.55); ctx.restore(); });
+      if(frame<95) requestAnimationFrame(tick); else cv.remove();
+    })();
+  }
 
   /* create / edit meeting */
   function openMeetingCreate(id){
