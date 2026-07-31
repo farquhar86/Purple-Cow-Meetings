@@ -945,6 +945,10 @@
         <option value="level">A level to reach — every week is measured against the full target (active members, %)</option>
       </select>
     </div>
+    <label style="display:flex;align-items:center;gap:9px;margin-top:12px;cursor:pointer;font-weight:600;">
+      <input type="checkbox" id="mx-company" style="width:17px;height:17px;">
+      🏢 Company metric — show this on meeting scorecards
+    </label>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
       <div style="width:140px;"><label>Quarterly target</label><input type="number" id="mx-goal" step="any" style="width:100%;" oninput="mxRenderLegend()"></div>
       <div style="flex:1;min-width:175px;"><label>Direction</label>
@@ -1875,8 +1879,9 @@
       ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
       : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
     const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+    const coBadge=m.company?' <span title="Company metric — shows on meeting scorecards">🏢</span>':'';
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
-      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
@@ -2121,6 +2126,7 @@
     if(editing) normalizeMetric(m);
     set('mx-unit', editing?(m.unit||'number'):'number');
     set('mx-goalkind', editing?(m.goalKind||'total'):'total');
+    document.getElementById('mx-company').checked = editing ? !!m.company : false;
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
@@ -2204,6 +2210,7 @@
       unit:document.getElementById('mx-unit').value||'number',
       period:'weekly',
       goalKind:document.getElementById('mx-goalkind').value||'total',
+      company:document.getElementById('mx-company').checked,
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
@@ -2571,8 +2578,8 @@ Herd Life`;
       +((it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
   function renderMetricSnapshot(){
-    const list=metricsStore.filter(metricVisible);
-    if(!list.length) return '<div class="mtg-empty">No metrics yet — add them in the Metrics section.</div>';
+    const list=metricsStore.filter(metricVisible).filter(m=>m.company);
+    if(!list.length) return '<div class="mtg-empty">No company metrics yet — open a metric in the Metrics section and tick <b>🏢 Company metric</b> to show it here.</div>';
     const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
     return '<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">Latest week vs goal. Click a metric to see the trend graph.</div>'
       + list.map(m=>{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
