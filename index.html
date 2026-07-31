@@ -221,6 +221,11 @@
   .sc-meta{display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--muted);margin-top:12px;}
   .sc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.78rem;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
   .sc-open{color:var(--purple);font-weight:600;white-space:nowrap;}
+  .mx-owner-group{margin-bottom:22px;}
+  .mx-owner-hd{display:flex;align-items:center;gap:9px;padding:6px 2px 10px;border-bottom:2px solid var(--lilac-2);margin-bottom:14px;}
+  .mx-owner-hd img,.mx-owner-hd .tm-initials{width:30px;height:30px;border-radius:50%;}
+  .mx-owner-hd .nm{font-weight:800;font-size:1rem;color:var(--purple-dark);}
+  .mx-owner-hd .cnt{margin-left:auto;font-size:.72rem;font-weight:700;color:var(--muted);background:var(--lilac);border-radius:999px;padding:2px 10px;}
   /* ---- meetings ---- */
   .mtg-wrap{padding:22px 34px 70px;max-width:1000px;}
   .mtg-card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;cursor:pointer;box-shadow:var(--shadow);}
@@ -1856,35 +1861,49 @@
   const TIER_LABEL={great:'Smashed it',good:'On target',warn:'Just off',bad:'Missed'};
   function goalLabelShort(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return 'No goal set'; const wk=effectiveGoal(m,new Date()); return (m.direction==='lower'?'≤ ':'≥ ')+fmtTgt(m,wk)+' / week'; }
   function colFor(w){ return {key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)}; }
+  function metricCardHtml(m,lastW,thisW){
+    const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
+    const gT=effectiveGoal(m,thisW);
+    const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
+    const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
+    const color=TIER_COLORS[tier]||'#c9bcd9';
+    const editable=canEditMetric(m);
+    let trend='<span style="color:var(--muted)">No prior week</span>';
+    if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
+      else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
+    const big = editable
+      ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
+      : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
+    const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+    return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
+      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
+      +'<div class="sc-foot">'+trend+'<span class="sc-open">History &amp; graph →</span></div>'
+      +'</div>';
+  }
+  let mxGroupByOwner=true;
+  function setMxGroup(v){ mxGroupByOwner=v; renderMetrics(); }
   function renderMetrics(){
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
     const list=metricsStore.filter(metricVisible);
     if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
     list.forEach(normalizeMetric);
     const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
-    const cards=list.map(m=>{
-      const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
-      const gT=effectiveGoal(m,thisW);
-      const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
-      const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
-      const color=TIER_COLORS[tier]||'#c9bcd9';
-      const editable=canEditMetric(m);
-      let trend='<span style="color:var(--muted)">No prior week</span>';
-      if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
-        else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
-      const big = editable
-        ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
-        : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
-      const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
-      return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
-        +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(m.owner)+'</span></div>'
-        +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
-        +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
-        +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
-        +'<div class="sc-foot">'+trend+'<span class="sc-open">History &amp; graph →</span></div>'
-        +'</div>';
+    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'
+      +'<button class="btn '+(mxGroupByOwner?'':'ghost')+' sm" onclick="setMxGroup(true)">By owner</button>'
+      +'<button class="btn '+(mxGroupByOwner?'ghost':'')+' sm" onclick="setMxGroup(false)">All together</button></div>';
+    if(!mxGroupByOwner){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
+    const groups=new Map();
+    list.forEach(m=>{ const o=m.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(m); });
+    const keys=Array.from(groups.keys()).sort((a,b)=>{ const na=a?pmName(resolvePerson(a)):'￿', nb=b?pmName(resolvePerson(b)):'￿'; return String(na).toLowerCase().localeCompare(String(nb).toLowerCase()); });
+    const html=keys.map(o=>{ const items=groups.get(o); const person=resolvePerson(o);
+      return '<div class="mx-owner-group"><div class="mx-owner-hd">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')
+        +'<span class="nm">'+esc(o?pmName(person):'Unassigned')+'</span><span class="cnt">'+items.length+'</span></div>'
+        +'<div class="sc-cards">'+items.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div></div>';
     }).join('');
-    wrap.innerHTML='<div class="sc-cards">'+cards+'</div>';
+    wrap.innerHTML=toggle+html;
   }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
