@@ -82,7 +82,7 @@
   .sb-menu-hd b{color:var(--ink);}
   .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
   .sb-menu button:hover{background:var(--lilac);}
-  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-cowu{margin-left:236px;}
   body.presenting #screen-dash{margin-left:0 !important;}
   /* placeholder section pages */
   .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
@@ -102,6 +102,27 @@
   .vz-purpose .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;}
   .vz-purpose .txt{font-size:1.3rem;font-weight:700;color:var(--purple-dark);margin-top:6px;}
   .vz-h{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin:8px 0 12px;}
+  /* Cow U */
+  .cowu-hero{background:linear-gradient(135deg,var(--purple-dark),var(--purple));color:#fff;border-radius:18px;padding:34px 30px;text-align:center;margin-bottom:26px;box-shadow:var(--shadow);}
+  .cowu-hero-emoji{font-size:2.4rem;margin-bottom:6px;}
+  .cowu-hero h2{margin:0 0 10px;font-size:1.7rem;font-weight:800;letter-spacing:-.4px;}
+  .cowu-hero p{margin:0 auto;max-width:640px;font-size:1rem;line-height:1.6;color:#f0e6fa;}
+  .cowu-ranks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
+  .cowu-rank{background:#fff;border:1px solid var(--line);border-top:4px solid var(--purple);border-radius:14px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);}
+  .cowu-rank-badge{font-size:1.9rem;line-height:1;}
+  .cowu-rank-n{font-weight:800;color:var(--purple-dark);margin-top:8px;font-size:.98rem;}
+  .cowu-rank-s{color:var(--muted);font-size:.78rem;margin-top:2px;}
+  .cowu-xp{background:#faf6ff;border:1px dashed var(--purple);border-radius:12px;padding:14px 18px;color:var(--ink);font-size:.9rem;line-height:1.5;margin-bottom:28px;}
+  .cowu-tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
+  .cowu-track{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);}
+  .cowu-track-hd{font-weight:800;color:var(--purple-dark);font-size:1.02rem;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--line);}
+  .cowu-skill{font-size:.9rem;color:var(--ink);padding:5px 0 5px 20px;position:relative;line-height:1.4;}
+  .cowu-skill:before{content:"🐄";position:absolute;left:0;top:5px;font-size:.8rem;}
+  .cowu-connect{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;color:var(--ink);font-size:.95rem;line-height:1.6;box-shadow:var(--shadow);}
+  .cowu-embedbar{display:flex;justify-content:space-between;align-items:center;background:var(--purple-dark);color:#fff;padding:10px 16px;border-radius:12px 12px 0 0;font-weight:700;font-size:.9rem;}
+  .cowu-openlink{color:#fff;text-decoration:underline;font-size:.85rem;font-weight:600;}
+  .cowu-frame{width:100%;height:78vh;border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;background:#fff;}
+  .cowu-note{color:var(--muted);font-size:.82rem;margin-top:10px;line-height:1.5;}
   .vz-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
   .vz-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
   .vz-card .vn{font-weight:800;color:var(--purple-dark);font-size:1.08rem;margin-bottom:8px;}
@@ -618,7 +639,7 @@
     body.app-shell #mobileNavBtn{display:flex;}
     #appSidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 22px rgba(0,0,0,.18);width:260px;}
     body.sb-open #appSidebar{transform:none;}
-    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:0 !important;}
+    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-cowu{margin-left:0 !important;}
     /* leave room for the ☰ button on section headers */
     .sec-head{padding:20px 16px 18px 66px !important;}
     .sec-head h1{font-size:1.25rem;}
@@ -665,6 +686,7 @@
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
+    <button class="sb-item" data-sec="cowu" onclick="navTo('cowu')"><span class="sb-ic">🎓</span>Cow U</button>
   </nav>
   <div class="sb-bottom">
     <button class="sb-add manage-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
@@ -1297,6 +1319,15 @@
     <button class="btn ghost admin-only" id="visionEditBtn" onclick="toggleVisionEdit()">✎ Edit</button>
   </div>
   <div id="visionWrap" class="vz-wrap"></div>
+</div>
+
+<!-- ====================== SECTION: COW U ====================== -->
+<div id="screen-cowu" style="display:none;">
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+    <div><h1>🎓 Cow U</h1><p>Training &amp; AI coaching for the herd — from Calf to Purple Cow Legend.</p></div>
+    <button class="btn ghost manage-only" id="cowuEditBtn" onclick="openCowuLink()">🔗 Connect app</button>
+  </div>
+  <div id="cowuWrap" class="cowu-wrap"></div>
 </div>
 
 <!-- ====================== SECTION: METRICS ====================== -->
@@ -2238,6 +2269,52 @@
     if(curChartMetricId===id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(id);
   }
 
+  /* ================= COW U (learning & coaching) ================= */
+  const COWU_RANKS=[
+    {n:'Calf',s:0,e:'🐮'},{n:'Grazer',s:3,e:'🌱'},{n:'Trailblazer',s:6,e:'🧭'},
+    {n:'Herd Leader',s:10,e:'⭐'},{n:'Prize Bull',s:15,e:'🏆'},{n:'Purple Cow Legend',s:21,e:'👑'}
+  ];
+  const COWU_REP_TRACKS=[
+    {t:'Connection',sk:['Active Listening','Empathy & Validation','Mirroring & Matching','Building Rapport Fast','Warmth Through the Screen']},
+    {t:'Clarity',sk:['Plain-Language Explanations','Confirming Understanding','Setting Expectations','Positive Reframing','Pacing & Silence']},
+    {t:'Problem Solving',sk:['Powerful Questioning','Root-Cause Diagnosis','Ownership & Accountability','First-Contact Resolution','Closing the Loop']},
+    {t:'Handling Difficulty',sk:['De-escalation','Handling Objections','Saying No Gracefully','Calm Under Pressure','Awkward Moments']},
+    {t:'Sales & Retention',sk:['Uncovering Needs','Value, Not Features','Asking for the Sale','Natural Upsell','Save & Win-Back']},
+    {t:'Professionalism',sk:['Call & Chat Control','Notes & Multitasking','Product Fluency','Personalization','Ending on a High Note']}
+  ];
+  const COWU_MGR_TRACKS=[
+    {t:'Coaching & Development',sk:['Giving Effective Feedback','Running Great 1:1s','Coaching in the Moment','Setting Growth Goals','Recognizing Wins']},
+    {t:'Leading People',sk:['Listening to Your Team','Building Trust & Safety','Delegation & Empowerment','Handling Underperformance','Motivating Without Micromanaging']},
+    {t:'Communication & Conflict',sk:['Difficult Conversations','De-escalating Team Conflict','Setting Clear Expectations','Giving the Why','Managing Up & Across']},
+    {t:'Operations & Performance',sk:['Reading the Metrics','Data-Driven Coaching','Time & Priority Management','Consistency & Fairness','Change Management']}
+  ];
+  function cowuUrl(){ try{ return localStorage.getItem(KEY+'_cowuUrl')||''; }catch(e){ return ''; } }
+  function openCowuLink(){ if(!canManageUsers()) return; const cur=cowuUrl();
+    const url=prompt('Paste the web address of your deployed Cow-niversity app (leave blank to remove and show the overview):', cur);
+    if(url===null) return; try{ localStorage.setItem(KEY+'_cowuUrl',(url||'').trim()); }catch(e){} renderCowU(); }
+  function tracksHtml(tracks){ return '<div class="cowu-tracks">'+tracks.map(tr=>
+    '<div class="cowu-track"><div class="cowu-track-hd">'+esc(tr.t)+'</div>'+tr.sk.map(s=>'<div class="cowu-skill">'+esc(s)+'</div>').join('')+'</div>').join('')+'</div>'; }
+  function renderCowU(){ const wrap=document.getElementById('cowuWrap'); if(!wrap) return;
+    const url=cowuUrl();
+    if(url){
+      wrap.innerHTML='<div class="cowu-embedbar">Live Cow U app'
+        +' <a href="'+esc(url)+'" target="_blank" rel="noopener" class="cowu-openlink">Open in new tab ↗</a></div>'
+        +'<iframe class="cowu-frame" src="'+esc(url)+'" title="Cow U"></iframe>'
+        +'<p class="cowu-note">If the app doesn\'t appear above, it may block embedding — use "Open in new tab". '+(canManageUsers()?'Admins can change the link with <b>🔗 Connect app</b> up top.':'')+'</p>';
+      return;
+    }
+    let html='<div class="cowu-hero"><div class="cowu-hero-emoji">🎓🐄</div><h2>Welcome to Cow U</h2>'
+      +'<p>Every week our AI coach reads each rep\'s real customer conversations, works out the one skill they most need, coaches them over Slack, and on Friday awards the badge or keeps building. Managers get the same loop on their own leadership curriculum.</p></div>';
+    html+='<div class="vz-h">The Climb — Cow Ranks</div><div class="cowu-ranks">'
+      + COWU_RANKS.map(r=>'<div class="cowu-rank"><div class="cowu-rank-badge">'+r.e+'</div><div class="cowu-rank-n">'+esc(r.n)+'</div><div class="cowu-rank-s">'+r.s+' skills</div></div>').join('')
+      +'</div>';
+    html+='<div class="cowu-xp">🏅 <b>XP</b> = mastered skills × 100 + streak × 10 &nbsp;·&nbsp; badges per skill &amp; track &nbsp;·&nbsp; streaks for daily engagement &nbsp;·&nbsp; coaches ranked by how much their team improves.</div>';
+    html+='<div class="vz-h">Rep Curriculum — 6 tracks · 30 skills</div>'+tracksHtml(COWU_REP_TRACKS);
+    html+='<div class="vz-h">Leadership Curriculum — 4 tracks · 20 skills</div>'+tracksHtml(COWU_MGR_TRACKS);
+    if(canManageUsers()) html+='<div class="cowu-connect"><b>Ready to go live?</b> Deploy the Cow-niversity app, then click <b>🔗 Connect app</b> at the top and paste its URL — it will load right here inside Cow U.</div>';
+    wrap.innerHTML=html;
+  }
+
   /* ================= CORE VALUES / VISION ================= */
   const DEFAULT_VISION={
     strategy:'Herd Life',
@@ -3055,9 +3132,9 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','cowu'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','cowu'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
@@ -3068,7 +3145,7 @@ Herd Life`;
   function navTo(sec){
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     if(sec==='priorities'){ gotoDash(); }
-    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='cowu') renderCowU(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
