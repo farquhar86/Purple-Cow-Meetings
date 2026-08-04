@@ -351,6 +351,9 @@
   .rock-hd.open .caret{transform:rotate(90deg);}
   .rock-hd .rk-num{width:22px;text-align:right;color:var(--muted);font-weight:700;font-size:.85rem;flex:0 0 auto;}
   .rock-hd .rk-title{font-weight:600;flex:1;}
+  .rock-hd .rk-title.prio-link:hover{text-decoration:underline;color:var(--purple-dark);}
+  .rock-hd .rk-open{font-size:.75rem;color:var(--purple);opacity:0;transition:opacity .12s;}
+  .rock-hd .rk-title:hover .rk-open{opacity:1;}
   .rock-hd .rk-av{flex:0 0 auto;display:inline-flex;}
   .rock-hd .rk-av img,.rock-hd .rk-av .tm-initials{width:28px;height:28px;border-radius:50%;}
   .rock-gantt{padding:6px 4px 14px;display:none;}
@@ -389,6 +392,17 @@
   .rte-toolbar button{border:none;background:#fff;border-radius:5px;padding:4px 9px;font-size:.82rem;cursor:pointer;color:var(--ink);min-width:30px;}
   .rte-toolbar button:hover{background:var(--lilac-2);}
   .rte{border:1px solid var(--line);border-radius:0 0 8px 8px;min-height:200px;height:340px;max-height:75vh;overflow-y:auto;padding:12px 14px;font-size:.92rem;line-height:1.6;resize:vertical;}
+  /* live co-editing presence + Quill */
+  .iss-here{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:6px;font-size:.78rem;}
+  .iss-here .ih-lbl{color:var(--muted);font-weight:700;}
+  .iss-here .ih-solo{color:var(--muted);font-style:italic;}
+  .iss-here .ih-chip{display:inline-flex;align-items:center;gap:5px;background:#fff;border:2px solid var(--purple);border-radius:999px;padding:2px 9px 2px 2px;font-weight:600;color:var(--ink);}
+  .iss-here .ih-chip img,.iss-here .ih-chip .tm-initials{width:20px;height:20px;border-radius:50%;font-size:.6rem;}
+  #iss-quill-wrap{border:1px solid var(--line);border-radius:0 0 8px 8px;overflow:hidden;}
+  #iss-quill-wrap .ql-toolbar{border:none;border-bottom:1px solid var(--line);background:var(--lilac);}
+  #iss-quill-wrap .ql-container{border:none;font-family:inherit;font-size:.92rem;}
+  #iss-quill-wrap .ql-editor{min-height:240px;max-height:60vh;line-height:1.6;}
+  #iss-collab-tools{border-radius:8px 8px 0 0;}
   .ctx-menu{position:absolute;z-index:600;display:none;background:#fff;border:1px solid var(--line);border-radius:11px;box-shadow:0 10px 30px rgba(40,15,60,.22);padding:6px;min-width:230px;max-width:300px;}
   .ctx-menu.show{display:block;}
   .ctx-hd{font-size:.72rem;font-weight:800;color:var(--purple-dark);padding:6px 8px 3px;text-transform:uppercase;letter-spacing:.03em;}
@@ -858,7 +872,16 @@
     <input type="text" id="iss-title" class="iss-title-input" placeholder="Issue title…" oninput="scheduleIssueSave()" onchange="saveIssueField()">
     <div class="iss-meta" id="iss-meta"></div>
     <div class="iss-status-row" id="iss-status-row"></div>
-    <div class="rte-toolbar">
+    <!-- who's editing live (co-editing mode) -->
+    <div id="iss-here" class="iss-here" style="display:none;"></div>
+    <!-- collaborative editor (Quill + live cursors) -->
+    <div id="iss-collab-tools" class="rte-toolbar" style="display:none;">
+      <button title="Turn the highlighted text into a To-Do" onmousedown="event.preventDefault()" onclick="todoFromToolbar(event)" style="color:var(--purple-dark);font-weight:700;">✅ Make To-Do from selection</button>
+      <span style="margin-left:auto;font-size:.72rem;color:var(--muted);">🔴 Live — everyone here edits together</span>
+    </div>
+    <div id="iss-quill-wrap" style="display:none;"><div id="iss-quill"></div></div>
+    <!-- classic editor (fallback if the live editor can't load) -->
+    <div class="rte-toolbar" id="iss-toolbar-legacy">
       <button title="Bold" onmousedown="event.preventDefault()" onclick="rte('bold')"><b>B</b></button>
       <button title="Italic" onmousedown="event.preventDefault()" onclick="rte('italic')"><i>I</i></button>
       <button title="Underline" onmousedown="event.preventDefault()" onclick="rte('underline')"><u>U</u></button>
@@ -1390,6 +1413,10 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Quill rich-text editor + live cursors (for Google-Docs-style co-editing of issue notes) -->
+<link href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill-cursors@4.0.4/dist/quill-cursors.min.js"></script>
 <script>
   const KEY = 'pc_herd100k_meetings_v2';
   const OLD_KEY = 'pc_herd100k_worksheet_v1';
@@ -2909,7 +2936,7 @@ Herd Life`;
     rocks=sortRocks(rocks);
     const opt=(v,l)=>'<option value="'+v+'"'+(rockSort===v?' selected':'')+'>'+l+'</option>';
     const bar='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">'
-      + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click one for its timeline.</span>'
+      + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click a name to open it, or the row for its timeline.</span>'
       + '<span style="font-size:.82rem;color:var(--muted);">Sort: <select onchange="setRockSort(this.value)">'
       + opt('progDesc','Most done first')+opt('progAsc','Least done first')+opt('complete','Complete first')+opt('pm','By owner')+'</select></span></div>';
     return bar+rocks.map((e,i)=>{
@@ -2926,7 +2953,7 @@ Herd Life`;
         + '<div class="rock-hd" id="'+rid+'" onclick="toggleRock(\''+rid+'\')">'
         + '<span class="caret">▶</span>'
         + '<span class="rk-num">'+(i+1)+'</span>'
-        + '<span class="rk-title">'+esc(e.title||'Untitled')+'</span>'
+        + '<span class="rk-title prio-link" title="Open this priority" onclick="event.stopPropagation();openPrio(\''+e.id+'\')">'+esc(e.title||'Untitled')+' <span class="rk-open">↗</span></span>'
         + av
         + track
         + '<span class="rk-badge '+st+'">'+(done?'Complete':(pct+'%'))+'</span>'
@@ -2973,15 +3000,93 @@ Herd Life`;
   function newIssue(secId,status){ const it=addItem(secId,'static',{type:'issue',text:'New task',status:status||'notstarted',notes:'',ord:Date.now()}); renderMeetingView(); openIssue(it.id); }
 
   let curIssueId=null, issSaveTimer=null;
-  function openIssue(id){ const it=mtgItems.find(x=>x.id===id); if(!it) return; curIssueId=id;
-    const canEdit = true;
+  async function openIssue(id){ const it=mtgItems.find(x=>x.id===id); if(!it) return; curIssueId=id;
     document.getElementById('iss-id').value=id;
     document.getElementById('iss-title').value=it.data.text||'';
-    document.getElementById('iss-notes').innerHTML=it.data.notes||'';
     renderIssueMeta(it); renderIssueStatusRow(it); renderIssueTodos(id); renderIssueComments(id);
     document.getElementById('issueModal').classList.add('show');
+    teardownCollab();
+    let ok=false;
+    try{ ok=await initCollab(it); }catch(e){ console.warn('collab open failed',e); ok=false; }
+    setEditorMode(ok);
+    if(!ok){ document.getElementById('iss-notes').innerHTML=it.data.notes||''; }
     setTimeout(()=>{ if(!it.data.text||it.data.text==='New task'){ const t=document.getElementById('iss-title'); t.focus(); t.select(); } },60);
   }
+  function setEditorMode(collabOn){
+    const q=document.getElementById('iss-quill-wrap'), ct=document.getElementById('iss-collab-tools'), here=document.getElementById('iss-here');
+    const ln=document.getElementById('iss-notes'), lt=document.getElementById('iss-toolbar-legacy');
+    if(q) q.style.display=collabOn?'block':'none';
+    if(ct) ct.style.display=collabOn?'flex':'none';
+    if(here) here.style.display=collabOn?'flex':'none';
+    if(ln) ln.style.display=collabOn?'none':'block';
+    if(lt) lt.style.display=collabOn?'none':'flex';
+  }
+  /* ---- live co-editing: Quill + Yjs (CRDT) over Supabase Realtime ---- */
+  let collab={active:false};
+  function _b64FromBytes(u8){ let s=''; const CH=0x8000; for(let i=0;i<u8.length;i+=CH){ s+=String.fromCharCode.apply(null,u8.subarray(i,i+CH)); } return btoa(s); }
+  function _bytesFromB64(b64){ const s=atob(b64); const u8=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u8[i]=s.charCodeAt(i); return u8; }
+  const _COLORS=['#8e4fb8','#2e9e6b','#d8533b','#3a7bd5','#e08a00','#c0398f','#178a8a','#7a5cd0'];
+  function issueColor(email){ const s=String(email||''); let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0; return _COLORS[h%_COLORS.length]; }
+  async function initCollab(it){
+    if(!USE_DB || !window.Quill || !sb) return false;
+    const [Y, yq, aw] = await Promise.all([
+      import('https://esm.sh/yjs@13.6.20'),
+      import('https://esm.sh/y-quill@1.0.0?deps=yjs@13.6.20'),
+      import('https://esm.sh/y-protocols@1.0.6/awareness?deps=yjs@13.6.20')
+    ]);
+    if(window.QuillCursors && !window.Quill.__cursorsReg){ window.Quill.register('modules/cursors', window.QuillCursors); window.Quill.__cursorsReg=true; }
+    // fresh editor container each open
+    const wrap=document.getElementById('iss-quill-wrap'); wrap.innerHTML='<div id="iss-quill"></div>';
+    const quill=new window.Quill(document.getElementById('iss-quill'), {
+      theme:'snow', placeholder:'Write notes together…',
+      modules:{ cursors:{ transformOnTextChange:true },
+        toolbar:[['bold','italic','underline'],[{header:2},{header:3}],[{list:'ordered'},{list:'bullet'}],['link'],['clean']] }
+    });
+    const ydoc=new Y.Doc();
+    if(it.data.ynotes){ try{ Y.applyUpdate(ydoc,_bytesFromB64(it.data.ynotes)); }catch(e){} }
+    const ytext=ydoc.getText('quill');
+    const awareness=new aw.Awareness(ydoc);
+    awareness.setLocalStateField('user',{ name:pmName(myEmail)||myEmail, email:myEmail, color:issueColor(myEmail) });
+    const binding=new yq.QuillBinding(ytext, quill, awareness);
+    // seed from the classic notes the first time (no CRDT state yet)
+    if(ytext.length===0 && it.data.notes){ try{ quill.clipboard.dangerouslyPasteHTML(0, it.data.notes); }catch(e){} }
+    // right-click inside the editor → make a To-Do from the selection
+    quill.root.addEventListener('contextmenu', function(ev){ const r=quill.getSelection(); if(r&&r.length){ const t=quill.getText(r.index,r.length).trim(); if(t){ ev.preventDefault(); showTodoMenu(ev.pageX,ev.pageY,t); } } });
+    // transport over a Supabase Realtime broadcast channel
+    const chan=sb.channel('issue:'+it.id,{config:{broadcast:{self:false}}});
+    chan.on('broadcast',{event:'yu'},({payload})=>{ try{ Y.applyUpdate(ydoc,_bytesFromB64(payload.d),'remote'); }catch(e){} });
+    chan.on('broadcast',{event:'ya'},({payload})=>{ try{ aw.applyAwarenessUpdate(awareness,_bytesFromB64(payload.d),'remote'); renderIssueHere(); }catch(e){} });
+    chan.on('broadcast',{event:'ysync'},()=>{ try{ chan.send({type:'broadcast',event:'yu',payload:{d:_b64FromBytes(Y.encodeStateAsUpdate(ydoc))}});
+      const ks=Array.from(awareness.getStates().keys()); if(ks.length) chan.send({type:'broadcast',event:'ya',payload:{d:_b64FromBytes(aw.encodeAwarenessUpdate(awareness,ks))}}); }catch(e){} });
+    ydoc.on('update',(update,origin)=>{ if(origin==='remote') return; try{ chan.send({type:'broadcast',event:'yu',payload:{d:_b64FromBytes(update)}}); }catch(e){} scheduleYPersist(); });
+    awareness.on('update',({added,updated,removed})=>{ const ch=added.concat(updated,removed); try{ chan.send({type:'broadcast',event:'ya',payload:{d:_b64FromBytes(aw.encodeAwarenessUpdate(awareness,ch))}}); }catch(e){} renderIssueHere(); });
+    collab={active:true, id:it.id, Y, aw, ydoc, ytext, quill, binding, awareness, channel:chan};
+    await new Promise((resolve)=>{ let done=false; const fin=()=>{ if(!done){ done=true; resolve(); } };
+      try{ chan.subscribe((status)=>{ if(status==='SUBSCRIBED'){ try{ chan.send({type:'broadcast',event:'ysync',payload:{}}); }catch(e){} fin(); } else if(status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED'){ fin(); } }); }catch(e){ fin(); }
+      setTimeout(fin,2500); });
+    renderIssueHere();
+    return true;
+  }
+  let yPersistTimer=null;
+  function scheduleYPersist(){ if(yPersistTimer) clearTimeout(yPersistTimer); yPersistTimer=setTimeout(persistCollab,900); }
+  function persistCollab(){ if(!collab.active) return; const it=mtgItems.find(x=>x.id===collab.id); if(!it) return;
+    try{ it.data.ynotes=_b64FromBytes(collab.Y.encodeStateAsUpdate(collab.ydoc)); }catch(e){}
+    try{ it.data.notes=collab.quill.root.innerHTML; }catch(e){}
+    it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeta(it); }
+  function teardownCollab(){ if(!collab.active){ const he=document.getElementById('iss-here'); if(he) he.innerHTML=''; return; }
+    if(yPersistTimer){ clearTimeout(yPersistTimer); }
+    try{ persistCollab(); }catch(e){}
+    try{ collab.awareness.setLocalState(null); }catch(e){}
+    try{ collab.binding.destroy(); }catch(e){}
+    try{ collab.channel.unsubscribe(); if(sb.removeChannel) sb.removeChannel(collab.channel); }catch(e){}
+    try{ collab.ydoc.destroy(); }catch(e){}
+    collab={active:false};
+    const he=document.getElementById('iss-here'); if(he) he.innerHTML=''; }
+  function renderIssueHere(){ const box=document.getElementById('iss-here'); if(!box||!collab.active) return;
+    const users=Array.from(collab.awareness.getStates().values()).map(s=>s&&s.user).filter(Boolean);
+    const seen={}, list=[]; users.forEach(u=>{ const k=String(u.email||u.name||'').toLowerCase(); if(!k||seen[k]) return; seen[k]=1; list.push(u); });
+    if(list.length<=1){ box.innerHTML='<span class="ih-solo">✍️ You’re the only one here right now — changes save live for whoever joins.</span>'; return; }
+    box.innerHTML='<span class="ih-lbl">Editing together:</span>'+list.map(u=>'<span class="ih-chip" style="border-color:'+esc(u.color||'#8e4fb8')+'" title="'+esc(u.name||'')+'">'+avatarHtml(resolvePerson(u.email||u.name))+'<span>'+esc(u.name||'')+'</span></span>').join(''); }
   function renderIssueMeta(it){ const parts=[];
     parts.push('Created by '+esc(pmName(it.data.author||'')));
     if(it.data.editedAt){ parts.push('last edited '+esc(pmName(it.data.editedBy||it.data.author||''))+' · '+fmtWhen(it.data.editedAt)); }
@@ -2992,14 +3097,14 @@ Herd Life`;
   function fmtWhen(ts){ if(!ts) return ''; const d=new Date(ts); const now=Date.now(); const diff=(now-ts)/1000;
     if(diff<60) return 'just now'; if(diff<3600) return Math.floor(diff/60)+'m ago'; if(diff<86400) return Math.floor(diff/3600)+'h ago';
     return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+', '+d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
-  function closeIssue(){ if(issSaveTimer){ clearTimeout(issSaveTimer); saveIssueField(); } document.getElementById('issueModal').classList.remove('show'); curIssueId=null; renderMeetingView(); }
+  function closeIssue(){ if(issSaveTimer){ clearTimeout(issSaveTimer); } saveIssueField(); teardownCollab(); document.getElementById('issueModal').classList.remove('show'); curIssueId=null; renderMeetingView(); }
   function scheduleIssueSave(){ if(issSaveTimer) clearTimeout(issSaveTimer); issSaveTimer=setTimeout(saveIssueField,700); }
   function saveIssueField(){ const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
     const title=document.getElementById('iss-title').value.trim();
-    const notes=document.getElementById('iss-notes').innerHTML;
     let changed=false;
     if((it.data.text||'')!==title){ it.data.text=title||'Untitled'; changed=true; }
-    if((it.data.notes||'')!==notes){ it.data.notes=notes; changed=true; }
+    if(collab.active){ persistCollab(); }   // notes live in the CRDT; persistCollab writes them
+    else { const notes=document.getElementById('iss-notes').innerHTML; if((it.data.notes||'')!==notes){ it.data.notes=notes; changed=true; } }
     if(changed){ it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeta(it); }
   }
   function deleteIssue(){ const id=curIssueId; if(!id) return;
@@ -3085,7 +3190,9 @@ Herd Life`;
   function hideTodoMenu(){ const menu=document.getElementById('todoCtxMenu'); if(menu){ menu.classList.remove('show'); menu.style.display='none'; } }
   function todoFromToolbar(ev){
     if(ev){ ev.stopPropagation(); }
-    const sel=((window.getSelection&&window.getSelection().toString())||'').trim();
+    let sel='';
+    if(collab.active && collab.quill){ const r=collab.quill.getSelection(); if(r&&r.length) sel=collab.quill.getText(r.index,r.length).trim(); }
+    if(!sel){ sel=((window.getSelection&&window.getSelection().toString())||'').trim(); }
     if(!sel){ showToast('Highlight some text in the notes first, then press ✅ To-Do'); return; }
     let x=window.scrollX+120, y=window.scrollY+220;
     if(ev&&ev.currentTarget&&ev.currentTarget.getBoundingClientRect){ const r=ev.currentTarget.getBoundingClientRect(); x=window.scrollX+r.left; y=window.scrollY+r.bottom+6; }
