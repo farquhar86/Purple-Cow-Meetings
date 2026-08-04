@@ -2223,7 +2223,8 @@
     // x labels (every ~2 weeks)
     rows.forEach((p,i)=>{ if(i%2===0||i===n-1){ svg+='<text x="'+X(i)+'" y="'+(H-PB+16)+'" text-anchor="middle" font-size="9.5" fill="#6b5e78">'+esc(p.date.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+'</text>'; } });
     // pace line (dashed) 0 -> G
-    let pace=[]; rows.forEach((p,i)=>pace.push(X(i)+','+Y(p.pace))); pace.unshift(X(0)+','+Y(0));
+    // clean diagonal: 0 at the quarter's starting line, ramping to the full goal at the end
+    let pace=[]; rows.forEach((p,i)=>pace.push(X(i)+','+Y(Number(G)*i/(n-1))));
     svg+='<polyline fill="none" stroke="#6b5e78" stroke-width="2" stroke-dasharray="6,4" points="'+pace.join(' ')+'"/>';
     // today marker
     const nowIdx=rows.findIndex(p=>p.isNow);
