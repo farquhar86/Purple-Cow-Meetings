@@ -82,7 +82,7 @@
   .sb-menu-hd b{color:var(--ink);}
   .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
   .sb-menu button:hover{background:var(--lilac);}
-  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-cowu{margin-left:236px;}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
   body.presenting #screen-dash{margin-left:0 !important;}
   /* placeholder section pages */
   .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
@@ -102,27 +102,39 @@
   .vz-purpose .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:700;}
   .vz-purpose .txt{font-size:1.3rem;font-weight:700;color:var(--purple-dark);margin-top:6px;}
   .vz-h{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin:8px 0 12px;}
-  /* Cow U */
-  .cowu-hero{background:linear-gradient(135deg,var(--purple-dark),var(--purple));color:#fff;border-radius:18px;padding:34px 30px;text-align:center;margin-bottom:26px;box-shadow:var(--shadow);}
-  .cowu-hero-emoji{font-size:2.4rem;margin-bottom:6px;}
-  .cowu-hero h2{margin:0 0 10px;font-size:1.7rem;font-weight:800;letter-spacing:-.4px;}
-  .cowu-hero p{margin:0 auto;max-width:640px;font-size:1rem;line-height:1.6;color:#f0e6fa;}
-  .cowu-ranks{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px;}
-  .cowu-rank{background:#fff;border:1px solid var(--line);border-top:4px solid var(--purple);border-radius:14px;padding:16px 12px;text-align:center;box-shadow:var(--shadow);}
-  .cowu-rank-badge{font-size:1.9rem;line-height:1;}
-  .cowu-rank-n{font-weight:800;color:var(--purple-dark);margin-top:8px;font-size:.98rem;}
-  .cowu-rank-s{color:var(--muted);font-size:.78rem;margin-top:2px;}
-  .cowu-xp{background:#faf6ff;border:1px dashed var(--purple);border-radius:12px;padding:14px 18px;color:var(--ink);font-size:.9rem;line-height:1.5;margin-bottom:28px;}
-  .cowu-tracks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
-  .cowu-track{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);}
-  .cowu-track-hd{font-weight:800;color:var(--purple-dark);font-size:1.02rem;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--line);}
-  .cowu-skill{font-size:.9rem;color:var(--ink);padding:5px 0 5px 20px;position:relative;line-height:1.4;}
-  .cowu-skill:before{content:"🐄";position:absolute;left:0;top:5px;font-size:.8rem;}
-  .cowu-connect{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px;color:var(--ink);font-size:.95rem;line-height:1.6;box-shadow:var(--shadow);}
-  .cowu-embedbar{display:flex;justify-content:space-between;align-items:center;background:var(--purple-dark);color:#fff;padding:10px 16px;border-radius:12px 12px 0 0;font-weight:700;font-size:.9rem;}
-  .cowu-openlink{color:#fff;text-decoration:underline;font-size:.85rem;font-weight:600;}
-  .cowu-frame{width:100%;height:78vh;border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;background:#fff;}
-  .cowu-note{color:var(--muted);font-size:.82rem;margin-top:10px;line-height:1.5;}
+  /* To-Dos page */
+  .td-scope{display:inline-flex;background:#f0e9f7;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;}
+  .td-scope button{border:none;background:transparent;padding:6px 14px;border-radius:8px;font-weight:700;font-size:.85rem;color:var(--purple-dark);cursor:pointer;}
+  .td-scope button.on{background:var(--purple);color:#fff;}
+  .td-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:22px;}
+  .td-stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
+  .td-stat .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;}
+  .td-stat .num{font-size:1.9rem;font-weight:800;color:var(--purple-dark);margin-top:4px;line-height:1;}
+  .td-stat .sub{font-size:.78rem;color:var(--muted);margin-top:4px;}
+  .td-stat.warn{border-top-color:#e0a800;} .td-stat.warn .num{color:#c78a00;}
+  .td-stat.bad{border-top-color:#d9534f;} .td-stat.bad .num{color:#c9302c;}
+  .td-stat.good{border-top-color:#2e9e5b;} .td-stat.good .num{color:#26834b;}
+  .td-add{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);margin-bottom:24px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .td-add input[type=text]{flex:1 1 260px;min-width:180px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;font-size:.95rem;}
+  .td-add select,.td-add input[type=date]{padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-size:.9rem;background:#fff;}
+  .td-group{margin-bottom:22px;}
+  .td-group-hd{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--purple-dark);font-size:1rem;margin:0 0 10px;}
+  .td-group-hd .cnt{background:#f0e9f7;color:var(--purple-dark);border-radius:20px;padding:1px 9px;font-size:.78rem;}
+  .td-group.overdue .td-group-hd{color:#c9302c;} .td-group.overdue .td-group-hd .cnt{background:#fbe6e5;color:#c9302c;}
+  .td-item{display:flex;align-items:flex-start;gap:11px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 14px;box-shadow:var(--shadow);margin-bottom:8px;}
+  .td-item.od{border-left:4px solid #d9534f;}
+  .td-item input[type=checkbox]{margin-top:3px;width:17px;height:17px;flex:0 0 auto;cursor:pointer;}
+  .td-item .txt{flex:1;font-size:.95rem;line-height:1.4;color:var(--ink);}
+  .td-item.done .txt{text-decoration:line-through;color:var(--muted);}
+  .td-item .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;font-size:.76rem;color:var(--muted);}
+  .td-item .meta .pill{background:#f4f0fa;border-radius:20px;padding:1px 8px;}
+  .td-item .meta .pill.late{background:#fbe6e5;color:#c9302c;} .td-item .meta .pill.ontime{background:#e5f4ea;color:#26834b;}
+  .td-item .who{display:flex;align-items:center;gap:5px;}
+  .td-item .who .tm-avatar,.td-item .who .tm-initials{width:20px;height:20px;font-size:.6rem;border-radius:50%;}
+  .td-item .x{margin-left:auto;border:none;background:transparent;color:#bbb;cursor:pointer;font-size:1rem;line-height:1;padding:2px 4px;}
+  .td-item .x:hover{color:#c9302c;}
+  .td-item .src{font-size:.72rem;color:var(--purple);cursor:pointer;}
+  .td-empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted);}
   .vz-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
   .vz-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
   .vz-card .vn{font-weight:800;color:var(--purple-dark);font-size:1.08rem;margin-bottom:8px;}
@@ -242,6 +254,11 @@
   .sc-meta{display:flex;justify-content:space-between;gap:10px;font-size:.8rem;color:var(--muted);margin-top:12px;}
   .sc-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.78rem;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
   .sc-open{color:var(--purple);font-weight:600;white-space:nowrap;}
+  .sc-cumtag{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--purple);background:#f0e6fa;border-radius:999px;padding:2px 7px;vertical-align:middle;}
+  .sc-cum{font-size:.82rem;color:var(--ink);line-height:1.45;}
+  .sc-cum2{font-size:.72rem;color:var(--muted);margin-top:3px;}
+  .ch-proj{background:#faf6ff;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:12px 16px;margin:4px 0 14px;font-size:.9rem;line-height:1.5;color:var(--ink);}
+  .ch-proj.off{border-left-color:#d8533b;} .ch-proj.on{border-left-color:#2e9e6b;}
   .mx-owner-group{margin-bottom:22px;}
   .mx-owner-hd{display:flex;align-items:center;gap:9px;padding:6px 2px 10px;border-bottom:2px solid var(--lilac-2);margin-bottom:14px;}
   .mx-owner-hd img,.mx-owner-hd .tm-initials{width:30px;height:30px;border-radius:50%;}
@@ -639,7 +656,7 @@
     body.app-shell #mobileNavBtn{display:flex;}
     #appSidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 22px rgba(0,0,0,.18);width:260px;}
     body.sb-open #appSidebar{transform:none;}
-    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-cowu{margin-left:0 !important;}
+    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:0 !important;}
     /* leave room for the ☰ button on section headers */
     .sec-head{padding:20px 16px 18px 66px !important;}
     .sec-head h1{font-size:1.25rem;}
@@ -686,7 +703,6 @@
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
-    <button class="sb-item" data-sec="cowu" onclick="navTo('cowu')"><span class="sb-ic">🎓</span>Cow U</button>
   </nav>
   <div class="sb-bottom">
     <button class="sb-add manage-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
@@ -963,8 +979,9 @@
     <div style="margin-top:10px;">
       <label>What kind of quarterly goal is this?</label>
       <select id="mx-goalkind" onchange="mxRenderLegend()" style="width:100%;">
-        <option value="total">A total for the quarter — weekly goal is the target ÷ 13 (churn, sales, signups)</option>
+        <option value="total">Weekly target — hit the same number every week, target ÷ 13 (churn, weekly sales)</option>
         <option value="level">A level to reach — every week is measured against the full target (active members, %)</option>
+        <option value="cumulative">A running total by quarter-end — just track if we're on or off pace (e.g. 1,500 by end of Q)</option>
       </select>
     </div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:12px;cursor:pointer;font-weight:600;">
@@ -1321,15 +1338,6 @@
   <div id="visionWrap" class="vz-wrap"></div>
 </div>
 
-<!-- ====================== SECTION: COW U ====================== -->
-<div id="screen-cowu" style="display:none;">
-  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
-    <div><h1>🎓 Cow U</h1><p>Training &amp; AI coaching for the herd — from Calf to Purple Cow Legend.</p></div>
-    <button class="btn ghost manage-only" id="cowuEditBtn" onclick="openCowuLink()">🔗 Connect app</button>
-  </div>
-  <div id="cowuWrap" class="cowu-wrap"></div>
-</div>
-
 <!-- ====================== SECTION: METRICS ====================== -->
 <div id="screen-metrics" style="display:none;">
   <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
@@ -1350,13 +1358,14 @@
 
 <!-- ====================== SECTION: TO-DOS ====================== -->
 <div id="screen-todos" style="display:none;">
-  <div class="sec-head"><h1>✅ To-Dos</h1><p>Short 7-day commitments with an owner and a due date.</p></div>
-  <div class="sec-body">
-    <div class="sec-emoji">✅</div>
-    <h2>To-Dos</h2>
-    <p>Capture action items from your meetings, assign an owner and due date, and check them off week to week. We'll build this next.</p>
-    <span class="sec-soon">Coming soon</span>
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div><h1>✅ To-Dos</h1><p>Every commitment made in your meetings, in one place.</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div id="td-scope" class="td-scope manage-only"></div>
+      <button class="btn ghost sm" onclick="refreshTodos()" title="Reload from the server">↻ Refresh</button>
+    </div>
   </div>
+  <div id="todosWrap"></div>
 </div>
 
 <!-- ====================== SECTION: ISSUES ====================== -->
@@ -1879,6 +1888,15 @@
     const m={ goal: gEl.value===''?'':Number(gEl.value), unit:(document.getElementById('mx-unit')||{}).value||'number',
               direction:(document.getElementById('mx-dir')||{}).value||'higher', tierPct:(document.getElementById('mx-pct')||{}).value,
               goalKind:(document.getElementById('mx-goalkind')||{}).value||'total' };
+    if(m.goalKind==='cumulative'){
+      if(m.goal===''||isNaN(Number(m.goal))){ box.innerHTML='<p class="lg-tt">Enter the quarter-end total to preview the pace.</p>'; return; }
+      const per=Number(m.goal)/WEEKS_PER_QUARTER;
+      box.innerHTML='<p class="lg-tt">RUNNING TOTAL — GOAL IS <b>'+fmtVal(m,m.goal)+' BY QUARTER-END</b></p>'
+        +'<p class="lg-tt">Each week adds to the total. We compare where you are against the straight-line pace ('+fmtTgt(m,per)+' a week) and show if you\'re ahead or behind — no weekly pass/fail.</p>'
+        +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.great+'"></span><span class="lg-lab">At or ahead of pace</span></div>'
+        +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-lab">Behind pace</span></div>';
+      return;
+    }
     const sc=goalScale(m);
     const b=tierBandsGoal(m, (m.goal===''?'':Number(m.goal)*sc));
     if(!b){ box.innerHTML='<p class="lg-tt">Enter a quarterly target to preview the colour bands.</p>'; return; }
@@ -1896,7 +1914,57 @@
   const TIER_LABEL={great:'Smashed it',good:'On target',warn:'Just off',bad:'Missed'};
   function goalLabelShort(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return 'No goal set'; const wk=effectiveGoal(m,new Date()); return (m.direction==='lower'?'≤ ':'≥ ')+fmtTgt(m,wk)+' / week'; }
   function colFor(w){ return {key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)}; }
+  /* ---- cumulative ("running total to a quarter-end goal") helpers ---- */
+  function isCumulative(m){ return m && m.goalKind==='cumulative'; }
+  /* progress within the quarter that `date` falls in: cumulative-to-date vs the straight-line pace */
+  function metricQuarterInfo(m,date){
+    const G=goalForDate(m,date);
+    if(G===''||G==null||isNaN(Number(G))) return null;
+    const qk=quarterKeyOf(date), r=quarterRange(qk); if(!r) return null;
+    const wkStart=alignWeekStart(date);
+    const firstWk=alignWeekStart(r.start);
+    let we=Math.round((wkStart.getTime()-firstWk.getTime())/(7*86400000))+1;
+    we=Math.max(1,Math.min(WEEKS_PER_QUARTER,we));
+    let cum=0, any=false;
+    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
+      if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
+    const expected=Number(G)*we/WEEKS_PER_QUARTER;
+    const diff=cum-expected;
+    const projected= we>0 ? cum/we*WEEKS_PER_QUARTER : 0;
+    const onTrack=(m.direction==='lower')?(cum<=expected):(cum>=expected);
+    return { qk, G:Number(G), weeksElapsed:we, weeksTotal:WEEKS_PER_QUARTER, cum, expected, diff, projected, any, onTrack };
+  }
+  function cumTier(m,qi){ if(!qi) return ''; if(qi.onTrack) return 'great';
+    const tol=Math.abs(qi.expected)*(Number(m.tierPct)||0)/100; return (Math.abs(qi.diff)<=tol)?'warn':'bad'; }
+  function cumCardHtml(m,lastW,thisW){
+    const editable=canEditMetric(m);
+    const cvT=cellValue(m,colFor(thisW));
+    const qi=metricQuarterInfo(m,thisW);
+    const tier=qi?cumTier(m,qi):''; const color=TIER_COLORS[tier]||'#c9bcd9';
+    const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+    const coBadge=m.company?' <span title="Company metric — shows on meeting scorecards">🏢</span>':'';
+    const big = editable
+      ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
+      : '<span class="sc-big">'+(cvT.eff!=null&&!isNaN(cvT.eff)?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
+    let statusTxt='Set a quarter goal', sub='';
+    if(qi){
+      const off=Math.abs(qi.diff);
+      statusTxt = qi.onTrack ? 'On track' : 'Behind';
+      if(tier==='warn' && !qi.onTrack) statusTxt='Just behind';
+      sub='<div class="sc-cum"><b>'+esc(fmtVal(m,qi.cum))+'</b> of '+esc(fmtVal(m,qi.G))+' &middot; '
+        + (qi.onTrack?'ahead of':'behind') + ' pace by <b>'+esc(fmtVal(m,off))+'</b>'
+        + '<div class="sc-cum2">Week '+qi.weeksElapsed+' of '+qi.weeksTotal+' &middot; pace needs '+esc(fmtVal(m,qi.expected))+' by now &middot; on this trend ≈ '+esc(fmtVal(m,Math.round(qi.projected)))+'</div></div>';
+    }
+    return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
+      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+' <span class="sc-cumtag">running total</span></span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">this week</span></span>'
+      +'<span class="sc-tier" style="background:'+color+'">'+statusTxt+'</span></div>'
+      +'<div class="sc-meta">'+sub+'</div>'
+      +'<div class="sc-foot"><span style="color:var(--muted)">Goal: '+esc(fmtVal(m,qi?qi.G:goalForDate(m,thisW)))+' by quarter-end</span><span class="sc-open">History &amp; graph →</span></div>'
+      +'</div>';
+  }
   function metricCardHtml(m,lastW,thisW){
+    if(isCumulative(m)) return cumCardHtml(m,lastW,thisW);
     const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
     const gT=effectiveGoal(m,thisW);
     const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
@@ -2039,6 +2107,7 @@
                goal:(g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) }; });
   }
   function renderMetricChart(m){
+    if(isCumulative(m)) return renderCumulativeChart(m);
     const pts=metricChartPoints(m);
     const nums=[]; pts.forEach(p=>{ if(p.actual!==null) nums.push(p.actual); if(p.goal!==null) nums.push(p.goal); });
     if(!nums.length) return '<p class="empty">No targets or results recorded yet — set a quarterly target or enter a weekly number first.</p>';
@@ -2119,6 +2188,85 @@
          + (m.goalKind!=='level' ? ' ('+esc(fmtVal(m,goalForDate(m,new Date())))+' a quarter ÷ 13)' : '')
          + '</span><span class="ch-key">Shaded area = beating the goal</span></div>'
          + svg + summary + tbl;
+  }
+  /* cumulative chart: running total vs the straight-line pace to the quarter-end goal */
+  function renderCumulativeChart(m){
+    const today=new Date(); today.setHours(0,0,0,0);
+    const qk=quarterKeyOf(today), r=quarterRange(qk);
+    const G=goalForDate(m,today);
+    if(G===''||G==null||isNaN(Number(G))) return '<p class="empty">Set a quarter-end total for this metric to see the pace chart. Edit the metric and enter a <b>Quarterly target</b>.</p>';
+    const firstWk=alignWeekStart(r.start);
+    const nowWk=alignWeekStart(today);
+    const weeks=[]; for(let i=0;i<WEEKS_PER_QUARTER;i++){ weeks.push(new Date(firstWk.getTime()+i*7*86400000)); }
+    // cumulative actual per week (null for future / no data yet)
+    let running=0, sawAny=false;
+    const rows=weeks.map((w,i)=>{
+      const key=wkKey(w); const raw=(m.values||{})[key];
+      const has=!(raw===undefined||raw===null||raw===''||isNaN(Number(raw)));
+      const isFuture=w.getTime()>nowWk.getTime();
+      if(has){ running+=Number(raw); sawAny=true; }
+      const pace=Number(G)*(i+1)/WEEKS_PER_QUARTER;
+      return { i, date:w, added:has?Number(raw):null, cum:(isFuture&&!has)?null:(sawAny||has?running:null), pace, isFuture, isNow:(w.getTime()===nowWk.getTime()) };
+    });
+    const qi=metricQuarterInfo(m,today);
+    const nums=[0,Number(G)]; rows.forEach(p=>{ if(p.cum!==null) nums.push(p.cum); });
+    const W=820,H=330,PL=58,PR=18,PT=16,PB=52;
+    let mn=Math.min.apply(null,nums), mx=Math.max.apply(null,nums);
+    if(mn===mx){ mx=mn+1; } const padY=(mx-mn)*0.1; mn-=padY; mx+=padY; if(mn>0) mn=0;
+    const n=weeks.length;
+    const X=i=> PL + i*(W-PL-PR)/(n-1);
+    const Y=v=> PT + (mx-v)*(H-PT-PB)/(mx-mn);
+    let svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:100%;height:auto;font-family:inherit;">';
+    for(let i=0;i<=4;i++){ const v=mn+(mx-mn)*i/4, y=Y(v);
+      svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#e3d6ef" stroke-width="1"/>'
+         + '<text x="'+(PL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#6b5e78">'+esc(fmtVal(m,v))+'</text>'; }
+    // x labels (every ~2 weeks)
+    rows.forEach((p,i)=>{ if(i%2===0||i===n-1){ svg+='<text x="'+X(i)+'" y="'+(H-PB+16)+'" text-anchor="middle" font-size="9.5" fill="#6b5e78">'+esc(p.date.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+'</text>'; } });
+    // pace line (dashed) 0 -> G
+    let pace=[]; rows.forEach((p,i)=>pace.push(X(i)+','+Y(p.pace))); pace.unshift(X(0)+','+Y(0));
+    svg+='<polyline fill="none" stroke="#6b5e78" stroke-width="2" stroke-dasharray="6,4" points="'+pace.join(' ')+'"/>';
+    // today marker
+    const nowIdx=rows.findIndex(p=>p.isNow);
+    if(nowIdx>=0){ const x=X(nowIdx); svg+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8e4fb8" stroke-width="1.5"/>'
+      +'<text x="'+(x+4)+'" y="'+(PT+12)+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
+    // actual cumulative (solid)
+    let aseg=[]; rows.forEach((p,i)=>{ if(p.cum===null){ return; } aseg.push(X(i)+','+Y(p.cum)); });
+    if(aseg.length>1) svg+='<polyline fill="none" stroke="#6a2c8f" stroke-width="2.8" points="'+aseg.join(' ')+'"/>';
+    rows.forEach((p,i)=>{ if(p.cum===null) return; const good=(m.direction==='lower')?(p.cum<=p.pace):(p.cum>=p.pace);
+      svg+='<circle cx="'+X(i)+'" cy="'+Y(p.cum)+'" r="3.6" fill="'+(good?'#2e9e6b':'#d8533b')+'"><title>'+esc(p.date.toLocaleDateString()+' · running total '+fmtVal(m,p.cum))+'</title></circle>'; });
+    // goal dot at end
+    svg+='<circle cx="'+X(n-1)+'" cy="'+Y(Number(G))+'" r="4" fill="none" stroke="#6b5e78" stroke-width="2"/><text x="'+(X(n-1)-4)+'" y="'+(Y(Number(G))-8)+'" text-anchor="end" font-size="10" fill="#6b5e78" font-weight="700">goal '+esc(fmtVal(m,G))+'</text>';
+    svg+='</svg>';
+    // projection banner
+    let banner='';
+    if(qi && qi.any){
+      const off=Math.abs(qi.diff); const cls=qi.onTrack?'on':'off';
+      const willHit=(m.direction==='lower')?(qi.projected<=qi.G):(qi.projected>=qi.G);
+      banner='<div class="ch-proj '+cls+'">'
+        +'<b>'+(qi.onTrack?'On pace ✅':'Behind pace ⚠️')+'</b> — you\'re at <b>'+esc(fmtVal(m,qi.cum))+'</b> of '+esc(fmtVal(m,qi.G))
+        +' after week '+qi.weeksElapsed+' of '+qi.weeksTotal+'. Pace says you should be at '+esc(fmtVal(m,qi.expected))
+        +', so you\'re '+(qi.onTrack?'ahead by':'behind by')+' <b>'+esc(fmtVal(m,off))+'</b>. '
+        +'At this rate you\'ll finish around <b>'+esc(fmtVal(m,Math.round(qi.projected)))+'</b> — '+(willHit?'on track to hit the goal.':'short of the goal.')+'</div>';
+    } else {
+      banner='<div class="ch-proj">Enter this quarter\'s weekly numbers to see how you\'re tracking against the '+esc(fmtVal(m,G))+' goal.</div>';
+    }
+    // table
+    let tbl='<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Added</th><th>Running total</th><th>Pace target</th><th>Ahead / behind</th></tr></thead><tbody>';
+    rows.slice().reverse().forEach(p=>{
+      const diff=(p.cum===null)?null:(p.cum-p.pace);
+      const good=diff===null?null:((m.direction==='lower')?diff<=0:diff>=0);
+      const ds=diff===null?'—':'<span class="ch-pill" style="background:'+(good?'#2e9e6b':'#d8533b')+'">'+(diff>=0?'+':'')+fmtVal(m,diff)+'</span>';
+      tbl+='<tr'+(p.isNow?' style="background:#faf6ff;"':'')+'><td class="lft">'+p.date.toLocaleDateString(undefined,{month:'short',day:'numeric'})+(p.isNow?' <b style="color:var(--purple)">· now</b>':'')+'</td>'
+        +'<td>'+(p.added===null?'—':fmtVal(m,p.added))+'</td>'
+        +'<td><b>'+(p.cum===null?'—':fmtVal(m,p.cum))+'</b></td>'
+        +'<td style="color:var(--muted)">'+fmtVal(m,Math.round(p.pace))+'</td>'
+        +'<td>'+ds+'</td></tr>';
+    });
+    tbl+='</tbody></table></div>';
+    return '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Running total</span>'
+      +'<span class="ch-key"><i class="ch-swatch dash"></i> Straight-line pace to '+esc(fmtVal(m,G))+'</span>'
+      +'<span class="ch-key">Green dot = at/ahead of pace</span></div>'
+      + svg + banner + tbl;
   }
   let curChartMetricId=null;
   function openMetricChart(id){
@@ -2269,50 +2417,118 @@
     if(curChartMetricId===id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(id);
   }
 
-  /* ================= COW U (learning & coaching) ================= */
-  const COWU_RANKS=[
-    {n:'Calf',s:0,e:'🐮'},{n:'Grazer',s:3,e:'🌱'},{n:'Trailblazer',s:6,e:'🧭'},
-    {n:'Herd Leader',s:10,e:'⭐'},{n:'Prize Bull',s:15,e:'🏆'},{n:'Purple Cow Legend',s:21,e:'👑'}
-  ];
-  const COWU_REP_TRACKS=[
-    {t:'Connection',sk:['Active Listening','Empathy & Validation','Mirroring & Matching','Building Rapport Fast','Warmth Through the Screen']},
-    {t:'Clarity',sk:['Plain-Language Explanations','Confirming Understanding','Setting Expectations','Positive Reframing','Pacing & Silence']},
-    {t:'Problem Solving',sk:['Powerful Questioning','Root-Cause Diagnosis','Ownership & Accountability','First-Contact Resolution','Closing the Loop']},
-    {t:'Handling Difficulty',sk:['De-escalation','Handling Objections','Saying No Gracefully','Calm Under Pressure','Awkward Moments']},
-    {t:'Sales & Retention',sk:['Uncovering Needs','Value, Not Features','Asking for the Sale','Natural Upsell','Save & Win-Back']},
-    {t:'Professionalism',sk:['Call & Chat Control','Notes & Multitasking','Product Fluency','Personalization','Ending on a High Note']}
-  ];
-  const COWU_MGR_TRACKS=[
-    {t:'Coaching & Development',sk:['Giving Effective Feedback','Running Great 1:1s','Coaching in the Moment','Setting Growth Goals','Recognizing Wins']},
-    {t:'Leading People',sk:['Listening to Your Team','Building Trust & Safety','Delegation & Empowerment','Handling Underperformance','Motivating Without Micromanaging']},
-    {t:'Communication & Conflict',sk:['Difficult Conversations','De-escalating Team Conflict','Setting Clear Expectations','Giving the Why','Managing Up & Across']},
-    {t:'Operations & Performance',sk:['Reading the Metrics','Data-Driven Coaching','Time & Priority Management','Consistency & Fairness','Change Management']}
-  ];
-  function cowuUrl(){ try{ return localStorage.getItem(KEY+'_cowuUrl')||''; }catch(e){ return ''; } }
-  function openCowuLink(){ if(!canManageUsers()) return; const cur=cowuUrl();
-    const url=prompt('Paste the web address of your deployed Cow-niversity app (leave blank to remove and show the overview):', cur);
-    if(url===null) return; try{ localStorage.setItem(KEY+'_cowuUrl',(url||'').trim()); }catch(e){} renderCowU(); }
-  function tracksHtml(tracks){ return '<div class="cowu-tracks">'+tracks.map(tr=>
-    '<div class="cowu-track"><div class="cowu-track-hd">'+esc(tr.t)+'</div>'+tr.sk.map(s=>'<div class="cowu-skill">'+esc(s)+'</div>').join('')+'</div>').join('')+'</div>'; }
-  function renderCowU(){ const wrap=document.getElementById('cowuWrap'); if(!wrap) return;
-    const url=cowuUrl();
-    if(url){
-      wrap.innerHTML='<div class="cowu-embedbar">Live Cow U app'
-        +' <a href="'+esc(url)+'" target="_blank" rel="noopener" class="cowu-openlink">Open in new tab ↗</a></div>'
-        +'<iframe class="cowu-frame" src="'+esc(url)+'" title="Cow U"></iframe>'
-        +'<p class="cowu-note">If the app doesn\'t appear above, it may block embedding — use "Open in new tab". '+(canManageUsers()?'Admins can change the link with <b>🔗 Connect app</b> up top.':'')+'</p>';
-      return;
-    }
-    let html='<div class="cowu-hero"><div class="cowu-hero-emoji">🎓🐄</div><h2>Welcome to Cow U</h2>'
-      +'<p>Every week our AI coach reads each rep\'s real customer conversations, works out the one skill they most need, coaches them over Slack, and on Friday awards the badge or keeps building. Managers get the same loop on their own leadership curriculum.</p></div>';
-    html+='<div class="vz-h">The Climb — Cow Ranks</div><div class="cowu-ranks">'
-      + COWU_RANKS.map(r=>'<div class="cowu-rank"><div class="cowu-rank-badge">'+r.e+'</div><div class="cowu-rank-n">'+esc(r.n)+'</div><div class="cowu-rank-s">'+r.s+' skills</div></div>').join('')
+  /* ================= TO-DOS (all commitments in one place) ================= */
+  let tdScope='mine';   // 'mine' | 'all'
+  function parseYMD(s){ if(!s||typeof s!=='string') return null; const m=s.match(/^(\d{4})-(\d{2})-(\d{2})/); if(!m) return null; return new Date(Number(m[1]),Number(m[2])-1,Number(m[3])); }
+  function sameEmail(a,b){ if(!a||!b) return false; return String(resolvePerson(a)).toLowerCase()===String(resolvePerson(b)).toLowerCase(); }
+  function isTodoItem(it){ return it && it.data && it.data.type==='pri'; }
+  /* due date: explicit data.due, else 7 days after the week/meeting date it was set for */
+  function todoDue(it){ const ex=parseYMD(it.data.due); if(ex) return ex; const base=parseYMD(it.inst); if(base){ const d=new Date(base); d.setDate(d.getDate()+7); return d; } return null; }
+  function endOfDay(d){ const x=new Date(d); x.setHours(23,59,59,999); return x; }
+  function todoOnTime(it){ if(!it.data.done) return false; const due=todoDue(it); if(!due) return true; const da=it.data.doneAt; if(!da) return true; return new Date(da)<=endOfDay(due); }
+  function todoOwner(it){ return it.data.author||it.data.owner||''; }
+  function mtgTitleOf(id){ if(id==='standalone') return ''; const m=mtgsStore.find(x=>x.id===id); return m?(m.title||'Meeting'):''; }
+
+  async function ensureTodos(){ if(!mtgLoaded) await dbLoadMeetings(); }
+  function renderTodosSection(){ ensureTodos().then(renderTodos); }
+  async function refreshTodos(){ await dbLoadMeetings(); renderTodos(); showToast('To-Dos refreshed'); }
+  function setTodoScope(s){ tdScope=s; renderTodos(); }
+
+  function renderTodos(){
+    const wrap=document.getElementById('todosWrap'); if(!wrap) return;
+    // scope toggle (managers only; team members always see just their own)
+    const scopeBox=document.getElementById('td-scope');
+    if(scopeBox) scopeBox.innerHTML = '<button class="'+(tdScope==='mine'?'on':'')+'" onclick="setTodoScope(\'mine\')">Mine</button>'
+      +'<button class="'+(tdScope==='all'?'on':'')+'" onclick="setTodoScope(\'all\')">Everyone</button>';
+    const scope = canManageUsers()?tdScope:'mine';
+
+    let all=mtgItems.filter(isTodoItem);
+    if(scope==='mine') all=all.filter(it=>sameEmail(todoOwner(it),myEmail));
+
+    // stats
+    const total=all.length, doneN=all.filter(it=>it.data.done).length, openN=total-doneN;
+    const onTimeN=all.filter(it=>it.data.done&&todoOnTime(it)).length;
+    const now=new Date(); const todayStart=new Date(); todayStart.setHours(0,0,0,0);
+    const overdueN=all.filter(it=>!it.data.done && todoDue(it) && endOfDay(todoDue(it))<now).length;
+    const compPct=total?Math.round(doneN/total*100):0;
+    const otPct=doneN?Math.round(onTimeN/doneN*100):0;
+    const compCls=compPct>=80?'good':(compPct>=50?'warn':'bad');
+    const otCls=otPct>=80?'good':(otPct>=50?'warn':'bad');
+
+    let html='<div class="td-stats">'
+      +'<div class="td-stat '+compCls+'"><div class="lbl">Completion</div><div class="num">'+compPct+'%</div><div class="sub">'+doneN+' of '+total+' done</div></div>'
+      +'<div class="td-stat '+otCls+'"><div class="lbl">On-time</div><div class="num">'+otPct+'%</div><div class="sub">of completed to-dos</div></div>'
+      +'<div class="td-stat"><div class="lbl">Open</div><div class="num">'+openN+'</div><div class="sub">still to do</div></div>'
+      +'<div class="td-stat '+(overdueN?'bad':'')+'"><div class="lbl">Overdue</div><div class="num">'+overdueN+'</div><div class="sub">past due date</div></div>'
       +'</div>';
-    html+='<div class="cowu-xp">🏅 <b>XP</b> = mastered skills × 100 + streak × 10 &nbsp;·&nbsp; badges per skill &amp; track &nbsp;·&nbsp; streaks for daily engagement &nbsp;·&nbsp; coaches ranked by how much their team improves.</div>';
-    html+='<div class="vz-h">Rep Curriculum — 6 tracks · 30 skills</div>'+tracksHtml(COWU_REP_TRACKS);
-    html+='<div class="vz-h">Leadership Curriculum — 4 tracks · 20 skills</div>'+tracksHtml(COWU_MGR_TRACKS);
-    if(canManageUsers()) html+='<div class="cowu-connect"><b>Ready to go live?</b> Deploy the Cow-niversity app, then click <b>🔗 Connect app</b> at the top and paste its URL — it will load right here inside Cow U.</div>';
+
+    // add form
+    const defDue=new Date(); defDue.setDate(defDue.getDate()+7); const defYMD=wkKey(defDue);
+    const canAssign=canCreate();
+    html+='<div class="td-add">'
+      +'<input type="text" id="td-new-text" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')addStandaloneTodo()">'
+      +(canAssign?'<select id="td-new-who" title="Assign to">'+ownerOptions(myEmail)+'</select>':'')
+      +'<input type="date" id="td-new-due" value="'+defYMD+'" title="Due date">'
+      +'<button class="btn sm" onclick="addStandaloneTodo()">➕ Add</button>'
+      +'</div>';
+
+    if(!total){ wrap.innerHTML=html+'<div class="td-empty">No to-dos yet. Add one above, or create them in a meeting’s To-Dos section.</div>'; return; }
+
+    const thisWeekEnd=new Date(alignWeekStart(new Date()).getTime()+6*86400000); thisWeekEnd.setHours(23,59,59,999);
+    const open=all.filter(it=>!it.data.done), done=all.filter(it=>it.data.done);
+    const overdue=[],week=[],later=[];
+    open.forEach(it=>{ const due=todoDue(it); if(due&&endOfDay(due)<now) overdue.push(it); else if(!due||endOfDay(due)<=thisWeekEnd) week.push(it); else later.push(it); });
+    const byDue=(a,b)=>{ const da=todoDue(a),db=todoDue(b); return (da?da.getTime():8.64e15)-(db?db.getTime():8.64e15); };
+    overdue.sort(byDue); week.sort(byDue); later.sort(byDue);
+    done.sort((a,b)=>((b.data.doneAt||b.data.t||0)-(a.data.doneAt||a.data.t||0)));
+
+    html+=todoGroup('⚠️ Overdue', overdue, 'overdue', scope);
+    html+=todoGroup('📅 This week', week, '', scope);
+    html+=todoGroup('🗓️ Later', later, '', scope);
+    html+=todoGroup('✅ Completed', done.slice(0,40), 'done-group', scope, done.length);
     wrap.innerHTML=html;
+  }
+  function fmtDue(d){ if(!d) return ''; const mo=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return mo[d.getMonth()]+' '+d.getDate(); }
+  function todoGroup(label, items, cls, scope, fullCount){
+    if(!items.length) return '';
+    const shownNote=(fullCount&&fullCount>items.length)?' (latest '+items.length+')':'';
+    let h='<div class="td-group '+(cls||'')+'"><div class="td-group-hd">'+label+'<span class="cnt">'+(fullCount||items.length)+'</span>'+(shownNote?'<span class="sub" style="font-size:.72rem;color:var(--muted);font-weight:600;">'+shownNote+'</span>':'')+'</div>';
+    h+=items.map(it=>todoItemHtml(it,scope)).join('');
+    return h+'</div>';
+  }
+  function todoItemHtml(it, scope){
+    const done=!!it.data.done; const due=todoDue(it); const now=new Date();
+    const od=!done && due && endOfDay(due)<now;
+    const owner=todoOwner(it); const canToggle=sameEmail(owner,myEmail)||canManageUsers();
+    const src=it.meeting_id==='standalone' ? '' : mtgTitleOf(it.meeting_id);
+    const iss=it.data.fromIssue ? '<span class="src" onclick="openIssue(\''+it.data.fromIssue+'\')">🔗 issue</span>' : '';
+    let meta='';
+    if(due) meta+='<span class="pill'+(od?' late':'')+'">Due '+fmtDue(due)+'</span>';
+    if(done) meta+='<span class="pill '+(todoOnTime(it)?'ontime':'late')+'">'+(todoOnTime(it)?'On time':'Late')+'</span>';
+    if(scope==='all'||!sameEmail(owner,myEmail)) meta+='<span class="who">'+avatarHtml(resolvePerson(owner))+esc(pmName(owner)||'Unassigned')+'</span>';
+    if(src) meta+='<span class="pill">'+esc(src)+'</span>';
+    if(iss) meta+=iss;
+    const canDel=it.meeting_id==='standalone'&&(sameEmail(owner,myEmail)||canManageUsers());
+    return '<div class="td-item'+(done?' done':'')+(od?' od':'')+'">'
+      +'<input type="checkbox" '+(done?'checked':'')+' '+(canToggle?'':'disabled')+' onchange="toggleTodo(\''+it.id+'\',this.checked)">'
+      +'<div style="flex:1;"><div class="txt">'+esc(it.data.text||'')+'</div>'+(meta?'<div class="meta">'+meta+'</div>':'')+'</div>'
+      +(canDel?'<button class="x" title="Delete" onclick="deleteTodo(\''+it.id+'\')">×</button>':'')
+      +'</div>';
+  }
+  function toggleTodo(id, checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return;
+    it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null;
+    saveMtgLocal(); dbUpsertItem(it); if(checked) popConfetti(); renderTodos(); }
+  function deleteTodo(id){ const it=mtgItems.find(x=>x.id===id); if(!it) return;
+    confirmModal('Delete this to-do?', ()=>{ mtgItems=mtgItems.filter(x=>x.id!==id); saveMtgLocal(); dbDeleteItem(id); renderTodos(); }, 'Delete'); }
+  function addStandaloneTodo(){
+    const el=document.getElementById('td-new-text'); const text=(el.value||'').trim(); if(!text) return;
+    const whoEl=document.getElementById('td-new-who'); const who=(whoEl&&whoEl.value)||myEmail;
+    const dueEl=document.getElementById('td-new-due'); const due=(dueEl&&dueEl.value)||wkKey(new Date());
+    const it={id:uid(),meeting_id:'standalone',section:'todos',inst:due,
+      data:{type:'pri',text:text,done:false,author:who,due:due,assignedBy:myEmail,standalone:true,t:Date.now()}};
+    mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it);
+    el.value=''; renderTodos(); el.focus();
+    showToast('✅ To-do added'+(sameEmail(who,myEmail)?'':' for '+pmName(who)));
   }
 
   /* ================= CORE VALUES / VISION ================= */
@@ -2843,7 +3059,7 @@ Herd Life`;
         +'<span class="td-text">'+esc(it.data.text||'')+'</span>'
         +'<span class="td-who">'+avatarHtml(it.data.author)+esc(pmName(it.data.author))+'</span></div>';
     }).join(''); }
-  function toggleIssueTodo(itemId,checked){ const it=mtgItems.find(x=>x.id===itemId); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); if(checked) popConfetti(); renderIssueTodos(curIssueId); }
+  function toggleIssueTodo(itemId,checked){ const it=mtgItems.find(x=>x.id===itemId); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null; saveItem(it); if(checked) popConfetti(); renderIssueTodos(curIssueId); }
   function renderIssueComments(id){ const box=document.getElementById('iss-comments');
     const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
     box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
@@ -2949,7 +3165,7 @@ Herd Life`;
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
   function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); focusAdd(section); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
-  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
+  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
   /* 🎉 celebrate a completed task */
   let lastPointer={x:null,y:null};
   if(typeof document!=='undefined') document.addEventListener('pointerdown',function(e){ lastPointer={x:e.clientX,y:e.clientY}; }, true);
@@ -3132,9 +3348,9 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','cowu'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','cowu'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
@@ -3145,7 +3361,7 @@ Herd Life`;
   function navTo(sec){
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     if(sec==='priorities'){ gotoDash(); }
-    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='cowu') renderCowU(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
