@@ -326,6 +326,8 @@
   .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
   .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
   .from-issue{display:inline-block;font-size:.68rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 8px;margin-left:8px;cursor:pointer;white-space:nowrap;vertical-align:middle;}
+  .carry-btn{margin-left:auto;flex:0 0 auto;font-size:.72rem;font-weight:700;color:var(--purple-dark);background:var(--lilac);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap;}
+  .carry-btn:hover{background:var(--purple);color:#fff;}
   .from-issue:hover{background:var(--purple);color:#fff;}
   .mtg-mx{display:flex;justify-content:space-between;gap:10px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:.9rem;}
   .mtg-mx:last-child{border-bottom:none;}
@@ -2831,7 +2833,7 @@ Herd Life`;
     } else if(sec.type==='prioritiesPrev'){
       const src=sec.sourceSection||'today';
       const rows=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===prevInstKey(m)).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
-      body = rows.length ? priGroupsHtml(rows,src,canEdit,false) : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
+      body = rows.length ? priGroupsHtml(rows,src,canEdit,false,(canEdit?src:null)) : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
     } else if(sec.type==='issues'){
       body = renderIssueBoard(m,sec.id,canEdit);
     } else if(sec.type==='metrics'){
@@ -2865,30 +2867,40 @@ Herd Life`;
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
       +esc(it.data.text||'')+imgHtml
       +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
-  function priHtml(it,section,canEdit,editable,hideWho){ const done=!!it.data.done; const canE=canEditItem(it);
+  function priHtml(it,section,canEdit,editable,hideWho,carrySection){ const done=!!it.data.done; const canE=canEditItem(it);
     if(editable && it.id===mtgEditItemId){
       return '<div class="mtg-pri"><input type="checkbox" '+(done?'checked':'')+' disabled>'
         +'<input id="edit-'+it.id+'" class="mtg-editinp" value="'+esc(it.data.text||'')+'" onkeydown="mtgEditKey(event,\''+it.id+'\')">'
         +'<button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
     const fromIss = it.data.fromIssue ? '<span class="from-issue" title="Added from an issue — click to open it" onclick="event.stopPropagation();openIssue(\''+it.data.fromIssue+'\')">🔗 from issue</span>' : '';
+    const carry = (carrySection && !done) ? '<button class="carry-btn" title="Carry this over to this week’s to-dos" onclick="event.stopPropagation();carryToThisWeek(\''+it.id+'\',\''+carrySection+'\')">↪ this week</button>' : '';
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
       +'<span class="ptxt">'+esc(it.data.text||'')+fromIss+'</span>'
+      +carry
       +(hideWho?'':'<span class="who">'+esc(pmName(it.data.author))+'</span>')
       +(editable&&canE?'<button class="x" title="Edit" onclick="editItem(\''+it.id+'\')">✎</button><button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
+  /* carry an unfinished item from last meeting into this week's to-dos */
+  function carryToThisWeek(id, section){ const src=mtgItems.find(x=>x.id===id); if(!src) return;
+    const text=(src.data.text||'').trim(); if(!text) return;
+    const author=src.data.author||myEmail;
+    const dupe=mtgItems.some(x=>x.meeting_id===curMtgId && x.section===section && x.inst===instKey() && (x.data.text||'')===text && (x.data.author||'')===author);
+    if(dupe){ showToast('Already on this week’s list'); return; }
+    addItem(section, instKey(), {type:'pri', text:text, done:false, author:author, carriedFrom:id});
+    showToast('↪ Added to this week'); renderMeetingView(); }
   /* everyone's entries in the same order everywhere — alphabetical by first name */
   function byContributor(a,b){ const na=String(pmName((a.data&&a.data.author)||'')).toLowerCase(), nb=String(pmName((b.data&&b.data.author)||'')).toLowerCase();
     return na.localeCompare(nb) || (((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
   /* group priority items by the person who added them */
-  function priGroupsHtml(rows,section,canEdit,editable){
+  function priGroupsHtml(rows,section,canEdit,editable,carrySection){
     const groups=new Map();
     rows.slice().sort(byContributor).forEach(it=>{ const a=it.data.author||''; if(!groups.has(a)) groups.set(a,[]); groups.get(a).push(it); });
     const keys=Array.from(groups.keys()).sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
     return keys.map(a=>{ const items=groups.get(a); const total=items.length; const doneN=items.filter(it=>it.data.done).length;
       return '<div class="mtg-prigroup"><div class="mtg-prigroup-hd">'+avatarHtml(a)+'<span class="nm">'+esc(pmName(a)||'Unassigned')+(a===myEmail?' (you)':'')+'</span>'
         +'<span class="cnt">'+doneN+'/'+total+'</span></div>'
-        +items.map(it=>priHtml(it,section,canEdit,editable,true)).join('')+'</div>';
+        +items.map(it=>priHtml(it,section,canEdit,editable,true,carrySection)).join('')+'</div>';
     }).join('');
   }
   function issueHtml(it,section,canEdit){ const solved=!!it.data.done;
