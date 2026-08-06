@@ -303,6 +303,23 @@
   .mtg-bubble .who{font-size:.72rem;color:var(--muted);font-weight:700;margin-bottom:2px;}
   .mtg-bubble{white-space:pre-wrap;}
   .mtg-noteimg{max-width:100%;max-height:280px;border-radius:10px;margin-top:8px;cursor:zoom-in;display:block;}
+  .mtg-imgbox{position:relative;display:inline-block;margin-top:8px;max-width:100%;line-height:0;}
+  .mtg-imgbox img{width:100%;height:auto;border-radius:10px;display:block;cursor:zoom-in;}
+  .mtg-imgbox .rsz{position:absolute;right:-6px;bottom:-6px;width:16px;height:16px;background:var(--purple);border:2px solid #fff;border-radius:50%;cursor:nwse-resize;box-shadow:0 1px 4px rgba(40,15,60,.35);touch-action:none;}
+  .mtg-imgbox .rsz:hover{background:var(--purple-dark);}
+  /* emoji reactions (Slack-style) */
+  .rx-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center;}
+  .rx-chip{display:inline-flex;align-items:center;gap:4px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:.9rem;cursor:pointer;line-height:1.5;}
+  .rx-chip:hover{border-color:var(--purple);}
+  .rx-chip.mine{background:var(--lilac);border-color:var(--purple);}
+  .rx-chip .rx-n{font-size:.72rem;color:var(--muted);font-weight:800;}
+  .rx-chip.mine .rx-n{color:var(--purple-dark);}
+  .rx-add{background:transparent;border:1px dashed var(--line);border-radius:999px;padding:1px 8px;font-size:.85rem;cursor:pointer;color:var(--muted);opacity:.55;}
+  .mtg-note:hover .rx-add{opacity:1;}
+  .rx-add:hover{background:var(--lilac);border-color:var(--purple);color:var(--purple-dark);}
+  .rx-picker{position:absolute;z-index:650;display:none;gap:2px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(40,15,60,.22);padding:6px;flex-wrap:wrap;max-width:280px;}
+  .rx-picker button{background:none;border:none;font-size:1.3rem;cursor:pointer;padding:4px 6px;border-radius:8px;line-height:1;}
+  .rx-picker button:hover{background:var(--lilac);}
   .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
@@ -2863,10 +2880,41 @@ Herd Life`;
       return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
         +'<textarea id="edit-'+it.id+'" class="mtg-editta" onkeydown="mtgEditKey(event,\''+it.id+'\')">'+esc(it.data.text||'')+'</textarea>'
         +'<div class="mtg-editbtns"><button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div></div></div>'; }
-    const imgHtml = it.data.img ? '<div><img class="mtg-noteimg" src="'+esc(it.data.img)+'" alt="" onclick="window.open(this.src,\'_blank\')"></div>' : '';
+    const imgHtml = it.data.img
+      ? '<div><span class="mtg-imgbox" style="width:'+(Number(it.data.imgW)||380)+'px;">'
+        + '<img src="'+esc(it.data.img)+'" alt="" onclick="if(!window.__imgResizing)window.open(this.src,\'_blank\')">'
+        + (canE?'<span class="rsz" title="Drag to resize" onpointerdown="startImgResize(event,\''+it.id+'\')"></span>':'')
+        + '</span></div>'
+      : '';
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
-      +esc(it.data.text||'')+imgHtml
+      +esc(it.data.text||'')+imgHtml+reactionsHtml(it)
       +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
+  /* emoji reactions on notes (Slack-style) */
+  const RX_EMOJIS=['👍','❤️','🎉','😂','🙌','👏','🔥','✅','😮','💯','🐮','🚀','😍','🙏','👀','⭐'];
+  function reactionsHtml(it){ const r=(it.data&&it.data.reactions)||{};
+    const keys=Object.keys(r).filter(k=>Array.isArray(r[k])&&r[k].length);
+    let chips=keys.map(k=>{ const users=r[k]; const mine=users.some(u=>sameEmail(u,myEmail));
+      const names=users.map(u=>pmName(resolvePerson(u))).join(', ');
+      return '<button class="rx-chip'+(mine?' mine':'')+'" title="'+esc(names)+'" onclick="event.stopPropagation();toggleReaction(\''+it.id+'\',\''+k+'\')">'+k+'<span class="rx-n">'+users.length+'</span></button>'; }).join('');
+    chips+='<button class="rx-add" title="Add a reaction" onclick="event.stopPropagation();openReactionPicker(event,\''+it.id+'\')">☺️+</button>';
+    return '<div class="rx-row">'+chips+'</div>'; }
+  function toggleReaction(id,emoji){ const it=mtgItems.find(x=>x.id===id); if(!it) return;
+    if(!it.data.reactions) it.data.reactions={};
+    const arr=(it.data.reactions[emoji]||[]).slice();
+    const idx=arr.findIndex(u=>sameEmail(u,myEmail));
+    if(idx>=0) arr.splice(idx,1); else arr.push(myEmail);
+    if(arr.length) it.data.reactions[emoji]=arr; else delete it.data.reactions[emoji];
+    saveItem(it); renderMeetingView(); }
+  function openReactionPicker(ev,id){ ev.stopPropagation();
+    let p=document.getElementById('rxPicker'); if(!p){ p=document.createElement('div'); p.id='rxPicker'; p.className='rx-picker'; document.body.appendChild(p); }
+    p.innerHTML=RX_EMOJIS.map(e=>'<button onclick="pickReaction(\''+id+'\',\''+e+'\')">'+e+'</button>').join('');
+    p.style.display='flex';
+    const r=ev.currentTarget.getBoundingClientRect(); const pw=p.offsetWidth||270, ph=p.offsetHeight||48;
+    let left=window.scrollX+r.left; left=Math.max(8,Math.min(left, window.scrollX+document.documentElement.clientWidth-pw-8));
+    let top=window.scrollY+r.top-ph-6; if(top<window.scrollY+4) top=window.scrollY+r.bottom+6;
+    p.style.left=left+'px'; p.style.top=top+'px'; }
+  function pickReaction(id,emoji){ hideRxPicker(); toggleReaction(id,emoji); }
+  function hideRxPicker(){ const p=document.getElementById('rxPicker'); if(p) p.style.display='none'; }
   function priHtml(it,section,canEdit,editable,hideWho,carrySection){ const done=!!it.data.done; const canE=canEditItem(it);
     if(editable && it.id===mtgEditItemId){
       return '<div class="mtg-pri"><input type="checkbox" '+(done?'checked':'')+' disabled>'
@@ -3226,7 +3274,8 @@ Herd Life`;
     if(!sel) return;
     ev.preventDefault(); showTodoMenu(ev.pageX, ev.pageY, sel);
   });
-  document.addEventListener('click', function(ev){ const menu=document.getElementById('todoCtxMenu'); if(menu&&menu.classList.contains('show')&&!menu.contains(ev.target)) hideTodoMenu(); });
+  document.addEventListener('click', function(ev){ const menu=document.getElementById('todoCtxMenu'); if(menu&&menu.classList.contains('show')&&!menu.contains(ev.target)) hideTodoMenu();
+    const rp=document.getElementById('rxPicker'); if(rp&&rp.style.display!=='none'&&!rp.contains(ev.target)) hideRxPicker(); });
   document.addEventListener('keydown', function(ev){ if(ev.key==='Escape') hideTodoMenu(); });
   function showToast(msg){ let t=document.getElementById('appToast'); if(!t){ t=document.createElement('div'); t.id='appToast'; t.className='app-toast'; document.body.appendChild(t); } t.textContent=msg; t.classList.add('show'); clearTimeout(t._to); t._to=setTimeout(()=>t.classList.remove('show'),2600); }
   function addIssueComment(){ const el=document.getElementById('iss-comment-in'); const v=(el.value||'').trim(); if(!v||!curIssueId) return; el.value='';
@@ -3281,6 +3330,18 @@ Herd Life`;
     }catch(e){ infoModal('Image upload failed: '+(e.message||e)+'.\n\nMake sure the “meeting-uploads” storage bucket exists and is public (see supabase-storage.sql).'); }
   }
   function mtgNotePaste(ev,section){ const items=(ev.clipboardData&&ev.clipboardData.items)||[]; for(let i=0;i<items.length;i++){ const it=items[i]; if(it.type&&it.type.indexOf('image')===0){ const f=it.getAsFile(); if(f){ ev.preventDefault(); uploadNoteImage(section,f); return; } } } }
+  /* drag the corner handle to resize a note image; the width is saved for everyone */
+  function startImgResize(ev,id){ ev.preventDefault(); ev.stopPropagation();
+    const box=ev.currentTarget.closest('.mtg-imgbox'); if(!box) return;
+    window.__imgResizing=true;
+    const startX=ev.clientX, startW=box.offsetWidth;
+    const maxW=(box.parentElement?box.parentElement.clientWidth:900)||900;
+    function mv(e){ let w=startW+(e.clientX-startX); w=Math.max(90,Math.min(w,maxW)); box.style.width=w+'px'; }
+    function up(){ document.removeEventListener('pointermove',mv); document.removeEventListener('pointerup',up);
+      saveImgWidth(id, box.offsetWidth); setTimeout(()=>{ window.__imgResizing=false; },60); }
+    document.addEventListener('pointermove',mv); document.addEventListener('pointerup',up);
+  }
+  function saveImgWidth(id,w){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.imgW=Math.round(w); saveMtgLocal(); dbUpsertItem(it); }
   function mtgNoteKey(ev,section){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addNote(section); } }
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
   function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'pri',text:v,done:false}); renderMeetingView(); focusAdd(section); }
