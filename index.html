@@ -952,6 +952,10 @@
   <div class="modal modal-scroll" style="text-align:left;">
     <h3 style="text-align:center;">🗓️ <span id="mtgModalTitle">New meeting</span></h3>
     <input type="hidden" id="mtg-id">
+    <div id="mtg-copyrow" style="margin-bottom:10px;">
+      <label>Start from an existing meeting <span style="font-weight:400;color:var(--muted)">— copies its sections &amp; settings</span></label>
+      <select id="mtg-copyfrom" style="width:100%;" onchange="mtgCopyFromPick()"><option value="">Start blank</option></select>
+    </div>
     <label>Title <span class="req">*</span></label>
     <input type="text" id="mtg-title" placeholder="e.g. Head of Department Daily Standup" style="width:100%;">
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
@@ -3452,9 +3456,21 @@ Herd Life`;
       return '<div class="att-opt'+(on?' on':'')+'" data-email="'+esc(e)+'" onclick="mtgAttToggle(this)">'
         + avatarHtml(e) + '<span class="nm">'+esc(pmName(e))+'</span><span class="tick">'+(on?'✓':'')+'</span></div>'; }).join('');
     mtgRenderDays(editing && Array.isArray(m.days) ? m.days : null); mtgToggleDaysRow();
+    // "start from an existing meeting" — only when creating a new one
+    const copyRow=document.getElementById('mtg-copyrow'), copySel=document.getElementById('mtg-copyfrom');
+    if(copyRow) copyRow.style.display=editing?'none':'block';
+    if(copySel && !editing){ copySel.innerHTML='<option value="">Start blank</option>'
+      + mtgsStore.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).map(x=>'<option value="'+esc(x.id)+'">'+esc(x.title||'Untitled')+'</option>').join(''); copySel.value=''; }
     document.getElementById('mtgErr').textContent='';
     document.getElementById('mtgDeleteBtn').style.display=editing?'inline-block':'none';
     document.getElementById('mtgModal').classList.add('show');
+  }
+  function mtgCopyFromPick(){ const id=document.getElementById('mtg-copyfrom').value; const src=id?mtgsStore.find(x=>x.id===id):null; if(!src) return;
+    const set=(i,v)=>{ const e=document.getElementById(i); if(e) e.value=v; };
+    const titleEl=document.getElementById('mtg-title'); if(!titleEl.value.trim()) titleEl.value='Copy of '+(src.title||'meeting');
+    set('mtg-type',src.type||'once'); set('mtg-time',src.time||'09:00'); set('mtg-dur',src.dur||30); set('mtg-tz',src.tz||'America/Halifax');
+    mtgRenderDays(Array.isArray(src.days)?src.days:null); mtgToggleDaysRow();
+    const chosen=src.attendees||[]; document.querySelectorAll('#mtg-attendees .att-opt').forEach(o=>{ const on=chosen.indexOf(o.getAttribute('data-email'))>=0; o.classList.toggle('on',on); const t=o.querySelector('.tick'); if(t) t.textContent=on?'✓':''; });
   }
   function closeMeetingCreate(){ document.getElementById('mtgModal').classList.remove('show'); }
   const DAY_NAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
@@ -3479,7 +3495,19 @@ Herd Life`;
       tz:document.getElementById('mtg-tz').value, attendees };
     let m;
     if(id){ m=mtgsStore.find(x=>x.id===id); if(!m){ closeMeetingCreate(); return; } Object.assign(m,data); }
-    else { m=Object.assign({id:uid(), sections:[{id:'notes',type:'notes',title:'Notes'},{id:'today',type:'priorities',title:'To-dos for next time'}], t:Date.now(), by:myEmail}, data); mtgsStore.push(m); }
+    else {
+      const copyId=(document.getElementById('mtg-copyfrom')||{}).value||'';
+      const src=copyId?mtgsStore.find(x=>x.id===copyId):null;
+      const sections=(src&&Array.isArray(src.sections))
+        ? JSON.parse(JSON.stringify(src.sections))
+        : [{id:'notes',type:'notes',title:'Notes'},{id:'today',type:'priorities',title:'To-dos for next time'}];
+      m=Object.assign({id:uid(), sections, t:Date.now(), by:myEmail}, data); mtgsStore.push(m);
+      // carry over static text-section content (e.g. Core Values), but not dated notes/to-dos/issues
+      if(src){ const textSecIds=new Set(sections.filter(s=>s.type==='text').map(s=>s.id));
+        mtgItems.filter(it=>it.meeting_id===src.id && it.inst==='static' && textSecIds.has(it.section)).forEach(it=>{
+          const ni={id:uid(), meeting_id:m.id, section:it.section, inst:'static', data:JSON.parse(JSON.stringify(it.data))};
+          mtgItems.push(ni); dbUpsertItem(ni); }); }
+    }
     saveMtgLocal(); dbUpsertMtg(m); closeMeetingCreate();
     curMtgId=m.id; curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView();
   }
