@@ -320,6 +320,13 @@
   .rx-picker{position:absolute;z-index:650;display:none;gap:2px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px rgba(40,15,60,.22);padding:6px;flex-wrap:wrap;max-width:280px;}
   .rx-picker button{background:none;border:none;font-size:1.3rem;cursor:pointer;padding:4px 6px;border-radius:8px;line-height:1;}
   .rx-picker button:hover{background:var(--lilac);}
+  /* metric picker (choose which metrics show in a meeting) */
+  .mxpick-group{margin-bottom:12px;}
+  .mxpick-owner{display:flex;align-items:center;gap:8px;font-weight:800;color:var(--purple-dark);font-size:.9rem;padding:6px 2px;border-bottom:1px solid var(--line);margin-bottom:4px;}
+  .mxpick-owner img,.mxpick-owner .tm-initials{width:22px;height:22px;border-radius:50%;font-size:.6rem;}
+  .mxpick-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.92rem;}
+  .mxpick-row:hover{background:var(--lilac);}
+  .mxpick-row input{width:16px;height:16px;flex:0 0 auto;}
   .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
@@ -883,6 +890,20 @@
 
 <!-- right-click menu: turn selected note text into a to-do -->
 <div id="todoCtxMenu" class="ctx-menu no-print"></div>
+
+<!-- pick which metrics show in a meeting's scorecard section -->
+<div class="modal-ov no-print" id="mxPickModal" onclick="if(event.target===this)closeMetricPicker()">
+  <div class="modal modal-scroll" style="text-align:left;max-width:560px;">
+    <h3 style="text-align:center;">📊 Choose metrics for this section</h3>
+    <p class="block-desc" style="margin:2px 0 12px;">Tick the metrics you want to see in this meeting — perfect for a 1-1 (just Ian’s or Dan’s numbers). Leave everything unchecked to show the company metrics by default.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;"><input id="mxPickSearch" placeholder="Search metrics…" oninput="filterMetricPicker()" style="flex:1;"><button class="btn ghost sm" onclick="metricPickerAll(false)">Clear all</button></div>
+    <div id="mxPickList"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn ghost" onclick="closeMetricPicker()">Cancel</button>
+      <button class="btn" onclick="saveMetricPicker()">Save selection</button>
+    </div>
+  </div>
+</div>
 
 <!-- Issue detail modal (Notion-style card) -->
 <div class="modal-ov no-print" id="issueModal" onclick="if(event.target===this)closeIssue()">
@@ -2854,7 +2875,7 @@ Herd Life`;
     } else if(sec.type==='issues'){
       body = renderIssueBoard(m,sec.id,canEdit);
     } else if(sec.type==='metrics'){
-      body = renderMetricSnapshot();
+      body = renderMetricSnapshot(sec);
     } else if(sec.type==='qpriorities'){
       body = renderQuarterRocks(sec.id);
     } else if(sec.type==='vision'){
@@ -2958,11 +2979,22 @@ Herd Life`;
       +'<span class="who">'+esc(pmName(it.data.author))+'</span>'
       +((it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
-  function renderMetricSnapshot(){
-    const list=metricsStore.filter(metricVisible).filter(m=>m.company);
-    if(!list.length) return '<div class="mtg-empty">No company metrics yet — open a metric in the Metrics section and tick <b>🏢 Company metric</b> to show it here.</div>';
+  function renderMetricSnapshot(sec){
+    const ids = sec && Array.isArray(sec.metricIds) ? sec.metricIds : null;
+    const custom = ids && ids.length;
+    const list = custom
+      ? ids.map(id=>metricsStore.find(m=>m.id===id)).filter(Boolean).filter(metricVisible)
+      : metricsStore.filter(metricVisible).filter(m=>m.company);
+    const chooseBtn = (canCreate() && sec) ? '<button class="btn ghost sm" onclick="event.stopPropagation();openMetricPicker(\''+sec.id+'\')">⚙ Choose metrics</button>' : '';
+    const topBar = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
+      + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':'Company metrics — latest week vs goal.')+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
+    if(!list.length){
+      const msg = custom ? 'The metrics chosen here aren’t visible to you or were removed.'
+        : 'No company metrics yet — tick <b>🏢 Company metric</b> on a metric, or use <b>⚙ Choose metrics</b> to pick exactly which ones show in this meeting (great for 1-1s).';
+      return topBar+'<div class="mtg-empty">'+msg+'</div>';
+    }
     const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
-    return '<div style="font-size:.8rem;color:var(--muted);margin-bottom:8px;">Latest week vs goal. Click a metric to see the trend graph.</div>'
+    return topBar
       + list.map(m=>{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
       const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
       const dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
@@ -2976,6 +3008,35 @@ Herd Life`;
         +'<span class="v" style="font-weight:700;">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span>'
         +'</div><div class="rock-gantt">'+renderMetricChart(m)+'</div></div>';
     }).join(''); }
+  /* pick which metrics appear in a meeting's scorecard section (e.g. one person's metrics for a 1-1) */
+  let mxPickSecId=null;
+  function openMetricPicker(secId){ if(!canCreate()){ infoModal('Ask an admin or leadership to choose the metrics for this meeting.'); return; }
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
+    mxPickSecId=secId;
+    const chosen=new Set(sec.metricIds||[]);
+    const list=metricsStore.filter(metricVisible).slice().sort((a,b)=>
+      String(pmName(resolvePerson(a.owner))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.owner))).toLowerCase())
+      || String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
+    const groups=new Map(); list.forEach(mm=>{ const o=mm.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(mm); });
+    let html='';
+    Array.from(groups.keys()).forEach(o=>{ const person=resolvePerson(o);
+      html+='<div class="mxpick-group"><div class="mxpick-owner">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')+'<span>'+esc(o?pmName(person):'Unassigned')+'</span></div>';
+      groups.get(o).forEach(mm=>{ html+='<label class="mxpick-row" data-name="'+esc((mm.name||'').toLowerCase())+'"><input type="checkbox" value="'+mm.id+'"'+(chosen.has(mm.id)?' checked':'')+'>'+(mm.company?'🏢 ':'')+esc(mm.name||'Untitled')+'</label>'; });
+      html+='</div>'; });
+    document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">No metrics available.</div>';
+    const s=document.getElementById('mxPickSearch'); if(s) s.value='';
+    document.getElementById('mxPickModal').classList.add('show');
+  }
+  function filterMetricPicker(){ const q=(document.getElementById('mxPickSearch').value||'').toLowerCase().trim();
+    document.querySelectorAll('#mxPickList .mxpick-row').forEach(r=>{ r.style.display=(!q||(r.getAttribute('data-name')||'').indexOf(q)>=0)?'flex':'none'; });
+    document.querySelectorAll('#mxPickList .mxpick-group').forEach(g=>{ const any=Array.prototype.some.call(g.querySelectorAll('.mxpick-row'),r=>r.style.display!=='none'); g.style.display=any?'block':'none'; }); }
+  function metricPickerAll(on){ document.querySelectorAll('#mxPickList input[type=checkbox]').forEach(c=>{ c.checked=on; }); }
+  function closeMetricPicker(){ document.getElementById('mxPickModal').classList.remove('show'); mxPickSecId=null; }
+  function saveMetricPicker(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m){ closeMetricPicker(); return; }
+    const sec=(m.sections||[]).find(s=>s.id===mxPickSecId); if(!sec){ closeMetricPicker(); return; }
+    const ids=Array.prototype.slice.call(document.querySelectorAll('#mxPickList input:checked')).map(c=>c.value);
+    sec.metricIds=ids; saveMtgLocal(); dbUpsertMtg(m); closeMetricPicker(); renderMeetingView(); }
 
   let rockSort='progDesc';
   function setRockSort(v){ rockSort=v; renderMeetingView(); }
