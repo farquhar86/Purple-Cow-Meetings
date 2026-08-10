@@ -327,6 +327,16 @@
   .mxpick-row{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:.92rem;}
   .mxpick-row:hover{background:var(--lilac);}
   .mxpick-row input{width:16px;height:16px;flex:0 0 auto;}
+  /* issue shown-in-meetings chips */
+  .iss-meetings{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 4px;font-size:.8rem;}
+  .iss-meetings .issm-lbl{color:var(--muted);font-weight:700;}
+  .iss-meetings .issm-chip{display:inline-flex;align-items:center;gap:5px;background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:2px 9px;color:var(--ink);font-weight:600;}
+  .iss-meetings .issm-chip.home{background:#fff;border-color:var(--purple);color:var(--purple-dark);}
+  .iss-meetings .issm-chip button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;line-height:1;padding:0;}
+  .iss-meetings .issm-chip button:hover{color:#c9302c;}
+  .iss-meetings .issm-add{border:1px dashed var(--purple);border-radius:999px;padding:3px 10px;font-size:.8rem;color:var(--purple-dark);background:#fff;cursor:pointer;}
+  .kb-card .kc-linked{display:inline-block;font-size:.66rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 7px;margin:2px 0;white-space:nowrap;}
+  .kb-card.linked{border-left:3px solid var(--purple);}
   .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
@@ -912,6 +922,7 @@
     <input type="text" id="iss-title" class="iss-title-input" placeholder="Issue title…" oninput="scheduleIssueSave()" onchange="saveIssueField()">
     <div class="iss-meta" id="iss-meta"></div>
     <div class="iss-status-row" id="iss-status-row"></div>
+    <div class="iss-meetings" id="iss-meetings"></div>
     <!-- who's editing live (co-editing mode) -->
     <div id="iss-here" class="iss-here" style="display:none;"></div>
     <!-- collaborative editor (Quill + live cursors) -->
@@ -3091,16 +3102,27 @@ Herd Life`;
   /* ===== Issues kanban board (Notion-style) ===== */
   const ISSUE_STATUSES=[{k:'notstarted',label:'Not started',c:'#9b8fae'},{k:'inprogress',label:'In progress',c:'#4a6cf7'},{k:'hasupdate',label:'Has update',c:'#8e4fb8'},{k:'done',label:'Done',c:'#2e9e6b'}];
   function issueList(mid,secId){ return mtgItems.filter(it=>it.meeting_id===mid && it.section===secId && it.inst==='static').sort((a,b)=>((a.data&&a.data.ord)||(a.data&&a.data.t)||0)-((b.data&&b.data.ord)||(b.data&&b.data.t)||0)); }
+  /* issues linked into this meeting from elsewhere (shown, but still owned by their home meeting) */
+  function linkedIssuesFor(mid){ return mtgItems.filter(it=>it.inst==='static' && it.data && it.data.type==='issue' && it.meeting_id!==mid && Array.isArray(it.data.alsoIn) && it.data.alsoIn.indexOf(mid)>=0); }
   function commentCount(id){ return mtgItems.filter(it=>it.section==='cmt:'+id).length; }
   function renderIssueBoard(m,secId,canEdit){
-    const all=issueList(m.id,secId);
+    let all=issueList(m.id,secId);
+    // include issues linked in from other meetings — only on the meeting's first issues section (avoid duplicates)
+    const firstIssues=(m.sections||[]).find(s=>s.type==='issues');
+    if(firstIssues && firstIssues.id===secId){ const linked=linkedIssuesFor(m.id);
+      const seen=new Set(all.map(x=>x.id)); linked.forEach(x=>{ if(!seen.has(x.id)) all.push(x); });
+      all.sort((a,b)=>((a.data&&a.data.ord)||(a.data&&a.data.t)||0)-((b.data&&b.data.ord)||(b.data&&b.data.t)||0)); }
     return '<div class="kb" data-sec="'+secId+'">'+ISSUE_STATUSES.map(st=>{
       const cards=all.filter(it=>(it.data.status||'notstarted')===st.k);
       let col='<div class="kb-col" data-status="'+st.k+'" data-sec="'+secId+'">'
         +'<div class="kb-col-hd"><span class="kb-dot" style="background:'+st.c+'"></span>'+esc(st.label)+' <span class="kb-count">'+cards.length+'</span></div>';
       col+=cards.map(it=>{ const cc=commentCount(it.id);
-        return '<div class="kb-card" draggable="'+(canEdit?'true':'false')+'" data-id="'+it.id+'" onclick="openIssue(\''+it.id+'\')">'
+        const linked = it.meeting_id!==m.id;
+        const homeM = linked ? mtgsStore.find(x=>x.id===it.meeting_id) : null;
+        const badge = linked ? '<span class="kc-linked" title="Shared from '+esc(homeM?homeM.title:'another meeting')+'">↗ '+esc(homeM?homeM.title:'shared')+'</span>' : '';
+        return '<div class="kb-card'+(linked?' linked':'')+'" draggable="'+((canEdit&&!linked)?'true':'false')+'" data-id="'+it.id+'" onclick="openIssue(\''+it.id+'\')">'
           +'<div class="kc-title">'+esc(it.data.text||'Untitled')+'</div>'
+          + badge
           +'<div class="kc-meta">'+avatarHtml(it.data.author)+(cc?('<span>💬 '+cc+'</span>'):'')+'</div></div>';
       }).join('');
       if(canEdit) col+='<button class="kb-add" onclick="newIssue(\''+secId+'\',\''+st.k+'\')">＋ New task</button>';
@@ -3128,7 +3150,7 @@ Herd Life`;
   async function openIssue(id){ const it=mtgItems.find(x=>x.id===id); if(!it) return; curIssueId=id;
     document.getElementById('iss-id').value=id;
     document.getElementById('iss-title').value=it.data.text||'';
-    renderIssueMeta(it); renderIssueStatusRow(it); renderIssueTodos(id); renderIssueComments(id);
+    renderIssueMeta(it); renderIssueStatusRow(it); renderIssueMeetings(it); renderIssueTodos(id); renderIssueComments(id);
     document.getElementById('issueModal').classList.add('show');
     teardownCollab();
     let ok=false;
@@ -3216,6 +3238,27 @@ Herd Life`;
     parts.push('Created by '+esc(pmName(it.data.author||'')));
     if(it.data.editedAt){ parts.push('last edited '+esc(pmName(it.data.editedBy||it.data.author||''))+' · '+fmtWhen(it.data.editedAt)); }
     document.getElementById('iss-meta').innerHTML=parts.join(' · '); }
+  /* show this issue in more than one meeting (you can only add meetings you're a part of) */
+  function renderIssueMeetings(it){ const box=document.getElementById('iss-meetings'); if(!box) return;
+    const home=mtgsStore.find(x=>x.id===it.meeting_id);
+    const links=(it.data.alsoIn||[]).map(id=>mtgsStore.find(x=>x.id===id)).filter(Boolean);
+    let html='<span class="issm-lbl">Shown in:</span>';
+    html+='<span class="issm-chip home" title="Home meeting — where this issue lives">🏠 '+esc(home?home.title:'this meeting')+'</span>';
+    html+=links.map(mm=>{ const mine=(mm.attendees||[]).indexOf(myEmail)>=0;
+      return '<span class="issm-chip">'+esc(mm.title)+(mine?'<button title="Remove from this meeting" onclick="removeIssueFromMeeting(\''+mm.id+'\')">×</button>':'')+'</span>'; }).join('');
+    const linkedSet=new Set([it.meeting_id].concat(it.data.alsoIn||[]));
+    const opts=mtgsStore.filter(mm=>(mm.attendees||[]).indexOf(myEmail)>=0 && !linkedSet.has(mm.id) && (mm.sections||[]).some(s=>s.type==='issues'));
+    if(opts.length){ html+='<select class="issm-add" onchange="addIssueToMeeting(this.value);this.value=\'\';"><option value="">＋ Also show in a meeting…</option>'
+      + opts.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).map(mm=>'<option value="'+esc(mm.id)+'">'+esc(mm.title)+'</option>').join('')+'</select>'; }
+    box.innerHTML=html; }
+  function addIssueToMeeting(mid){ if(!mid) return; const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
+    const mm=mtgsStore.find(x=>x.id===mid); if(!mm) return;
+    if((mm.attendees||[]).indexOf(myEmail)<0){ infoModal('You can only add this issue to meetings you’re a part of.'); return; }
+    if(!Array.isArray(it.data.alsoIn)) it.data.alsoIn=[];
+    if(it.meeting_id!==mid && it.data.alsoIn.indexOf(mid)<0) it.data.alsoIn.push(mid);
+    it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeetings(it); showToast('Added to '+mm.title); }
+  function removeIssueFromMeeting(mid){ const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
+    it.data.alsoIn=(it.data.alsoIn||[]).filter(x=>x!==mid); it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeetings(it); }
   function renderIssueStatusRow(it){ const cur=it.data.status||'notstarted';
     document.getElementById('iss-status-row').innerHTML=ISSUE_STATUSES.map(st=>'<button class="'+(cur===st.k?'on':'')+'" style="'+(cur===st.k?'background:'+st.c+';':'')+'" onclick="setIssueStatus(\''+st.k+'\')">'+esc(st.label)+'</button>').join(''); }
   function setIssueStatus(k){ const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return; it.data.status=k; it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueStatusRow(it); renderIssueMeta(it); renderMeetingView(); }
