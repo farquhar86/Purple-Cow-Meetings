@@ -2731,7 +2731,14 @@
       saveSwimLocal();
     }catch(e){ console.warn('swim load',e); loadSwimLocal(); }
     swLoaded=true; }
-  async function ensureSwim(){ if(!swLoaded){ loadSwimLocal(); await dbLoadSwim(); } seedSwimlanes(); }
+  async function ensureSwim(){ if(!swLoaded){ loadSwimLocal(); await dbLoadSwim(); } seedSwimlanes();
+    if((swConfig.seedV||1)<2){ migrateSwimTargets(); swConfig.seedV=2; saveSwimLocal(); dbUpsertSwim({id:'config',kind:'config',data:swConfig}); } }
+  /* upgrade the Customer Targets lane to the full per-quarter breakdown + move it to the top */
+  function migrateSwimTargets(){ const lane=swLanes.find(x=>x.id==='swl-targets'); if(!lane) return;
+    if(lane.data.ord!==0){ lane.data.ord=0; dbUpsertSwim(lane); }
+    if((lane.data.name||'').indexOf('🎯')<0){ lane.data.name='🎯 Customer Targets'; dbUpsertSwim(lane); }
+    swCards.filter(c=>c.data.laneId==='swl-targets').forEach(c=>{ const t=SWIM_TARGET_TEXT[c.data.q]; if(t && c.data.text!==t){ c.data.text=t; c.data.color='amber'; dbUpsertSwim(c); } });
+    saveSwimLocal(); }
   function renderSwimSection(){ ensureSwim().then(()=>renderSwimlanes()); }
   function refreshSwim(){ swLoaded=false; renderSwimSection(); showToast('Swimlanes refreshed'); }
   function renderSwimlanes(){
@@ -2822,13 +2829,29 @@
   function openSwimRange(){ if(!canEditSwim()) return; document.getElementById('sw-startyear').value=swConfig.startYear; document.getElementById('sw-startq').value=swConfig.startQ; document.getElementById('sw-count').value=swConfig.count; document.getElementById('swRangeModal').classList.add('show'); }
   function closeSwimRange(){ document.getElementById('swRangeModal').classList.remove('show'); }
   function saveSwimRange(){ swConfig.startYear=Number(document.getElementById('sw-startyear').value)||2026; swConfig.startQ=Math.min(4,Math.max(1,Number(document.getElementById('sw-startq').value)||1)); swConfig.count=Math.min(20,Math.max(1,Number(document.getElementById('sw-count').value)||12)); saveSwimLocal(); dbUpsertSwim({id:'config',kind:'config',data:swConfig}); closeSwimRange(); renderSwimlanes(); }
+  /* the customer-count model — the numbers everything is shooting for (one card per quarter) */
+  const SWIM_TARGET_TEXT={
+    'FY2026-Q1':'Breakage %: 18.00%\nChurn %: 6%\nStarting Customers: 39,000\nInternet Sales: 6,000\nBreakage Customers: 1,080\nChurn Customers: 2,340\nEnding Customers: 41,580',
+    'FY2026-Q2':'Breakage %: 15.00%\nChurn %: 4.5%\nStarting Customers: 41,580\nInternet Sales: 7,200 (v 7,000)\nBreakage Customers: 1,050\nChurn Customers: 1,871\nEnding Customers: 45,659',
+    'FY2026-Q3':'Breakage %: 13.00%\nChurn %: 4%\nStarting Customers: 45,659\nInternet Sales: 8,000 (v 7,500 v 7,000)\nBreakage Customers: 975\nChurn Customers: 1,826\nEnding Customers: 50,358',
+    'FY2026-Q4':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 50,358\nInternet Sales: 7,500 (v 7,000)\nBreakage Customers: 700\nChurn Customers: 1,511\nEnding Customers: 55,147',
+    'FY2027-Q1':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 55,147\nInternet Sales: 7,000\nBreakage Customers: 700\nChurn Customers: 1,654\nEnding Customers: 59,792',
+    'FY2027-Q2':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 61,264\nInternet Sales: 9,000\nBreakage Customers: 900\nChurn Customers: 1,794\nEnding Customers: 66,099',
+    'FY2027-Q3':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 74,500\nInternet Sales: 10,000\nBreakage Customers: 1,000\nChurn Customers: 1,983\nEnding Customers: 73,116',
+    'FY2027-Q4':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 74,500\nInternet Sales: 9,000\nBreakage Customers: 900\nChurn Customers: 2,193\nEnding Customers: 79,022',
+    'FY2028-Q1':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 80,365\nInternet Sales: 9,500\nBreakage Customers: 950\nChurn Customers: 2,371\nEnding Customers: 85,202',
+    'FY2028-Q2':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 86,054\nInternet Sales: 11,000\nBreakage Customers: 1,100\nChurn Customers: 2,556\nEnding Customers: 92,545',
+    'FY2028-Q3':'Breakage %: 10.00%\nChurn %: 3%\nStarting Customers: 93,373\nInternet Sales: 10,500\nBreakage Customers: 1,050\nChurn Customers: 2,776\nEnding Customers: 99,219',
+    'FY2028-Q4':'📊 Full model (Google Sheet):\ndocs.google.com/spreadsheets/d/1lub047s7KIu3OKpjvynKU2r1mLKMgXH5d5VDeV81H8k/edit?usp=sharing'
+  };
   /* ----- one-time seed from the Metronomics screenshots ----- */
   function seedSwimlanes(){ if(swLanes.length || swCards.length) return;
-    const lanes=[ {id:'swl-growth',name:'Company Growth',color:'purple',owner:'brad@purplecowinternet.com',ord:1},
+    const lanes=[ {id:'swl-targets',name:'🎯 Customer Targets',color:'amber',owner:'',ord:0},
+      {id:'swl-growth',name:'Company Growth',color:'purple',owner:'brad@purplecowinternet.com',ord:1},
       {id:'swl-herd',name:'Herd Life',color:'green',owner:'',ord:2},
-      {id:'swl-tech',name:'Tech & Product Development',color:'blue',owner:'',ord:3},
-      {id:'swl-targets',name:'Customer Targets',color:'amber',owner:'',ord:4} ];
+      {id:'swl-tech',name:'Tech & Product Development',color:'blue',owner:'',ord:3} ];
     lanes.forEach(l=>{ const row={id:l.id,kind:'lane',data:{name:l.name,color:l.color,owner:l.owner,ord:l.ord}}; swLanes.push(row); dbUpsertSwim(row); });
+    Object.keys(SWIM_TARGET_TEXT).forEach((q,i)=>{ const card={id:'swc-targets-'+i,kind:'card',data:{laneId:'swl-targets',color:'amber',q:q,text:SWIM_TARGET_TEXT[q],ord:i}}; swCards.push(card); dbUpsertSwim(card); });
     const C=[
       ['swl-growth','purple','FY2026-Q1','Retail Sales hitting sales goal'],['swl-growth','purple','FY2026-Q1','10 door-to-door reps'],
       ['swl-growth','purple','FY2026-Q2','Wireless / Fairview'],['swl-growth','purple','FY2026-Q2','Website SEO overhaul'],
@@ -2852,19 +2875,7 @@
       ['swl-tech','blue','FY2027-Q3','Purple Energy V1 — monitor power usage, alerts, base-load creep flags, compare usage to similar homes'],
       ['swl-tech','blue','FY2027-Q4','Purple Cow sees smart devices in home for better insights (e.g. motion + light left on → save ~$10/mo, offer to turn off)'],['swl-tech','blue','FY2027-Q4','Sell home products through Purple Energy — heat-pump cleanings/filters, light bulbs, furnace filters'],
       ['swl-tech','blue','FY2028-Q1','Launch Purple Power with home batteries, linked to Purple Energy app'],
-      ['swl-tech','blue','FY2028-Q2','Integrate Purple Energy app into Nova Scotia Power smart meters'],
-      ['swl-targets','amber','FY2026-Q1','Breakage 18% · Churn 6% · Start 39,000 · Sales 6,000 · Ending 41,580'],
-      ['swl-targets','amber','FY2026-Q2','Breakage 15% · Churn 4.5% · Start 41,580 · Sales 7,200 · Ending 45,659'],
-      ['swl-targets','amber','FY2026-Q3','Breakage 13% · Churn 4% · Start 45,659 · Sales 8,000 · Ending 50,358'],
-      ['swl-targets','amber','FY2026-Q4','Breakage 10% · Churn 3% · Start 50,358 · Sales 7,500 · Ending 55,147'],
-      ['swl-targets','amber','FY2027-Q1','Breakage 10% · Churn 3% · Start 55,147 · Sales 7,000 · Ending 59,792'],
-      ['swl-targets','amber','FY2027-Q2','Breakage 10% · Churn 3% · Start 61,264 · Sales 9,000 · Ending 66,099'],
-      ['swl-targets','amber','FY2027-Q3','Breakage 10% · Churn 3% · Start 74,500 · Sales 10,000 · Ending 73,116'],
-      ['swl-targets','amber','FY2027-Q4','Breakage 10% · Churn 3% · Start 74,500 · Sales 9,000 · Ending 79,022'],
-      ['swl-targets','amber','FY2028-Q1','Breakage 10% · Churn 3% · Start 80,365 · Sales 9,500 · Ending 85,202'],
-      ['swl-targets','amber','FY2028-Q2','Breakage 10% · Churn 3% · Start 86,054 · Sales 11,000 · Ending 92,545'],
-      ['swl-targets','amber','FY2028-Q3','Breakage 10% · Churn 3% · Start 93,373 · Sales 10,500 · Ending 99,219'],
-      ['swl-targets','amber','FY2028-Q4','Full model (Google Sheet): docs.google.com/spreadsheets/d/1lub047s7KIu3OKpjvynKU2r1mLKMgXH5d5VDeV81H8k']
+      ['swl-tech','blue','FY2028-Q2','Integrate Purple Energy app into Nova Scotia Power smart meters']
     ];
     C.forEach((row,i)=>{ const card={id:'swc-'+row[0].replace('swl-','')+'-'+i, kind:'card', data:{laneId:row[0], color:row[1], q:row[2], text:row[3], ord:i}}; swCards.push(card); dbUpsertSwim(card); });
     saveSwimLocal();
