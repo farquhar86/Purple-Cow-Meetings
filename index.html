@@ -82,7 +82,7 @@
   .sb-menu-hd b{color:var(--ink);}
   .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
   .sb-menu button:hover{background:var(--lilac);}
-  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:236px;}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim{margin-left:236px;}
   body.presenting #screen-dash{margin-left:0 !important;}
   /* placeholder section pages */
   .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
@@ -135,6 +135,27 @@
   .td-item .x:hover{color:#c9302c;}
   .td-item .src{font-size:.72rem;color:var(--purple);cursor:pointer;}
   .td-empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted);}
+  /* Swimlanes */
+  .swim-scroll{overflow-x:auto;padding-bottom:14px;}
+  .swim-grid{display:grid;grid-template-columns:190px repeat(var(--cols),210px);gap:8px;align-items:start;min-width:min-content;}
+  .swim-corner{position:sticky;left:0;z-index:3;background:var(--lilac);border-radius:10px;}
+  .swim-qh{background:#fff;border:1px solid var(--line);border-radius:10px;padding:7px 8px;text-align:center;font-weight:800;color:var(--purple-dark);font-size:.8rem;position:sticky;top:0;}
+  .swim-qh .qn{display:block;font-size:.66rem;color:var(--muted);font-weight:700;}
+  .swim-lane-hd{position:sticky;left:0;z-index:2;display:flex;align-items:center;gap:8px;border-radius:10px;padding:9px 11px;color:#33244a;font-weight:800;box-shadow:var(--shadow);min-height:56px;}
+  .swim-lane-hd img,.swim-lane-hd .tm-initials{width:26px;height:26px;border-radius:50%;flex:0 0 auto;font-size:.66rem;}
+  .swim-lane-hd .swl-name{flex:1;font-size:.92rem;line-height:1.2;}
+  .swim-lane-hd .swl-tools button{border:none;background:rgba(255,255,255,.55);border-radius:6px;cursor:pointer;padding:2px 7px;font-size:.82rem;}
+  .swim-cell{background:#fbfafd;border:1px dashed var(--line);border-radius:10px;padding:6px;min-height:56px;display:flex;flex-direction:column;gap:6px;}
+  .swim-cell.drop{border-color:var(--purple);background:var(--lilac);}
+  .swim-card{border-radius:8px;padding:8px 10px;font-size:.8rem;line-height:1.35;color:#2a2140;cursor:pointer;box-shadow:0 1px 2px rgba(40,15,60,.12);word-break:break-word;}
+  .swim-card:hover{filter:brightness(.97);}
+  .swim-card.dragging{opacity:.4;}
+  .swim-add{border:1px dashed var(--line);background:transparent;border-radius:8px;color:var(--muted);cursor:pointer;padding:3px;font-size:.9rem;}
+  .swim-add:hover{background:var(--lilac);color:var(--purple-dark);}
+  .sw-colorrow{display:flex;gap:8px;margin-top:6px;}
+  .sw-swatch{width:28px;height:28px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;}
+  .sw-swatch.on{box-shadow:0 0 0 2px var(--purple-dark);}
+  body:not(.swim-can-edit) .swim-edit{display:none;}
   .vz-values{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:28px;}
   .vz-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
   .vz-card .vn{font-weight:800;color:var(--purple-dark);font-size:1.08rem;margin-bottom:8px;}
@@ -706,7 +727,7 @@
     body.app-shell #mobileNavBtn{display:flex;}
     #appSidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 22px rgba(0,0,0,.18);width:260px;}
     body.sb-open #appSidebar{transform:none;}
-    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings{margin-left:0 !important;}
+    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim{margin-left:0 !important;}
     /* leave room for the ☰ button on section headers */
     .sec-head{padding:20px 16px 18px 66px !important;}
     .sec-head h1{font-size:1.25rem;}
@@ -753,6 +774,7 @@
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
+    <button class="sb-item" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
   </nav>
   <div class="sb-bottom">
     <button class="sb-add manage-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
@@ -1465,6 +1487,76 @@
   </div>
   <div id="mtgListView" class="mtg-wrap"></div>
   <div id="mtgDetailView" class="mtg-wrap" style="display:none;"></div>
+</div>
+
+<!-- ====================== SECTION: SWIMLANES ====================== -->
+<div id="screen-swim" style="display:none;">
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div><h1>🏊 Swimlanes</h1><p>The big blocks we’ll move quarter by quarter to get where we’re going.</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn ghost sm swim-edit" onclick="openSwimRange()" title="Set the quarters shown">⚙ Quarters</button>
+      <button class="btn swim-edit" onclick="openLaneModal()">➕ Add lane</button>
+      <button class="btn ghost sm" onclick="refreshSwim()">↻</button>
+    </div>
+  </div>
+  <div id="swimWrap" class="swim-wrap"></div>
+</div>
+
+<!-- Swimlane: add/edit a lane -->
+<div class="modal-ov no-print" id="laneModal" onclick="if(event.target===this)closeLaneModal()">
+  <div class="modal" style="text-align:left;max-width:460px;">
+    <h3 style="text-align:center;"><span id="laneModalTitle">➕ Add a lane</span></h3>
+    <input type="hidden" id="lane-id">
+    <label>Lane name <span class="req">*</span></label>
+    <input type="text" id="lane-name" placeholder="e.g. Company Growth" style="width:100%;">
+    <label style="margin-top:10px;display:block;">Owner</label>
+    <select id="lane-owner" style="width:100%;"></select>
+    <label style="margin-top:10px;display:block;">Colour</label>
+    <div id="lane-colors" class="sw-colorrow"></div>
+    <div class="lock-err" id="laneErr"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn danger sm" id="laneDeleteBtn" onclick="deleteLane()" style="display:none;margin-right:auto;">Delete lane</button>
+      <button class="btn ghost" onclick="closeLaneModal()">Cancel</button>
+      <button class="btn" onclick="saveLane()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Swimlane: add/edit a card -->
+<div class="modal-ov no-print" id="swCardModal" onclick="if(event.target===this)closeSwCard()">
+  <div class="modal" style="text-align:left;max-width:460px;">
+    <h3 style="text-align:center;"><span id="swCardTitle">➕ Add a block</span></h3>
+    <input type="hidden" id="swc-id"><input type="hidden" id="swc-lane"><input type="hidden" id="swc-q">
+    <label>What’s the block?</label>
+    <textarea id="swc-text" rows="4" placeholder="e.g. Launch Small Business internet play" style="width:100%;"></textarea>
+    <label style="margin-top:10px;display:block;">Quarter</label>
+    <select id="swc-qsel" style="width:100%;"></select>
+    <label style="margin-top:10px;display:block;">Colour</label>
+    <div id="swc-colors" class="sw-colorrow"></div>
+    <div class="lock-err" id="swcErr"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn danger sm" id="swcDeleteBtn" onclick="deleteSwCard()" style="display:none;margin-right:auto;">Delete</button>
+      <button class="btn ghost" onclick="closeSwCard()">Cancel</button>
+      <button class="btn" onclick="saveSwCard()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Swimlane: quarter range -->
+<div class="modal-ov no-print" id="swRangeModal" onclick="if(event.target===this)closeSwimRange()">
+  <div class="modal" style="text-align:left;max-width:400px;">
+    <h3 style="text-align:center;">⚙ Quarters shown</h3>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <div style="flex:1;min-width:120px;"><label>Start fiscal year</label><input type="number" id="sw-startyear" style="width:100%;"></div>
+      <div style="width:110px;"><label>Start quarter</label><select id="sw-startq" style="width:100%;"><option value="1">Q1</option><option value="2">Q2</option><option value="3">Q3</option><option value="4">Q4</option></select></div>
+    </div>
+    <label style="margin-top:10px;display:block;">How many quarters</label>
+    <input type="number" id="sw-count" min="1" max="20" style="width:100%;">
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn ghost" onclick="closeSwimRange()">Cancel</button>
+      <button class="btn" onclick="saveSwimRange()">Save</button>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2614,6 +2706,170 @@
     showToast('✅ To-do added'+(sameEmail(who,myEmail)?'':' for '+pmName(who)));
   }
 
+  /* ================= SWIMLANES (quarter-by-quarter big blocks) ================= */
+  const SW_COLORS=[
+    {k:'purple',bg:'#cbb6e8',hd:'#b79ad9'},
+    {k:'green', bg:'#bfe6c4',hd:'#a2d6a8'},
+    {k:'blue',  bg:'#bcc7ef',hd:'#9fb0e8'},
+    {k:'amber', bg:'#f2dca6',hd:'#ecc97a'},
+    {k:'pink',  bg:'#f1bdd8',hd:'#e79ac1'},
+    {k:'teal',  bg:'#aadfd8',hd:'#7fc9c0'}
+  ];
+  function swColor(k){ return SW_COLORS.find(c=>c.k===k)||SW_COLORS[0]; }
+  let swLanes=[], swCards=[], swConfig={startYear:2026,startQ:1,count:12}, swLoaded=false, swDragId=null;
+  function canEditSwim(){ return canCreate(); }
+  function swQuarters(){ const out=[]; let y=swConfig.startYear||2026, q=swConfig.startQ||1; const n=swConfig.count||12; for(let i=0;i<n;i++){ out.push('FY'+y+'-Q'+q); q++; if(q>4){q=1;y++;} } return out; }
+  function loadSwimLocal(){ try{ const o=JSON.parse(localStorage.getItem(KEY+'_swim')||'{}'); swLanes=o.lanes||[]; swCards=o.cards||[]; if(o.config) swConfig=Object.assign({startYear:2026,startQ:1,count:12},o.config); }catch(e){ swLanes=[]; swCards=[]; } }
+  function saveSwimLocal(){ try{ localStorage.setItem(KEY+'_swim',JSON.stringify({lanes:swLanes,cards:swCards,config:swConfig})); }catch(e){} }
+  function dbUpsertSwim(row){ if(!USE_DB) return; sb.from('swimlanes').upsert({id:row.id,kind:row.kind,data:row.data}).then(r=>{ if(r.error) console.warn('swim save',r.error); }); }
+  function dbDeleteSwim(id){ if(!USE_DB) return; sb.from('swimlanes').delete().eq('id',id).then(()=>{}); }
+  async function dbLoadSwim(){ if(!USE_DB){ swLoaded=true; return; }
+    try{ const r=await sb.from('swimlanes').select('id,kind,data'); if(r.error) throw r.error; const rows=r.data||[];
+      swLanes=rows.filter(x=>x.kind==='lane').map(x=>({id:x.id,kind:'lane',data:x.data||{}}));
+      swCards=rows.filter(x=>x.kind==='card').map(x=>({id:x.id,kind:'card',data:x.data||{}}));
+      const cfg=rows.find(x=>x.kind==='config'); if(cfg&&cfg.data) swConfig=Object.assign({startYear:2026,startQ:1,count:12},cfg.data);
+      saveSwimLocal();
+    }catch(e){ console.warn('swim load',e); loadSwimLocal(); }
+    swLoaded=true; }
+  async function ensureSwim(){ if(!swLoaded){ loadSwimLocal(); await dbLoadSwim(); } seedSwimlanes(); }
+  function renderSwimSection(){ ensureSwim().then(()=>renderSwimlanes()); }
+  function refreshSwim(){ swLoaded=false; renderSwimSection(); showToast('Swimlanes refreshed'); }
+  function renderSwimlanes(){
+    const wrap=document.getElementById('swimWrap'); if(!wrap) return;
+    const edit=canEditSwim(); document.body.classList.toggle('swim-can-edit', edit);
+    const qs=swQuarters();
+    const lanes=swLanes.slice().sort((a,b)=>((a.data.ord||0)-(b.data.ord||0)));
+    if(!lanes.length){ wrap.innerHTML='<div class="mtg-empty">No lanes yet. '+(edit?'Click <b>➕ Add lane</b> to start.':'Nothing here yet.')+'</div>'; return; }
+    let h='<div class="swim-scroll"><div class="swim-grid" style="--cols:'+qs.length+'">';
+    h+='<div class="swim-corner"></div>';
+    qs.forEach((q,i)=>{ h+='<div class="swim-qh"><span class="qn">'+(i+1)+'</span>'+esc(q)+'</div>'; });
+    lanes.forEach(l=>{ const col=swColor(l.data.color);
+      h+='<div class="swim-lane-hd" style="background:'+col.hd+'">'
+        +(l.data.owner?avatarHtml(resolvePerson(l.data.owner)):'')
+        +'<span class="swl-name">'+esc(l.data.name||'Lane')+'</span>'
+        +(edit?'<span class="swl-tools"><button title="Edit lane" onclick="openLaneModal(\''+l.id+'\')">✎</button></span>':'')
+        +'</div>';
+      qs.forEach(q=>{ const cards=swCards.filter(c=>c.data.laneId===l.id && c.data.q===q).sort((a,b)=>((a.data.ord||0)-(b.data.ord||0)));
+        h+='<div class="swim-cell" data-lane="'+l.id+'" data-q="'+esc(q)+'">'
+          + cards.map(c=>swCardHtml(c,edit)).join('')
+          + (edit?'<button class="swim-add" title="Add a block" onclick="openSwCard(\''+l.id+'\',\''+esc(q)+'\')">＋</button>':'')
+          + '</div>';
+      });
+    });
+    h+='</div></div>';
+    wrap.innerHTML=h;
+    if(edit) enableSwimDrag();
+  }
+  function swCardHtml(c,edit){ const col=swColor(c.data.color);
+    return '<div class="swim-card" draggable="'+(edit?'true':'false')+'" data-id="'+c.id+'" style="background:'+col.bg+'" '+(edit?'onclick="openSwCard(null,null,\''+c.id+'\')"':'')+'>'+esc(c.data.text||'').replace(/\n/g,'<br>')+'</div>'; }
+  function enableSwimDrag(){
+    document.querySelectorAll('#swimWrap .swim-card[draggable=true]').forEach(c=>{ if(c.dataset.dnd) return; c.dataset.dnd='1';
+      c.addEventListener('dragstart',e=>{ swDragId=c.getAttribute('data-id'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',swDragId);}catch(_){}; setTimeout(()=>c.classList.add('dragging'),0); e.stopPropagation(); });
+      c.addEventListener('dragend',()=>{ swDragId=null; document.querySelectorAll('.swim-card').forEach(x=>x.classList.remove('dragging')); document.querySelectorAll('.swim-cell').forEach(x=>x.classList.remove('drop')); });
+    });
+    document.querySelectorAll('#swimWrap .swim-cell').forEach(cell=>{ if(cell.dataset.dnd) return; cell.dataset.dnd='1';
+      cell.addEventListener('dragover',e=>{ if(!swDragId) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; cell.classList.add('drop'); });
+      cell.addEventListener('dragleave',()=>cell.classList.remove('drop'));
+      cell.addEventListener('drop',e=>{ if(!swDragId) return; e.preventDefault(); e.stopPropagation(); const c=swCards.find(x=>x.id===swDragId);
+        if(c){ c.data.laneId=cell.getAttribute('data-lane'); c.data.q=cell.getAttribute('data-q'); c.data.ord=Date.now(); saveSwimLocal(); dbUpsertSwim(c); } renderSwimlanes(); });
+    });
+  }
+  /* ----- lane modal ----- */
+  let laneColorPick='purple';
+  function renderColorRow(containerId,current,group){ const box=document.getElementById(containerId); if(!box) return;
+    box.innerHTML=SW_COLORS.map(c=>'<button type="button" class="sw-swatch'+(c.k===current?' on':'')+'" style="background:'+c.hd+'" title="'+c.k+'" onclick="swPickColor(\''+group+'\',\''+c.k+'\',this)"></button>').join(''); }
+  function swPickColor(group,k,el){ if(group==='lane') laneColorPick=k; else swCardColorPick=k; const box=el.parentElement; box.querySelectorAll('.sw-swatch').forEach(s=>s.classList.remove('on')); el.classList.add('on'); }
+  function openLaneModal(id){ if(!canEditSwim()){ infoModal('Ask an admin or leadership to edit swimlanes.'); return; }
+    const editing=!!id; const l=editing?swLanes.find(x=>x.id===id):null; if(editing&&!l) return;
+    document.getElementById('laneModalTitle').textContent=editing?'✎ Edit lane':'➕ Add a lane';
+    document.getElementById('lane-id').value=editing?id:'';
+    document.getElementById('lane-name').value=editing?(l.data.name||''):'';
+    document.getElementById('lane-owner').innerHTML=ownerOptions(editing?(l.data.owner||''):'');
+    laneColorPick=editing?(l.data.color||'purple'):'purple'; renderColorRow('lane-colors',laneColorPick,'lane');
+    document.getElementById('laneDeleteBtn').style.display=editing?'inline-block':'none';
+    document.getElementById('laneErr').textContent=''; document.getElementById('laneModal').classList.add('show'); }
+  function closeLaneModal(){ document.getElementById('laneModal').classList.remove('show'); }
+  function saveLane(){ const name=document.getElementById('lane-name').value.trim(); if(!name){ document.getElementById('laneErr').textContent='Give the lane a name.'; return; }
+    const id=document.getElementById('lane-id').value; const owner=document.getElementById('lane-owner').value||''; let l;
+    if(id){ l=swLanes.find(x=>x.id===id); if(!l){ closeLaneModal(); return; } l.data.name=name; l.data.owner=owner; l.data.color=laneColorPick; }
+    else { const ord=swLanes.length?Math.max.apply(null,swLanes.map(x=>x.data.ord||0))+1:1; l={id:uid(),kind:'lane',data:{name,owner,color:laneColorPick,ord}}; swLanes.push(l); }
+    saveSwimLocal(); dbUpsertSwim(l); closeLaneModal(); renderSwimlanes(); }
+  function deleteLane(){ const id=document.getElementById('lane-id').value; const l=swLanes.find(x=>x.id===id); if(!l) return;
+    confirmModal('Delete the lane “'+(l.data.name||'')+'” and its blocks?', ()=>{ swCards.filter(c=>c.data.laneId===id).forEach(c=>dbDeleteSwim(c.id)); swCards=swCards.filter(c=>c.data.laneId!==id); swLanes=swLanes.filter(x=>x.id!==id); saveSwimLocal(); dbDeleteSwim(id); closeLaneModal(); renderSwimlanes(); }, 'Delete lane'); }
+  /* ----- card modal ----- */
+  let swCardColorPick='purple';
+  function openSwCard(laneId,q,cardId){ if(!canEditSwim()){ infoModal('Ask an admin or leadership to edit swimlanes.'); return; }
+    const editing=!!cardId; const c=editing?swCards.find(x=>x.id===cardId):null; if(editing&&!c) return;
+    document.getElementById('swCardTitle').textContent=editing?'✎ Edit block':'➕ Add a block';
+    document.getElementById('swc-id').value=editing?cardId:'';
+    document.getElementById('swc-lane').value=editing?c.data.laneId:(laneId||'');
+    document.getElementById('swc-text').value=editing?(c.data.text||''):'';
+    const qs=swQuarters(); const curQ=editing?c.data.q:(q||qs[0]);
+    document.getElementById('swc-qsel').innerHTML=qs.map(x=>'<option value="'+esc(x)+'"'+(x===curQ?' selected':'')+'>'+esc(x)+'</option>').join('');
+    swCardColorPick=editing?(c.data.color||'purple'):(laneColorForCard(laneId)||'purple'); renderColorRow('swc-colors',swCardColorPick,'card');
+    document.getElementById('swcDeleteBtn').style.display=editing?'inline-block':'none';
+    document.getElementById('swcErr').textContent=''; document.getElementById('swCardModal').classList.add('show');
+    setTimeout(()=>{ const t=document.getElementById('swc-text'); if(t) t.focus(); },50); }
+  function laneColorForCard(laneId){ const l=swLanes.find(x=>x.id===laneId); return l?(l.data.color||'purple'):'purple'; }
+  function closeSwCard(){ document.getElementById('swCardModal').classList.remove('show'); }
+  function saveSwCard(){ const text=document.getElementById('swc-text').value.trim(); if(!text){ document.getElementById('swcErr').textContent='Type the block.'; return; }
+    const id=document.getElementById('swc-id').value; const laneId=document.getElementById('swc-lane').value; const q=document.getElementById('swc-qsel').value; let c;
+    if(id){ c=swCards.find(x=>x.id===id); if(!c){ closeSwCard(); return; } c.data.text=text; c.data.q=q; c.data.color=swCardColorPick; }
+    else { c={id:uid(),kind:'card',data:{laneId,q,text,color:swCardColorPick,ord:Date.now(),author:myEmail}}; swCards.push(c); }
+    saveSwimLocal(); dbUpsertSwim(c); closeSwCard(); renderSwimlanes(); }
+  function deleteSwCard(){ const id=document.getElementById('swc-id').value; const c=swCards.find(x=>x.id===id); if(!c) return; swCards=swCards.filter(x=>x.id!==id); saveSwimLocal(); dbDeleteSwim(id); closeSwCard(); renderSwimlanes(); }
+  /* ----- quarter range modal ----- */
+  function openSwimRange(){ if(!canEditSwim()) return; document.getElementById('sw-startyear').value=swConfig.startYear; document.getElementById('sw-startq').value=swConfig.startQ; document.getElementById('sw-count').value=swConfig.count; document.getElementById('swRangeModal').classList.add('show'); }
+  function closeSwimRange(){ document.getElementById('swRangeModal').classList.remove('show'); }
+  function saveSwimRange(){ swConfig.startYear=Number(document.getElementById('sw-startyear').value)||2026; swConfig.startQ=Math.min(4,Math.max(1,Number(document.getElementById('sw-startq').value)||1)); swConfig.count=Math.min(20,Math.max(1,Number(document.getElementById('sw-count').value)||12)); saveSwimLocal(); dbUpsertSwim({id:'config',kind:'config',data:swConfig}); closeSwimRange(); renderSwimlanes(); }
+  /* ----- one-time seed from the Metronomics screenshots ----- */
+  function seedSwimlanes(){ if(swLanes.length || swCards.length) return;
+    const lanes=[ {id:'swl-growth',name:'Company Growth',color:'purple',owner:'brad@purplecowinternet.com',ord:1},
+      {id:'swl-herd',name:'Herd Life',color:'green',owner:'',ord:2},
+      {id:'swl-tech',name:'Tech & Product Development',color:'blue',owner:'',ord:3},
+      {id:'swl-targets',name:'Customer Targets',color:'amber',owner:'',ord:4} ];
+    lanes.forEach(l=>{ const row={id:l.id,kind:'lane',data:{name:l.name,color:l.color,owner:l.owner,ord:l.ord}}; swLanes.push(row); dbUpsertSwim(row); });
+    const C=[
+      ['swl-growth','purple','FY2026-Q1','Retail Sales hitting sales goal'],['swl-growth','purple','FY2026-Q1','10 door-to-door reps'],
+      ['swl-growth','purple','FY2026-Q2','Wireless / Fairview'],['swl-growth','purple','FY2026-Q2','Website SEO overhaul'],
+      ['swl-growth','purple','FY2026-Q3','1000/m Direct'],['swl-growth','purple','FY2026-Q3','15 d2d'],
+      ['swl-growth','purple','FY2026-Q4','Launching Small Business internet play'],
+      ['swl-growth','purple','FY2027-Q2','Profit-adding product'],
+      ['swl-growth','purple','FY2027-Q3','7% EBITDA (blending via more rev/subs, new products, fiber roll out)'],
+      ['swl-growth','purple','FY2028-Q1','9,500 sales'],['swl-growth','purple','FY2028-Q2','11,000 sales'],['swl-growth','purple','FY2028-Q3','10,500 sales'],
+      ['swl-growth','purple','FY2028-Q4','100,000 Herd Members'],['swl-growth','purple','FY2028-Q4','8,500 sales'],
+      ['swl-herd','green','FY2026-Q1','A Players Only +200 Subs'],['swl-herd','green','FY2026-Q1','Scheduling / Retime monitoring'],['swl-herd','green','FY2026-Q1','Mesh WiFi Solution +100 Subs'],['swl-herd','green','FY2026-Q1','Set Top TV Boxes +50 Subs'],['swl-herd','green','FY2026-Q1','Hitron Cloud Automation +100 Subs'],['swl-herd','green','FY2026-Q1','Connect Case Management +100 Subs'],
+      ['swl-herd','green','FY2026-Q2','Field Support — Cape Breton, Charlottetown, Yarmouth +30 Subs'],['swl-herd','green','FY2026-Q2','Offering Cell Phones'],
+      ['swl-herd','green','FY2026-Q3','Ability for home owners to trouble-shoot their own wifi through the customer portal'],
+      ['swl-herd','green','FY2026-Q4','Community forum on the website + train customers to talk about problems and comment on solutions (discourse.org)'],['swl-herd','green','FY2026-Q4','Increase Self Service'],
+      ['swl-herd','green','FY2027-Q3','Self Service to 30%'],
+      ['swl-tech','blue','FY2026-Q1','Amazon Connect V2 — Actions, Cases, Scheduling'],['swl-tech','blue','FY2026-Q1','Enabling field techs to be booked at checkout'],['swl-tech','blue','FY2026-Q1','Wifi Extenders'],['swl-tech','blue','FY2026-Q1','TV Set top box'],['swl-tech','blue','FY2026-Q1','Customers share photos with ease, displayed in rep portal'],['swl-tech','blue','FY2026-Q1','Re-calibrate Churn & Breakage'],['swl-tech','blue','FY2026-Q1','Down detection for our network so customers see status updates'],['swl-tech','blue','FY2026-Q1','Add community help forms to the website (discourse.org)'],
+      ['swl-tech','blue','FY2026-Q2','Address Database'],['swl-tech','blue','FY2026-Q2','Cell Phones — on website, Chargebee, APIs to Telus Dashboard'],['swl-tech','blue','FY2026-Q2','Customers open tickets within the customer portal'],
+      ['swl-tech','blue','FY2026-Q3','AI knows if a customer has a service issue — if they call/text, tell them we know and are on it'],
+      ['swl-tech','blue','FY2026-Q4','Launching Smart home and home security'],
+      ['swl-tech','blue','FY2027-Q1','Merge our two wifi apps (Fibre + TPIA) into one — messaging, troubleshooting, all portal features'],['swl-tech','blue','FY2027-Q1','AI to help customers after hours'],
+      ['swl-tech','blue','FY2027-Q2','AI troubleshoots customer wifi better than a human, pulling multiple data sources'],['swl-tech','blue','FY2027-Q2','AI answers billing, sales and general questions'],
+      ['swl-tech','blue','FY2027-Q3','Purple Energy V1 — monitor power usage, alerts, base-load creep flags, compare usage to similar homes'],
+      ['swl-tech','blue','FY2027-Q4','Purple Cow sees smart devices in home for better insights (e.g. motion + light left on → save ~$10/mo, offer to turn off)'],['swl-tech','blue','FY2027-Q4','Sell home products through Purple Energy — heat-pump cleanings/filters, light bulbs, furnace filters'],
+      ['swl-tech','blue','FY2028-Q1','Launch Purple Power with home batteries, linked to Purple Energy app'],
+      ['swl-tech','blue','FY2028-Q2','Integrate Purple Energy app into Nova Scotia Power smart meters'],
+      ['swl-targets','amber','FY2026-Q1','Breakage 18% · Churn 6% · Start 39,000 · Sales 6,000 · Ending 41,580'],
+      ['swl-targets','amber','FY2026-Q2','Breakage 15% · Churn 4.5% · Start 41,580 · Sales 7,200 · Ending 45,659'],
+      ['swl-targets','amber','FY2026-Q3','Breakage 13% · Churn 4% · Start 45,659 · Sales 8,000 · Ending 50,358'],
+      ['swl-targets','amber','FY2026-Q4','Breakage 10% · Churn 3% · Start 50,358 · Sales 7,500 · Ending 55,147'],
+      ['swl-targets','amber','FY2027-Q1','Breakage 10% · Churn 3% · Start 55,147 · Sales 7,000 · Ending 59,792'],
+      ['swl-targets','amber','FY2027-Q2','Breakage 10% · Churn 3% · Start 61,264 · Sales 9,000 · Ending 66,099'],
+      ['swl-targets','amber','FY2027-Q3','Breakage 10% · Churn 3% · Start 74,500 · Sales 10,000 · Ending 73,116'],
+      ['swl-targets','amber','FY2027-Q4','Breakage 10% · Churn 3% · Start 74,500 · Sales 9,000 · Ending 79,022'],
+      ['swl-targets','amber','FY2028-Q1','Breakage 10% · Churn 3% · Start 80,365 · Sales 9,500 · Ending 85,202'],
+      ['swl-targets','amber','FY2028-Q2','Breakage 10% · Churn 3% · Start 86,054 · Sales 11,000 · Ending 92,545'],
+      ['swl-targets','amber','FY2028-Q3','Breakage 10% · Churn 3% · Start 93,373 · Sales 10,500 · Ending 99,219'],
+      ['swl-targets','amber','FY2028-Q4','Full model (Google Sheet): docs.google.com/spreadsheets/d/1lub047s7KIu3OKpjvynKU2r1mLKMgXH5d5VDeV81H8k']
+    ];
+    C.forEach((row,i)=>{ const card={id:'swc-'+row[0].replace('swl-','')+'-'+i, kind:'card', data:{laneId:row[0], color:row[1], q:row[2], text:row[3], ord:i}}; swCards.push(card); dbUpsertSwim(card); });
+    saveSwimLocal();
+  }
+
   /* ================= CORE VALUES / VISION ================= */
   const DEFAULT_VISION={
     strategy:'Herd Life',
@@ -3661,9 +3917,9 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','swim'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','swim'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
@@ -3674,7 +3930,7 @@ Herd Life`;
   function navTo(sec){
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     if(sec==='priorities'){ gotoDash(); }
-    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
