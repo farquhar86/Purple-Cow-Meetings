@@ -773,8 +773,8 @@
     <button class="sb-item" data-sec="priorities" onclick="navTo('priorities')"><span class="sb-ic">🎯</span>Priorities</button>
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
+    <button class="sb-item manage-only" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
-    <button class="sb-item" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
   </nav>
   <div class="sb-bottom">
     <button class="sb-add manage-only" onclick="openTeamsModal()"><span class="sb-ic">➕</span>Add teammates</button>
@@ -3939,6 +3939,7 @@ Herd Life`;
   function toggleMobileNav(){ document.body.classList.toggle('sb-open'); }
   function closeMobileNav(){ document.body.classList.remove('sb-open'); }
   function navTo(sec){
+    if(sec==='swim' && !canManageUsers()) sec='home';   // Swimlanes is admin-only
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     if(sec==='priorities'){ gotoDash(); }
     else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); window.scrollTo({top:0}); }
