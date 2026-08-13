@@ -469,6 +469,9 @@
   .ctx-sel{font-size:.78rem;color:var(--muted);padding:0 8px 7px;border-bottom:1px solid var(--line);margin-bottom:4px;font-style:italic;}
   .ctx-item{display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:none;border:none;padding:7px 8px;border-radius:7px;cursor:pointer;font-size:.9rem;color:var(--ink);}
   .ctx-item:hover{background:var(--lilac);}
+  .ctx-due{display:flex;align-items:center;gap:8px;padding:6px 8px;border-bottom:1px solid var(--line);margin-bottom:4px;}
+  .ctx-due label{font-size:.72rem;font-weight:700;color:var(--purple-dark);white-space:nowrap;}
+  .ctx-due input{flex:1;padding:5px 7px;border:1px solid var(--line);border-radius:7px;font-size:.82rem;}
   .ctx-item img,.ctx-item .tm-initials{width:22px;height:22px;border-radius:50%;flex:0 0 auto;}
   .app-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--purple-dark);color:#fff;padding:11px 20px;border-radius:10px;font-size:.9rem;font-weight:600;box-shadow:var(--shadow);z-index:700;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;text-align:center;}
   .app-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -3628,7 +3631,11 @@ Herd Life`;
     let people=(m&&m.attendees&&m.attendees.length)?m.attendees.slice():((teamUsers||[]).map(u=>u.email));
     people=people.slice().sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
     const short=text.length>70?text.slice(0,70)+'…':text;
-    let html='<div class="ctx-hd">➕ Make a To-Do for this week</div><div class="ctx-sel">"'+esc(short)+'"</div>';
+    let defDue=''; try{ if(m && curMtgDate){ const nd=(m.type&&m.type!=='once')?occStep(m,curMtgDate,1):new Date(curMtgDate.getTime()+7*86400000); defDue=wkKey(nd); } }catch(e){}
+    if(!defDue){ const d=new Date(); d.setDate(d.getDate()+7); defDue=wkKey(d); }
+    let html='<div class="ctx-hd">➕ Make a To-Do</div><div class="ctx-sel">"'+esc(short)+'"</div>';
+    html+='<div class="ctx-due"><label>📅 Due</label><input type="date" id="todoCtxDue" value="'+defDue+'" onclick="event.stopPropagation()"></div>';
+    html+='<div class="ctx-hd" style="padding-top:2px;">Assign to</div>';
     html+=people.map(em=>'<button class="ctx-item" onclick="makeTodoFromText(\''+esc(em)+'\')">'+avatarHtml(em)+'<span>'+esc(pmName(em))+'</span></button>').join('');
     menu.innerHTML=html;
     menu.style.display='block';
@@ -3649,12 +3656,15 @@ Herd Life`;
     showTodoMenu(x,y,sel);
   }
   function makeTodoFromText(email){
-    const text=(todoPendingText||'').trim(); hideTodoMenu(); if(!text) return;
+    const text=(todoPendingText||'').trim();
+    const de=document.getElementById('todoCtxDue'); const due=(de&&de.value)?de.value:'';
+    hideTodoMenu(); if(!text) return;
     const m=mtgsStore.find(mm=>mm.id===curMtgId); if(!m){ return; }
     const sec=(m.sections||[]).find(s=>s.type==='priorities');
     if(!sec){ infoModal('This meeting has no To-Dos section to add to. Add one first (➕ Add section → Priorities).'); return; }
-    addItem(sec.id, instKey(), {type:'pri', text:text, done:false, author:email, assignedBy:myEmail, fromIssue:curIssueId});
-    showToast('✅ To-Do added for '+pmName(email)+' this week');
+    const data={type:'pri', text:text, done:false, author:email, assignedBy:myEmail, fromIssue:curIssueId}; if(due) data.due=due;
+    addItem(sec.id, instKey(), data);
+    showToast('✅ To-Do added for '+pmName(email)+(due?' · due '+due:''));
     if(curIssueId && document.getElementById('issueModal').classList.contains('show')) renderIssueTodos(curIssueId);
   }
   document.addEventListener('contextmenu', function(ev){
