@@ -3185,7 +3185,9 @@ Herd Life`;
   function editItem(id){ mtgEditItemId=id; renderMeetingView(); setTimeout(()=>{ const el=document.getElementById('edit-'+id); if(el){ el.focus(); if(el.setSelectionRange){ const n=el.value.length; try{ el.setSelectionRange(n,n); }catch(_){} } } },30); }
   function cancelItemEdit(){ mtgEditItemId=null; renderMeetingView(); }
   function saveItemEdit(id){ const el=document.getElementById('edit-'+id); const it=mtgItems.find(x=>x.id===id);
-    if(el && it && canEditItem(it)){ const v=(el.value||'').trim(); if(v){ it.data.text=v; it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); } }
+    if(el && it && canEditItem(it)){ const v=(el.value||'').trim(); if(v){ it.data.text=v;
+      const de=document.getElementById('editdue-'+id); if(de){ const d=(de.value||'').trim(); if(d) it.data.due=d; else delete it.data.due; }
+      it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); } }
     mtgEditItemId=null; renderMeetingView(); }
   function mtgEditKey(ev,id){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); saveItemEdit(id); } else if(ev.key==='Escape'){ ev.preventDefault(); cancelItemEdit(); } }
   function noteHtml(it,canEdit){ const canE=canEditItem(it);
@@ -3232,6 +3234,7 @@ Herd Life`;
     if(editable && it.id===mtgEditItemId){
       return '<div class="mtg-pri"><input type="checkbox" '+(done?'checked':'')+' disabled>'
         +'<input id="edit-'+it.id+'" class="mtg-editinp" value="'+esc(it.data.text||'')+'" onkeydown="mtgEditKey(event,\''+it.id+'\')">'
+        +'<input type="date" id="editdue-'+it.id+'" class="mtg-duein" value="'+esc(it.data.due||'')+'" title="Due date (leave blank for none)">'
         +'<button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
     const fromIss = it.data.fromIssue ? '<span class="from-issue" title="Added from an issue — click to open it" onclick="event.stopPropagation();openIssue(\''+it.data.fromIssue+'\')">🔗 from issue</span>' : '';
     let dueChip='';
