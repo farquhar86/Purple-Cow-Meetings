@@ -358,12 +358,12 @@
   .iss-meetings .issm-add{border:1px dashed var(--purple);border-radius:999px;padding:3px 10px;font-size:.8rem;color:var(--purple-dark);background:#fff;cursor:pointer;}
   .kb-card .kc-linked{display:inline-block;font-size:.66rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 7px;margin:2px 0;white-space:nowrap;}
   .kb-card.linked{border-left:3px solid var(--purple);}
-  .mtg-bubble .rx-addtop{position:absolute;top:5px;right:8px;cursor:pointer;font-size:.9rem;line-height:1;opacity:.35;}
-  .mtg-bubble .rx-addtop:hover{opacity:1;}
-  .mtg-note:hover .mtg-bubble .rx-addtop{opacity:.75;}
-  .mtg-bubble .del{position:absolute;top:6px;right:34px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
-  .mtg-bubble .edit{position:absolute;top:6px;right:56px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
-  .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
+  .mtg-bubble .note-tools{position:absolute;top:5px;right:10px;display:flex;align-items:center;gap:10px;}
+  .mtg-bubble .note-tools .edit,.mtg-bubble .note-tools .del{color:var(--muted);cursor:pointer;font-size:.85rem;line-height:1;opacity:0;}
+  .mtg-note:hover .mtg-bubble .note-tools .edit,.mtg-note:hover .mtg-bubble .note-tools .del{opacity:1;}
+  .mtg-bubble .note-tools .rx-addtop{cursor:pointer;font-size:.95rem;line-height:1;opacity:.35;}
+  .mtg-bubble .note-tools .rx-addtop:hover{opacity:1;}
+  .mtg-note:hover .mtg-bubble .note-tools .rx-addtop{opacity:.8;}
   .mtg-editta{width:100%;min-height:60px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:.92rem;margin-top:4px;}
   .mtg-editbtns{display:flex;gap:6px;margin-top:7px;}
   .mtg-editinp{flex:1;}
@@ -3218,8 +3218,11 @@ Herd Life`;
       : '';
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
       +esc(it.data.text||'')+imgHtml+reactionsHtml(it)
-      +'<span class="rx-addtop" title="Add reaction" onclick="event.stopPropagation();openReactionPicker(event,\''+it.id+'\')">☺️＋</span>'
-      +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
+      +'<span class="note-tools">'
+        +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')
+        +'<span class="rx-addtop" title="Add reaction" onclick="event.stopPropagation();openReactionPicker(event,\''+it.id+'\')">☺️</span>'
+      +'</span>'
+      +'</div></div>'; }
   /* emoji reactions on notes (Slack-style) */
   const RX_EMOJIS=['👍','❤️','🎉','😂','🙌','👏','🔥','✅','😮','💯','🐮','🚀','😍','🙏','👀','⭐'];
   function reactionsHtml(it){ const r=(it.data&&it.data.reactions)||{};
