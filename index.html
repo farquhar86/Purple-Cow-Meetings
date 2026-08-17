@@ -358,8 +358,11 @@
   .iss-meetings .issm-add{border:1px dashed var(--purple);border-radius:999px;padding:3px 10px;font-size:.8rem;color:var(--purple-dark);background:#fff;cursor:pointer;}
   .kb-card .kc-linked{display:inline-block;font-size:.66rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 7px;margin:2px 0;white-space:nowrap;}
   .kb-card.linked{border-left:3px solid var(--purple);}
-  .mtg-bubble .del{position:absolute;top:6px;right:8px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
-  .mtg-bubble .edit{position:absolute;top:6px;right:28px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
+  .mtg-bubble .rx-addtop{position:absolute;top:5px;right:8px;cursor:pointer;font-size:.9rem;line-height:1;opacity:.35;}
+  .mtg-bubble .rx-addtop:hover{opacity:1;}
+  .mtg-note:hover .mtg-bubble .rx-addtop{opacity:.75;}
+  .mtg-bubble .del{position:absolute;top:6px;right:34px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
+  .mtg-bubble .edit{position:absolute;top:6px;right:56px;color:var(--muted);cursor:pointer;font-size:.85rem;opacity:0;}
   .mtg-note:hover .mtg-bubble .del,.mtg-note:hover .mtg-bubble .edit{opacity:1;}
   .mtg-editta{width:100%;min-height:60px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:.92rem;margin-top:4px;}
   .mtg-editbtns{display:flex;gap:6px;margin-top:7px;}
@@ -384,6 +387,8 @@
   .mtg-pri .pri-due{display:inline-block;font-size:.68rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 8px;margin-left:8px;white-space:nowrap;vertical-align:middle;}
   .mtg-pri .pri-due.over{background:#fbe6e5;color:#c9302c;}
   .mtg-duein{flex:0 0 auto;width:150px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;font-size:.85rem;color:var(--ink);}
+  .mtg-datebtn{flex:0 0 auto;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer;padding:6px 9px;font-size:.9rem;line-height:1;}
+  .mtg-datebtn:hover{background:var(--lilac);border-color:var(--purple);}
   .carry-btn{margin-left:auto;flex:0 0 auto;font-size:.72rem;font-weight:700;color:var(--purple-dark);background:var(--lilac);border:1px solid var(--purple);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap;}
   .carry-btn:hover{background:var(--purple);color:#fff;}
   .from-issue:hover{background:var(--purple);color:#fff;}
@@ -3161,12 +3166,19 @@ Herd Life`;
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
       body = rows.length ? priGroupsHtml(rows,sec.id,canEdit,true) : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
-      if(canEdit){ const nd=(m.type&&m.type!=='once')?occStep(m,curMtgDate,1):new Date(curMtgDate.getTime()+7*86400000); const nextDue=wkKey(nd);
-        body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')"><input type="date" id="due-'+sec.id+'" class="mtg-duein" title="Due date (defaults to the next meeting)" value="'+nextDue+'"><button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>'; }
+      if(canEdit){ const nextDue=mtgNextKey();
+        body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')">'
+          +'<button type="button" class="mtg-datebtn" title="Set a due date — defaults to the next meeting" onclick="toggleDueInput(\''+sec.id+'\')">📅</button>'
+          +'<input type="date" id="due-'+sec.id+'" class="mtg-duein" style="display:none;" value="'+nextDue+'">'
+          +'<button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>'; }
     } else if(sec.type==='prioritiesPrev'){
       const src=sec.sourceSection||'today';
-      const rows=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===prevInstKey(m)).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
-      body = rows.length ? priGroupsHtml(rows,src,canEdit,false,(canEdit?src:null)) : '<div class="mtg-empty">Nothing carried over from the previous meeting.</div>';
+      // pull from the LAST meeting that actually recorded to-dos (the most recent prior date), not literally yesterday
+      const curKey=instKey();
+      const priorKeys=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst && it.inst<curKey).map(it=>it.inst);
+      const lastKey=priorKeys.length ? priorKeys.sort().slice(-1)[0] : null;
+      const rows=lastKey ? mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst===lastKey).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)) : [];
+      body = rows.length ? priGroupsHtml(rows,src,canEdit,false,(canEdit?src:null)) : '<div class="mtg-empty">Nothing carried over from the last meeting.</div>';
     } else if(sec.type==='issues'){
       body = renderIssueBoard(m,sec.id,canEdit);
     } else if(sec.type==='metrics'){
@@ -3206,15 +3218,16 @@ Herd Life`;
       : '';
     return '<div class="mtg-note">'+avatarHtml(it.data.author)+'<div class="mtg-bubble"><div class="who">'+esc(pmName(it.data.author))+'</div>'
       +esc(it.data.text||'')+imgHtml+reactionsHtml(it)
+      +'<span class="rx-addtop" title="Add reaction" onclick="event.stopPropagation();openReactionPicker(event,\''+it.id+'\')">☺️＋</span>'
       +(canE?'<span class="edit" title="Edit" onclick="editItem(\''+it.id+'\')">✎</span><span class="del" title="Delete" onclick="delItem(\''+it.id+'\');renderMeetingView()">✕</span>':'')+'</div></div>'; }
   /* emoji reactions on notes (Slack-style) */
   const RX_EMOJIS=['👍','❤️','🎉','😂','🙌','👏','🔥','✅','😮','💯','🐮','🚀','😍','🙏','👀','⭐'];
   function reactionsHtml(it){ const r=(it.data&&it.data.reactions)||{};
     const keys=Object.keys(r).filter(k=>Array.isArray(r[k])&&r[k].length);
-    let chips=keys.map(k=>{ const users=r[k]; const mine=users.some(u=>sameEmail(u,myEmail));
+    if(!keys.length) return '';   // no empty row — the ☺ button lives with edit/delete now
+    const chips=keys.map(k=>{ const users=r[k]; const mine=users.some(u=>sameEmail(u,myEmail));
       const names=users.map(u=>pmName(resolvePerson(u))).join(', ');
       return '<button class="rx-chip'+(mine?' mine':'')+'" title="'+esc(names)+'" onclick="event.stopPropagation();toggleReaction(\''+it.id+'\',\''+k+'\')">'+k+'<span class="rx-n">'+users.length+'</span></button>'; }).join('');
-    chips+='<button class="rx-add" title="Add a reaction" onclick="event.stopPropagation();openReactionPicker(event,\''+it.id+'\')">☺️+</button>';
     return '<div class="rx-row">'+chips+'</div>'; }
   function toggleReaction(id,emoji){ const it=mtgItems.find(x=>x.id===id); if(!it) return;
     if(!it.data.reactions) it.data.reactions={};
@@ -3241,8 +3254,9 @@ Herd Life`;
         +'<button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
     const fromIss = it.data.fromIssue ? '<span class="from-issue" title="Added from an issue — click to open it" onclick="event.stopPropagation();openIssue(\''+it.data.fromIssue+'\')">🔗 from issue</span>' : '';
     let dueChip='';
-    if(it.data.due){ const dd=parseYMD(it.data.due); if(dd){ const od=!done && endOfDay(dd)<new Date(); dueChip='<span class="pri-due'+(od?' over':'')+'" title="Due '+esc(it.data.due)+'">📅 '+fmtDue(dd)+'</span>'; } }
-    const carry = (carrySection && !done) ? '<button class="carry-btn" title="Carry this over to this week’s to-dos" onclick="event.stopPropagation();carryToThisWeek(\''+it.id+'\',\''+carrySection+'\')">↪ this week</button>' : '';
+    // only badge a due date when it's NOT the next meeting (the default) — keeps the list clean
+    if(it.data.due && it.data.due!==mtgNextKey()){ const dd=parseYMD(it.data.due); if(dd){ const od=!done && endOfDay(dd)<new Date(); dueChip='<span class="pri-due'+(od?' over':'')+'" title="Due '+esc(it.data.due)+'">📅 '+fmtDue(dd)+'</span>'; } }
+    const carry = (carrySection && !done) ? '<button class="carry-btn" title="Add this to today’s to-dos" onclick="event.stopPropagation();carryToThisWeek(\''+it.id+'\',\''+carrySection+'\')">↪ Add for today</button>' : '';
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
       +'<span class="ptxt">'+esc(it.data.text||'')+fromIss+dueChip+'</span>'
@@ -3257,7 +3271,7 @@ Herd Life`;
     const dupe=mtgItems.some(x=>x.meeting_id===curMtgId && x.section===section && x.inst===instKey() && (x.data.text||'')===text && (x.data.author||'')===author);
     if(dupe){ showToast('Already on this week’s list'); return; }
     addItem(section, instKey(), {type:'pri', text:text, done:false, author:author, carriedFrom:id});
-    showToast('↪ Added to this week'); renderMeetingView(); }
+    showToast('↪ Added for today'); renderMeetingView(); }
   /* everyone's entries in the same order everywhere — alphabetical by first name */
   function byContributor(a,b){ const na=String(pmName((a.data&&a.data.author)||'')).toLowerCase(), nb=String(pmName((b.data&&b.data.author)||'')).toLowerCase();
     return na.localeCompare(nb) || (((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
@@ -3744,8 +3758,11 @@ Herd Life`;
   function saveImgWidth(id,w){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.imgW=Math.round(w); saveMtgLocal(); dbUpsertItem(it); }
   function mtgNoteKey(ev,section){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addNote(section); } }
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
+  /* the date key of this meeting's NEXT occurrence — the default due date, shared with the badge logic */
+  function mtgNextKey(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m||!curMtgDate) return ''; const nd=(m.type&&m.type!=='once')?occStep(m,curMtgDate,1):new Date(curMtgDate.getTime()+7*86400000); return wkKey(nd); }
+  function toggleDueInput(section){ const el=document.getElementById('due-'+section); if(!el) return; const show=el.style.display==='none'; el.style.display=show?'':'none'; if(show){ el.focus(); if(el.showPicker){ try{ el.showPicker(); }catch(_){} } } }
   function addPriority(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value='';
-    const de=document.getElementById('due-'+section); const due=de&&de.value?de.value:''; if(de) de.value='';
+    const de=document.getElementById('due-'+section); const due=de&&de.value?de.value:''; if(de){ de.value=''; de.style.display='none'; }
     const data={type:'pri',text:v,done:false}; if(due) data.due=due;
     addItem(section,instKey(),data); renderMeetingView(); focusAdd(section); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
@@ -3880,7 +3897,7 @@ Herd Life`;
         sections:[ {id:'cv',type:'text',title:'Core Values'},
           {id:'pgn',type:'notes',title:'Personal Good News'},
           {id:'prgn',type:'notes',title:'Professional Good News'},
-          {id:'yest',type:'prioritiesPrev',title:'Priorities you and your team are working through — yesterday? (done / not done)',sourceSection:'today'},
+          {id:'yest',type:'prioritiesPrev',title:'Priorities from the last meeting (done / not done)',sourceSection:'today'},
           {id:'today',type:'priorities',title:'Priorities you and your team are working through — today?'} ],
         t:Date.now(), by:'system' };
       mtgsStore.push(standup); dbUpsertMtg(standup);
@@ -3908,6 +3925,8 @@ Herd Life`;
       if(iss>=0) l10x.sections.splice(iss,0,secQP); else l10x.sections.push(secQP);
       dbUpsertMtg(l10x);
     }
+    // migration: reword any "yesterday" carry-over sections to "last meeting"
+    mtgsStore.forEach(mm=>{ let ch=false; (mm.sections||[]).forEach(s=>{ if(s.type==='prioritiesPrev' && /yesterday/i.test(s.title||'')){ s.title='Priorities from the last meeting (done / not done)'; ch=true; } }); if(ch) dbUpsertMtg(mm); });
     saveMtgLocal();
   }
 
