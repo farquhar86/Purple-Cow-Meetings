@@ -735,10 +735,13 @@
   .stage-pill.active{background:var(--purple);color:#fff;border-color:var(--purple);}
 
   /* Gantt */
-  .sched-tbl{width:100%;border-collapse:collapse;margin-top:8px;}
+  .sched-tbl{width:100%;min-width:1120px;border-collapse:collapse;margin-top:8px;}
   .sched-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:6px 8px;}
   .sched-tbl td{padding:6px 8px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle;}
-  .sched-tbl input[type=date]{padding:6px 8px;}
+  .sched-tbl td.st-task{width:26%;min-width:230px;}
+  .sched-tbl td.st-task input{min-width:210px;}
+  .sched-tbl select{max-width:170px;}
+  .sched-tbl input[type=date]{padding:6px 8px;width:132px;}
   .gantt{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff;}
   .gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .g-label{width:38%;font-size:12.5px;color:var(--ink);}
@@ -4632,7 +4635,7 @@ Herd Life`;
     const doneRows = e.done.length ? e.done.map((d,i)=>`
       <tr>
         <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
-        <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
+        <td class="st-task"><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
         <td><select onchange="setPlan('${e.id}',${i},'owner',this.value)" title="In charge">${ownerOptions(e.plan[i].owner)}</select></td>
         <td><select onchange="setPlan('${e.id}',${i},'dept',this.value)" title="Contributing department — defaults to the priority's home department">${taskDeptOpts(e.plan[i].dept)}</select></td>
         <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
