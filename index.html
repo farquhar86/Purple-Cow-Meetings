@@ -754,6 +754,24 @@
   .sched-tbl td.st-task input{min-width:210px;}
   .sched-tbl select{max-width:170px;}
   .sched-tbl input[type=date]{padding:6px 8px;width:132px;}
+  /* read-only task list (edited via popup) */
+  .sched-tbl tr.trow{cursor:pointer;}
+  .sched-tbl tr.trow:hover td{background:var(--lilac);}
+  .sched-tbl .tname{font-weight:600;}
+  .sched-tbl td.tnum{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .sched-tbl tr.g-hd td{background:var(--lilac);color:var(--purple-dark);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;padding:5px 8px;border-top:none;}
+  .tick{display:inline-flex;width:19px;height:19px;border-radius:50%;border:2px solid var(--line);align-items:center;justify-content:center;font-size:11px;color:#fff;flex:none;}
+  .tick.done{background:var(--green);border-color:var(--green);}
+  .edit-hint{opacity:0;font-size:12px;color:var(--purple);transition:opacity .15s;white-space:nowrap;}
+  .trow:hover .edit-hint{opacity:1;}
+  .b-bump{background:#fbf1dc;color:#9a6d14;}
+  .was-dates{font-size:11px;color:#9a6d14;white-space:nowrap;}
+  .note-stamp{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .g-ghost{position:absolute;top:3px;height:16px;border:1.5px dashed #c9a24a;border-radius:5px;background:repeating-linear-gradient(45deg,rgba(224,163,46,.14),rgba(224,163,46,.14) 4px,transparent 4px,transparent 8px);box-sizing:border-box;}
+  .stage-hint{font-size:12.5px;color:var(--muted);margin:-6px 0 14px;}
+  .stage-hint a{color:var(--purple);font-weight:700;cursor:pointer;text-decoration:none;}
+  .stage-hint a:hover{text-decoration:underline;}
+  .bump-note{font-size:12px;background:#fbf1dc;color:#9a6d14;border-radius:8px;padding:7px 10px;margin:10px 0 2px;}
   .gantt{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff;}
   .gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .g-label{width:38%;font-size:12.5px;color:var(--ink);}
@@ -910,6 +928,33 @@
     <div class="modal-actions">
       <button class="btn" onclick="saveEditModal()">Save</button>
       <button class="btn ghost" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / edit task modal -->
+<div class="modal-ov no-print" id="taskModal" onclick="if(event.target===this)closeTaskModal()">
+  <div class="modal" style="text-align:left;max-width:520px;">
+    <h3 id="taskModalTitle" style="text-align:center;">Add a task</h3>
+    <div class="bump-note" id="taskModalBump" style="display:none;"></div>
+    <label>Task</label>
+    <input type="text" id="tm-task" placeholder="What's the piece of work?" style="text-align:left;margin-top:0;" onkeydown="if(event.key==='Enter')saveTaskModal()">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
+      <div>
+        <label>Department <span style="font-weight:400;text-transform:none;">— defaults to the priority's</span></label>
+        <select id="tm-dept" onchange="tmDeptChange(this)"></select>
+        <input type="text" id="tm-dept-other" placeholder="Department / partner name…" style="display:none;text-align:left;margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <div><label>Owner (in charge)</label><select id="tm-owner"></select></div>
+      <div><label>Start</label><input type="date" id="tm-start" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>End</label><input type="date" id="tm-end" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>% done</label><input type="number" id="tm-pct" min="0" max="100" value="0" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>Note</label><input type="text" id="tm-note" placeholder="Blockers, context, who asked…" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveTaskModal()">Save task</button>
+      <button class="btn ghost" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn danger" id="tm-remove" onclick="removeTaskModal()" style="display:none;">Remove</button>
     </div>
   </div>
 </div>
@@ -1454,6 +1499,7 @@
       <span id="stageFilterLbl" style="display:flex;align-items:center;gap:6px;">
         <span class="fl">Stage</span>
         <select id="f-stage" onchange="renderDashBody()">
+          <option value="inplay" selected>🎯 Committed + scheduled</option>
           <option value="all">All</option>
           <option value="new">🆕 New</option>
           <option value="reviewed">✅ Reviewed</option>
@@ -1797,9 +1843,20 @@
     });
   }
   function saveNote(id, val){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val; persistNote(e);
+    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val;
+    e.notesAt=Date.now(); if(typeof myEmail!=='undefined' && myEmail) e.notesBy=myEmail;
+    persistNote(e);
     const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
+    document.querySelectorAll('.nstamp-'+id).forEach(el=>{ el.textContent=noteStampText(e); });
   }
+  /* when review notes were last touched, and by whom */
+  function noteStampText(e){
+    if(!e || !e.notesAt) return '';
+    const d=new Date(e.notesAt); const opts={month:'short',day:'numeric'};
+    if(d.getFullYear()!==new Date().getFullYear()) opts.year='numeric';
+    return '🕐 Last updated '+d.toLocaleDateString('en-US',opts)+(e.notesBy?' by '+pmName(e.notesBy):'');
+  }
+  function noteStampHTML(e){ const t=noteStampText(e); return '<div class="note-stamp nstamp-'+e.id+'">'+esc(t)+'</div>'; }
 
   /* ---------- meeting management ---------- */
   function applyTheme(){
@@ -4161,11 +4218,12 @@ Herd Life`;
       else if(sort==='contrib') pr.sort((a,b)=>(a.by||'').localeCompare(b.by||''));
       else if(sort==='new') pr.sort((a,b)=>(b.t||0)-(a.t||0));
       document.getElementById('dash-count').textContent = pr.length+' priorit'+(pr.length===1?'y':'ies');
-      const stageBar = stageBarHTML(baseList);
+      const stageBar = stageBarHTML(baseList) + stageHintHTML(baseList, pr.length);
       if(!pr.length){
         const msg = dashTab==='committed'
           ? 'No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong> to add it here.'
-          : (stageVal()!=='all' ? 'No priorities in this stage right now.' : 'No priorities match. They appear here as teams submit them.');
+          : (stageVal()==='inplay' ? 'Nothing committed or scheduled yet. Switch the Stage filter to <strong>All</strong> to see everything being proposed.'
+          : (stageVal()!=='all' ? 'No priorities in this stage right now.' : 'No priorities match. They appear here as teams submit them.'));
         body.innerHTML=stageBar+'<div class="card"><p class="empty">'+msg+'</p></div>'; return;
       }
       const ctrl = '<div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost sm" onclick="expandAllCards(true)">▾ Expand all</button><button class="btn ghost sm" onclick="expandAllCards(false)">▸ Collapse all</button></div>';
@@ -4222,6 +4280,7 @@ Herd Life`;
       <div class="notes-wrap">
         <div class="nlabel">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></div>
         <textarea class="notes-area" oninput="saveNote('${e.id}', this.value)" placeholder="Notes from the review — clarifications, decisions, what 'done' really means, who owns it…">${esc(e.notes||'')}</textarea>
+        ${noteStampHTML(e)}
       </div>
       <div class="commit-row">
         <button class="btn sm" onclick="openPrio('${e.id}')">Open priority · commit, size, schedule &amp; edit →</button>
@@ -4580,23 +4639,31 @@ Herd Life`;
   function kindBadge(e){ if(e.kind==='bottleneck') return '<span class="badge b-bottleneck">🔧 Bottleneck</span> '; if(e.kind==='innovation') return '<span class="badge b-innovation">💡 Innovation</span> '; return ''; }
   function passKind(e){ const s=document.getElementById('f-kind'); const k=s&&s.value; return !k || (e.kind||'')===k; }
   const SIZE_WEIGHT={S:1,M:2,L:3};
-  const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  const STAGE_DEFS=[['inplay','🎯 Committed + scheduled'],['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  const INPLAY_STAGES=['committed','scheduled','complete'];   // "the plan": what we've committed to, scheduled, or finished
+  function stageCountFor(v,counts,total){ if(v==='all') return total; if(v==='inplay') return INPLAY_STAGES.reduce((n,s)=>n+(counts[s]||0),0); return counts[v]||0; }
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
-  function passReview(e){ if(presenting && stageOf(e)==='new') return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
+  function passReview(e){ if(presenting && stageOf(e)==='new') return false; const v=stageVal(); if(v==='all') return true; if(v==='inplay') return INPLAY_STAGES.indexOf(stageOf(e))>=0; return stageOf(e)===v; }
   function stageBarHTML(list){
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
     const cv=stageVal();
     return '<div class="stage-bar no-print">'+STAGE_DEFS.map(([v,lbl])=>{
-      const n=(v==='all')?list.length:(counts[v]||0);
+      const n=stageCountFor(v,counts,list.length);
       return '<button class="stage-pill'+(cv===v?' active':'')+'" onclick="setStageFilter(\''+v+'\')">'+lbl+' ('+n+')</button>';
     }).join('')+'</div>';
+  }
+  function stageHintHTML(list,shown){
+    const v=stageVal(); const hidden=list.length-shown;
+    if(v==='inplay' && hidden>0) return '<p class="stage-hint no-print">Showing the work we\'ve committed to. '+hidden+' earlier-stage priorit'+(hidden===1?'y':'ies')+' not shown · <a onclick="setStageFilter(\'all\')">show everything</a></p>';
+    if(v==='all') return '<p class="stage-hint no-print">Showing every stage · <a onclick="setStageFilter(\'inplay\')">back to committed + scheduled</a></p>';
+    return '';
   }
   function setStageFilter(v){ const s=document.getElementById('f-stage'); if(s) s.value=v; renderDashBody(); }
   function setReviewCounts(list){
     const sel=document.getElementById('f-stage'); if(!sel) return;
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
-    const keep=sel.value||'all';
-    sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+(v==='all'?list.length:(counts[v]||0))+')</option>').join('');
+    const keep=sel.value||'inplay';
+    sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+stageCountFor(v,counts,list.length)+')</option>').join('');
     sel.value=keep;
   }
   function setSize(id,v){ setField(id,'size',v); }
@@ -4630,8 +4697,19 @@ Herd Life`;
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||''} : {start:'',end:'',pct:0,owner:'',dept:'',note:''}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0}); });
     e.plan=np;
+  }
+  /* a task counts as "bumped" once its end date has been pushed later than the original plan */
+  function bumpInfo(p){
+    if(!p || !p.origEnd || !p.end) return null;
+    const oe=parseD(p.origEnd), ne=parseD(p.end);
+    if(!oe || !ne || ne<=oe) return null;
+    const w=Math.max(1,Math.round(daysBetween(oe,ne)/7));
+    const n=Number(p.bumps)||1;
+    return { w, n,
+      label:'↦ bumped '+(n>1?'×'+n+' · ':'')+'+'+w+' wk'+(w===1?'':'s'),
+      was:(p.origStart?fmtShort(p.origStart)+' – ':'')+fmtShort(p.origEnd) };
   }
   /* a task's contributing department: its own dept if set, else the priority's home department */
   function taskDept(e,i){ const p=(e.plan&&e.plan[i])||{}; return p.dept || e.dept || ''; }
@@ -4657,19 +4735,36 @@ Herd Life`;
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
     const pct=prioPct(e);
     const dodText = ((e.dod!==undefined) ? e.dod : (e.done||[]).slice()).join('\n');
-    const taskDeptOpts=(sel)=>['',...DEPARTMENTS,...extraDepts.filter(dd=>DEPARTMENTS.indexOf(dd)<0)].map(dd=>`<option value="${esc(dd)}" ${(sel||'')===dd?'selected':''}>${dd?esc(dd):'— same as priority'}</option>`).join('')+((sel&&DEPARTMENTS.indexOf(sel)<0&&extraDepts.indexOf(sel)<0)?`<option value="${esc(sel)}" selected>${esc(sel)}</option>`:'')+'<option value="__other">✏️ Other — type a name…</option>';
-    const doneRows = e.done.length ? e.done.map((d,i)=>`
-      <tr>
-        <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
-        <td class="st-task"><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
-        <td><select onchange="setPlan('${e.id}',${i},'owner',this.value)" title="In charge">${ownerOptions(e.plan[i].owner)}</select></td>
-        <td><select onchange="setPlanDeptSel('${e.id}',${i},this)" title="Contributing department — defaults to the priority's home department">${taskDeptOpts(e.plan[i].dept)}</select></td>
-        <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
-        <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
-        <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
-        <td><input type="text" value="${esc(e.plan[i].note||'')}" onchange="setPlan('${e.id}',${i},'note',this.value)" placeholder="Note…" title="A short note on this task — blockers, context, who asked" style="width:150px;"></td>
-        <td><button class="btn danger sm" title="Remove item" onclick="removeDone('${e.id}',${i})">✕</button></td>
-      </tr>`).join('') : '<tr><td colspan="9" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
+    const taskRow=(d,i)=>{
+      const p=e.plan[i]||{}; const tpct=Number(p.pct)||0;
+      const od=isOverduePlan(p); const b=bumpInfo(p);
+      return `
+      <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
+        <td style="text-align:center;"><span class="tick ${tpct===100?'done':''}">${tpct===100?'✓':''}</span></td>
+        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
+        <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
+        <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
+        <td class="tnum">${p.start?fmtShort(p.start):'—'}${(b&&p.origStart)?`<br><span class="was-dates">was ${fmtShort(p.origStart)}</span>`:''}</td>
+        <td class="tnum">${p.end?fmtShort(p.end):'—'}${b?`<br><span class="was-dates">was ${fmtShort(p.origEnd)}</span>`:''}</td>
+        <td class="tnum">${tpct}%${b?`<br><span class="badge b-bump" title="${esc('Originally '+b.was)}">${b.label}</span>`:''}</td>
+        <td style="font-size:12.5px;color:var(--muted);">${esc(p.note||'')}</td>
+        <td><span class="edit-hint">✏️ edit</span></td>
+      </tr>`;
+    };
+    let doneRows='';
+    if(!e.done.length){
+      doneRows='<tr><td colspan="9" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
+    } else if(prioTaskGroup){
+      const ds=[...new Set(e.done.map((_,i)=>taskDept(e,i)||'Unassigned'))];
+      const home=e.dept||'Unassigned';
+      const order=[...(ds.includes(home)?[home]:[]), ...ds.filter(dd=>dd!==home).sort()];
+      order.forEach(dd=>{
+        doneRows+=`<tr class="g-hd"><td colspan="9">${esc(dd)}${dd===home?' · home':''}</td></tr>`;
+        e.done.forEach((d,i)=>{ if((taskDept(e,i)||'Unassigned')===dd) doneRows+=taskRow(d,i); });
+      });
+    } else {
+      doneRows=e.done.map(taskRow).join('');
+    }
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
         ${stepperFor(e)}
@@ -4702,6 +4797,7 @@ Herd Life`;
       <div class="card" style="margin-bottom:16px;">
         <p class="done-label">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></p>
         <textarea class="notes-area" oninput="saveNote('${e.id}',this.value)" style="width:100%;min-height:70px;" placeholder="Notes from the review — decisions, clarifications, who owns it…">${esc(e.notes||'')}</textarea>
+        ${noteStampHTML(e)}
       </div>
 
       <div class="card" style="margin-bottom:16px;">
@@ -4717,15 +4813,21 @@ Herd Life`;
       ${prioDetailView==='tasks' ? `
       <div class="card" style="margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline. Dept defaults to this priority's department; change it when another team is contributing.</span></p>
-          <button class="btn sm" onclick="addDone('${e.id}')">+ Add task</button>
+          <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline. Click a task to edit it in a popup.</span></p>
+          <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <span class="td-scope no-print">
+              <button class="${prioTaskGroup?'':'on'}" onclick="setPrioTaskGroup(false)">List</button>
+              <button class="${prioTaskGroup?'on':''}" onclick="setPrioTaskGroup(true)">By department</button>
+            </span>
+            <button class="btn sm" onclick="openTaskModal('${e.id}')">+ Add task</button>
+          </span>
         </div>
-        <div style="overflow-x:auto;"><table class="sched-tbl"><thead><tr><th>✓</th><th>Task</th><th>In charge</th><th>Dept</th><th>Start</th><th>End</th><th>% done</th><th>Notes</th><th></th></tr></thead><tbody>${doneRows}</tbody></table></div>
+        <div style="overflow-x:auto;"><table class="sched-tbl" style="min-width:860px;"><thead><tr><th>✓</th><th>Task</th><th>Dept</th><th>Owner</th><th>Start</th><th>End</th><th>% done</th><th>Notes</th><th></th></tr></thead><tbody>${doneRows}</tbody></table></div>
       </div>` : `
       <div class="card" style="margin-bottom:16px;">
         <p class="done-label">Timeline (Gantt) <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— grouped by contributing department</span></p>
         ${ganttHTML(e,true)}
-        <p class="sched-summary">As things slip, change the dates in the Tasks view — the timeline updates automatically.</p>
+        <p class="sched-summary">As things slip, edit the task's dates in the Tasks view — the timeline updates automatically and keeps a dashed ghost of the original plan.</p>
       </div>`}
 
       <div class="card">
@@ -4738,13 +4840,87 @@ Herd Life`;
   }
   let prioDetailView='tasks';
   function setPrioDetailView(v){ prioDetailView=v; renderPrioPage(); }
+  let prioTaskGroup=true;   // task list grouped by contributing department (same as the timeline)
+  function setPrioTaskGroup(v){ prioTaskGroup=v; renderPrioPage(); }
+
+  /* ---------- add / edit task popup ---------- */
+  let taskModalEntry=null, taskModalIdx=null;
+  function taskDeptOptions(sel){
+    const extra=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
+    const opts=['',...DEPARTMENTS,...extra];
+    if(sel && opts.indexOf(sel)<0) opts.push(sel);
+    return opts.map(dd=>`<option value="${esc(dd)}" ${(sel||'')===dd?'selected':''}>${dd?esc(dd):'— same as priority'}</option>`).join('')+'<option value="__other">✏️ Other — type a name…</option>';
+  }
+  function tmDeptChange(sel){
+    const other=document.getElementById('tm-dept-other');
+    other.style.display = sel.value==='__other' ? 'block' : 'none';
+    if(sel.value==='__other') setTimeout(()=>other.focus(),40);
+  }
+  function openTaskModal(id, i){
+    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    syncPlan(e);
+    taskModalEntry=id; taskModalIdx=(typeof i==='number')?i:null;
+    const p=(taskModalIdx!=null && e.plan[taskModalIdx]) ? e.plan[taskModalIdx] : {start:'',end:'',pct:0,owner:'',dept:'',note:''};
+    document.getElementById('taskModalTitle').textContent = taskModalIdx!=null?'Edit task':'Add a task';
+    document.getElementById('tm-task').value = taskModalIdx!=null?(e.done[taskModalIdx]||''):'';
+    document.getElementById('tm-dept').innerHTML = taskDeptOptions(p.dept||'');
+    const other=document.getElementById('tm-dept-other'); other.value=''; other.style.display='none';
+    document.getElementById('tm-owner').innerHTML = ownerOptions(p.owner||'');
+    document.getElementById('tm-start').value=p.start||'';
+    document.getElementById('tm-end').value=p.end||'';
+    document.getElementById('tm-pct').value=Number(p.pct)||0;
+    document.getElementById('tm-note').value=p.note||'';
+    document.getElementById('tm-remove').style.display = taskModalIdx!=null?'':'none';
+    const bn=document.getElementById('taskModalBump'); const b=bumpInfo(p);
+    if(b){ bn.style.display='block'; bn.textContent='↦ This task has been bumped'+(b.n>1?' ×'+b.n:'')+': originally '+b.was+'. If the end date moves out again, the chip updates on its own.'; }
+    else bn.style.display='none';
+    document.getElementById('taskModal').classList.add('show');
+    setTimeout(()=>document.getElementById('tm-task').focus(),60);
+  }
+  function closeTaskModal(){ document.getElementById('taskModal').classList.remove('show'); taskModalEntry=null; taskModalIdx=null; }
+  function saveTaskModal(){
+    const e=cur().entries.find(x=>x.id===taskModalEntry); if(!e){ closeTaskModal(); return; }
+    syncPlan(e);
+    const dSel=document.getElementById('tm-dept');
+    let dept=dSel.value; if(dept==='__other') dept=document.getElementById('tm-dept-other').value.trim();
+    const title=document.getElementById('tm-task').value.trim();
+    const nv={ start:document.getElementById('tm-start').value||'', end:document.getElementById('tm-end').value||'',
+      pct:Math.max(0,Math.min(100,Number(document.getElementById('tm-pct').value)||0)),
+      owner:document.getElementById('tm-owner').value||'', dept:dept||'', note:document.getElementById('tm-note').value.trim(),
+      origStart:'', origEnd:'', datesSetAt:0, bumps:0 };
+    if(taskModalIdx!=null && e.plan[taskModalIdx]){
+      const old=e.plan[taskModalIdx];
+      nv.origStart=old.origStart||''; nv.origEnd=old.origEnd||''; nv.datesSetAt=old.datesSetAt||0; nv.bumps=Number(old.bumps)||0;
+      if(!old.end && nv.end){ nv.datesSetAt=Date.now(); }                       // dates set for the first time → baseline starts here
+      else if(old.end && nv.end && parseD(old.end) && parseD(nv.end) && parseD(nv.end)>parseD(old.end)){
+        if((Date.now()-(nv.datesSetAt||0)) > 48*3600*1000){                     // 48h grace so fixing a typo doesn't count as a bump
+          if(!nv.origEnd){ nv.origStart=old.start||''; nv.origEnd=old.end; }
+          nv.bumps=nv.bumps+1;
+        }
+      }
+      if(nv.origEnd && nv.end && parseD(nv.end) && parseD(nv.origEnd) && parseD(nv.end)<=parseD(nv.origEnd)){ nv.origStart=''; nv.origEnd=''; }   // pulled back on plan → no longer bumped
+      e.done[taskModalIdx]=title||e.done[taskModalIdx]||'Untitled task';
+      e.plan[taskModalIdx]=nv;
+    } else {
+      if(nv.end) nv.datesSetAt=Date.now();
+      e.done.push(title||'Untitled task'); e.plan.push(nv);
+    }
+    autoStage(e); persist(e); closeTaskModal(); refreshPrio();
+  }
+  function removeTaskModal(){
+    const id=taskModalEntry, i=taskModalIdx; closeTaskModal();
+    if(i==null) return;
+    confirmModal('Remove this task? This cannot be undone.', ()=>{ removeDone(id,i); }, 'Remove task');
+  }
   function ganttHTML(e, groupByDept){
     const done=e.done||[], plan=e.plan||[];
-    const tasks=done.map((d,i)=>({label:d, start:plan[i]&&plan[i].start, end:plan[i]&&plan[i].end, pct:(plan[i]&&Number(plan[i].pct))||0, dept:taskDept(e,i)||'Unassigned'}));
+    const tasks=done.map((d,i)=>({label:d, start:plan[i]&&plan[i].start, end:plan[i]&&plan[i].end, pct:(plan[i]&&Number(plan[i].pct))||0, dept:taskDept(e,i)||'Unassigned', p:plan[i]||{}}));
     const dated=tasks.filter(t=>t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start));
     if(!dated.length) return '<div class="gantt"><p class="empty" style="margin:0;">Set start and end dates on the tasks to see the timeline.</p></div>';
     let min=parseD(dated[0].start), max=parseD(dated[0].end);
     dated.forEach(t=>{ const s=parseD(t.start),en=parseD(t.end); if(s<min)min=s; if(en>max)max=en; });
+    let anyBumped=false;
+    dated.forEach(t=>{ if(bumpInfo(t.p)){ anyBumped=true; const os=parseD(t.p.origStart), oe=parseD(t.p.origEnd); if(os&&os<min)min=os; if(oe&&oe>max)max=oe; } });
     const total=Math.max(1, daysBetween(min,max)+1);
     const now=todayStart();
     const todayIn = now>=min && now<=max;
@@ -4758,7 +4934,14 @@ Herd Life`;
       const left=daysBetween(min,s)/total*100;
       const width=Math.max(3,(daysBetween(s,en)+1)/total*100);
       const od=isOverduePlan({end:t.end,pct:t.pct}); if(od) overdue++;
-      return `<div class="gantt-row"><div class="g-label">${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
+      const b=bumpInfo(t.p);
+      let ghost='';
+      if(b && parseD(t.p.origStart) && parseD(t.p.origEnd)){
+        const gl=daysBetween(min,parseD(t.p.origStart))/total*100;
+        const gw=Math.max(2,(daysBetween(parseD(t.p.origStart),parseD(t.p.origEnd))+1)/total*100);
+        ghost=`<div class="g-ghost" style="left:${gl}%;width:${gw}%;" title="Originally ${t.p.origStart} → ${t.p.origEnd}"></div>`;
+      }
+      return `<div class="gantt-row"><div class="g-label">${b?'↦ ':''}${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${ghost}${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}${b?' · was '+b.was:''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
     };
     let rows='';
     const distinctDepts=[...new Set(tasks.map(t=>t.dept))];
@@ -4772,7 +4955,7 @@ Herd Life`;
       rows=tasks.map(rowFor).join('');
     }
     const flag = overdue ? `<span style="color:var(--red);font-weight:700;">⚠ ${overdue} task${overdue===1?'':'s'} past due</span>` : `<span style="color:var(--green);">On track</span>`;
-    const legend = todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '';
+    const legend = (todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '') + (anyBumped ? ` &nbsp;·&nbsp; <span style="color:#9a6d14;">▨</span> original dates (bumped)` : '');
     return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${flag}${legend}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
   }
 
