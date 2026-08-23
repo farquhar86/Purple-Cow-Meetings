@@ -675,6 +675,18 @@
   .pv-tag.contrib{background:#e0edff;color:#1a63c4;}
   .g-depthd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;color:var(--purple-dark);margin:10px 0 6px;border-bottom:1px solid var(--lilac-2);padding-bottom:3px;}
   .g-depthd:first-child{margin-top:0;}
+  /* mockup-style priority cards + department bands */
+  .pv-card{padding:0 !important;overflow:hidden;border-left:none;}
+  .pv-priohd{display:flex;align-items:flex-start;gap:12px;padding:13px 18px;background:linear-gradient(135deg,var(--lilac),#faf6fe);cursor:pointer;flex-wrap:wrap;}
+  .pv-priohd:hover{background:linear-gradient(135deg,var(--lilac-2),var(--lilac));}
+  .pv-priohd h4{margin:0;font-size:17px;color:var(--purple-dark);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .pv-prog{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .pv-sum{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .pv-priobody{padding:12px 18px 16px;}
+  .pv-band{display:flex;align-items:center;gap:10px;margin:26px 0 12px;}
+  .pv-band .nm{font-size:16px;font-weight:800;color:var(--purple-dark);}
+  .pv-band .cnt{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .pv-band .ln{flex:1;height:1px;background:var(--line);}
   .rev-card{border-left:6px solid var(--purple);margin-bottom:14px;}
   .rev-card h4{margin:0 0 4px;font-size:18px;color:var(--purple-dark);}
   .meta-line{font-size:12px;color:var(--muted);margin:2px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -1196,7 +1208,7 @@
     <input type="text" id="np-title" placeholder="What's the priority?" style="width:100%;">
     <div class="pm-grid">
       <div><label>Type</label><select id="np-kind"><option value="">—</option><option value="bottleneck">🔧 Bottleneck</option><option value="innovation">💡 Innovation</option></select></div>
-      <div><label>Department</label><select id="np-dept"></select></div>
+      <div><label>Department</label><select id="np-dept" onchange="npDeptChange(this)"></select></div>
       <div><label>Impact</label><select id="np-impact"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
       <div><label>Size</label><select id="np-size"><option value="">—</option><option value="S">S</option><option value="M">M</option><option value="L">L</option></select></div>
       <div><label>Project manager</label><select id="np-pm"></select></div>
@@ -1832,7 +1844,7 @@
     if(!canCreate()){ infoModal('Your account can view and update the priorities you own, but not create new ones. Ask an admin if you need a new priority added.'); return; }
     document.getElementById('np-title').value=''; document.getElementById('np-why').value=''; document.getElementById('np-done').value='';
     document.getElementById('np-kind').value=''; document.getElementById('np-impact').value='Medium'; document.getElementById('np-size').value='';
-    document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('');
+    document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('')+npExtraDeptOpts()+'<option value="__other">✏️ Other — type a name…</option>';
     document.getElementById('np-pm').innerHTML=ownerOptions('');
     document.getElementById('newPrioModal').classList.add('show');
     setTimeout(()=>document.getElementById('np-title').focus(),60);
@@ -1957,7 +1969,7 @@
     const title=document.getElementById('np-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
     const done=document.getElementById('np-done').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const e={ id:uid(), type:'priority', kind:document.getElementById('np-kind').value||'', title,
-      why:document.getElementById('np-why').value.trim(), dept:document.getElementById('np-dept').value,
+      why:document.getElementById('np-why').value.trim(), dept:(v=>v==='__other'?'':v)(document.getElementById('np-dept').value),
       impact:document.getElementById('np-impact').value||'Medium', size:document.getElementById('np-size').value||'',
       pm:document.getElementById('np-pm').value||'', done, plan:done.map(()=>({start:'',end:'',pct:0})),
       notes:'', by:'Added on dashboard', stage:'reviewed', t:Date.now() };
@@ -4165,7 +4177,7 @@ Herd Life`;
         // Whole plan: always grouped by home department (the chosen sort applies within each group)
         const groups={}; pr.forEach(e=>{const d=e.dept||'Unassigned';(groups[d]=groups[d]||[]).push(e);});
         const keys=Object.keys(groups).sort((a,b)=> (a==='Unassigned')-(b==='Unassigned') || a.localeCompare(b));
-        body.innerHTML=intro+keys.map(d=>`<div class="dept-group"><h3>${esc(d)} <span class="dcount">· ${groups[d].length}</span></h3>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
+        body.innerHTML=intro+keys.map(d=>`<div class="dept-group"><div class="pv-band"><span class="nm">${esc(d)}</span><span class="cnt">${groups[d].length} priorit${groups[d].length===1?'y':'ies'}</span><span class="ln"></span></div>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
       } else { body.innerHTML=intro+pr.map(dashPrioCard).join(''); }
     } else if(dashTab==='swot'){
       renderSimpleTab(body, items, SWOT_TYPES);
@@ -4196,10 +4208,15 @@ Herd Life`;
     const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
+    const plan=e.plan||[]; const totalT=(e.done||[]).length;
+    const doneT=plan.filter(p=>Number(p&&p.pct)===100).length;
+    const progT=plan.filter(p=>{const x=Number(p&&p.pct)||0;return x>0&&x<100;}).length;
+    const lateT=plan.filter(isOverduePlan).length;
+    const contribs=[...new Set((e.done||[]).map((_,i)=>taskDept(e,i)).filter(dd=>dd&&dd!==(e.dept||'')))];
     const badges = kindBadge(e)+(isAtRisk(e)?'<span class="badge b-risk">⚠ At risk</span> ':'')+(e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
     const sched = scheduleSummary(e);
     const exp = !!cardExpanded[e.id];
-    const detail = exp ? `
+    const detail = exp ? `<div class="pv-priobody">
       ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
       <p class="done-label">🛠 Tasks</p>${done}
       <div class="notes-wrap">
@@ -4208,21 +4225,20 @@ Herd Life`;
       </div>
       <div class="commit-row">
         <button class="btn sm" onclick="openPrio('${e.id}')">Open priority · commit, size, schedule &amp; edit →</button>
-      </div>` : '';
+      </div></div>` : '';
     const offClass = isAtRisk(e) ? ' offtrack-risk' : (isPrioBehind(e) ? ' offtrack-behind' : '');
     const offChip = isAtRisk(e) ? '<span class="offtrack-chip risk" title="Off track — has an overdue task">⚠ OFF TRACK</span>'
                   : (isPrioBehind(e) ? '<span class="offtrack-chip behind" title="Behind — progress hasn\'t kept up with the timeline">⏰ BEHIND</span>' : '');
-    return `<div class="card prio-card rev-card ${e.committed?'committed-card':''}${offClass}" style="${exp?'':'padding:14px 18px;'}">
-      <div class="prio-meta">
-        <span style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-          <button class="rm-toggle" onclick="toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button>
-          <h4 class="prio-link" onclick="openPrio('${e.id}')" title="Open this priority's page" style="margin:0;">${esc(e.title)} <span style="font-size:13px;">↗</span></h4>
-          ${offChip}
-        </span>
-        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${badges}</span>
+    const summary = (!exp && totalT) ? `<div class="pv-sum"><span class="pv-pill done">✔ ${doneT} done</span><span class="pv-pill prog">${progT} in progress</span><span class="pv-pill todo">${totalT-doneT-progT} not started</span>${lateT?`<span class="pv-pill late">⚠ ${lateT} overdue</span>`:''}</div>` : '';
+    return `<div class="card prio-card rev-card pv-card ${e.committed?'committed-card':''}${offClass}">
+      <div class="pv-priohd" onclick="toggleCard('${e.id}')">
+        <div style="flex:1;min-width:0;">
+          <h4><button class="rm-toggle" onclick="event.stopPropagation();toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button><span class="prio-link" onclick="event.stopPropagation();openPrio('${e.id}')" title="Open this priority's page">${esc(e.title)} <span style="font-size:13px;">↗</span></span> ${offChip}</h4>
+          <div class="meta-line" style="margin:7px 0 0;"><span class="tag t-keep">${dept}</span>${contribs.length?'<span style="color:var(--muted);">+</span> '+contribs.map(dd=>`<span class="pv-tag contrib" title="Contributing department">${esc(dd)}</span>`).join(' '):''}${e.pm?`<span class="rm-pm">👤 PM: ${esc(pmName(e.pm))}</span>`:'<span class="pv-pill pm" title="No project manager set — pick one on the priority page">👤 needs a PM</span>'}${badges}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}</div>
+          ${summary}
+        </div>
+        <span class="pv-prog"><span class="pctbar" style="display:inline-block;width:120px;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%${totalT?` · ${doneT}/${totalT} tasks`:''}</span>
       </div>
-      <div class="meta-line"><span class="tag t-keep">${dept}</span>${(()=>{const cds=[...new Set((e.done||[]).map((_,i)=>taskDept(e,i)).filter(dd=>dd&&dd!==(e.dept||'')))];return cds.length?'<span style="color:var(--muted);">+</span> '+cds.map(dd=>`<span class="pv-tag contrib" title="Contributing department">${esc(dd)}</span>`).join(' '):'';})()}${e.pm?`<span class="rm-pm">👤 PM: ${esc(pmName(e.pm))}</span>`:'<span class="pv-pill pm" title="No project manager set — pick one on the priority page">👤 needs a PM</span>'}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}<span class="pct-chip">${pct}% done</span></div>
-      <div class="pctbar" style="margin:2px 0 ${exp?'8px':'0'};"><div class="pctbar-fill" style="width:${pct}%"></div></div>
       ${detail}
     </div>`;
   }
@@ -4238,6 +4254,15 @@ Herd Life`;
 
   function setTab(t){ dashTab=t; renderDash(); }
   function backLink(){ return '<button class="btn ghost sm no-print" style="margin-bottom:12px;" onclick="setTab(\'priority\')">← Back to priorities</button>'; }
+
+  /* ---------- custom ("Other…") departments ---------- */
+  function npExtraDeptOpts(){ try{ return [...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))].map(dd=>'<option>'+esc(dd)+'</option>').join(''); }catch(err){ return ''; } }
+  function otherDeptPrompt(cb, cancel){
+    editModal('Department / partner name (e.g. TELUS — external partner)', '', v=>{ v=String(v||'').split('\n')[0].trim(); if(v) cb(v); else if(cancel) cancel(); });
+  }
+  function setDeptSel(id,sel){ if(sel.value==='__other'){ otherDeptPrompt(v=>setField(id,'dept',v), ()=>renderPrioPage()); } else setField(id,'dept',sel.value); }
+  function setPlanDeptSel(id,i,sel){ if(sel.value==='__other'){ otherDeptPrompt(v=>setPlan(id,i,'dept',v), ()=>renderPrioPage()); } else setPlan(id,i,'dept',sel.value); }
+  function npDeptChange(sel){ if(sel.value!=='__other') return; otherDeptPrompt(v=>{ const other=sel.querySelector('option[value="__other"]'); const o=document.createElement('option'); o.value=v; o.textContent=v; sel.insertBefore(o,other); sel.value=v; }, ()=>{ sel.value=''; }); }
 
   /* ---------- priorities views: whole plan / by department / by owner ---------- */
   let dashView='plan', dashDeptPick='', dashOwnerPick='';
@@ -4626,18 +4651,19 @@ Herd Life`;
     document.getElementById('prioCrumb').textContent = cur().name+' · '+(cur().theme||'');
     if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to priorities</button></div>'; return; }
     syncPlan(e);
-    const deptOpts=['',...DEPARTMENTS].map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
+    const extraDepts=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
+    const deptAll=['',...DEPARTMENTS,...extraDepts,...(e.dept&&!DEPARTMENTS.includes(e.dept)&&!extraDepts.includes(e.dept)?[e.dept]:[])];
+    const deptOpts=deptAll.map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
     const pct=prioPct(e);
     const dodText = ((e.dod!==undefined) ? e.dod : (e.done||[]).slice()).join('\n');
-    const extraDepts=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
-    const taskDeptOpts=(sel)=>['',...DEPARTMENTS,...extraDepts].map(dd=>`<option value="${esc(dd)}" ${(sel||'')===dd?'selected':''}>${dd?esc(dd):'— same as priority'}</option>`).join('');
+    const taskDeptOpts=(sel)=>['',...DEPARTMENTS,...extraDepts.filter(dd=>DEPARTMENTS.indexOf(dd)<0)].map(dd=>`<option value="${esc(dd)}" ${(sel||'')===dd?'selected':''}>${dd?esc(dd):'— same as priority'}</option>`).join('')+((sel&&DEPARTMENTS.indexOf(sel)<0&&extraDepts.indexOf(sel)<0)?`<option value="${esc(sel)}" selected>${esc(sel)}</option>`:'')+'<option value="__other">✏️ Other — type a name…</option>';
     const doneRows = e.done.length ? e.done.map((d,i)=>`
       <tr>
         <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
         <td class="st-task"><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
         <td><select onchange="setPlan('${e.id}',${i},'owner',this.value)" title="In charge">${ownerOptions(e.plan[i].owner)}</select></td>
-        <td><select onchange="setPlan('${e.id}',${i},'dept',this.value)" title="Contributing department — defaults to the priority's home department">${taskDeptOpts(e.plan[i].dept)}</select></td>
+        <td><select onchange="setPlanDeptSel('${e.id}',${i},this)" title="Contributing department — defaults to the priority's home department">${taskDeptOpts(e.plan[i].dept)}</select></td>
         <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
         <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
         <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
@@ -4649,7 +4675,7 @@ Herd Life`;
         ${stepperFor(e)}
         <label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;">
         <div class="pm-grid">
-          <div><label>Department</label><select onchange="setField('${e.id}','dept',this.value)">${deptOpts}</select></div>
+          <div><label>Department</label><select onchange="setDeptSel('${e.id}',this)">${deptOpts}<option value="__other">✏️ Other — type a name…</option></select></div>
           <div><label>Impact</label><select onchange="setField('${e.id}','impact',this.value)">
             <option ${e.impact==='High'?'selected':''}>High</option>
             <option ${e.impact==='Medium'?'selected':''}>Medium</option>
