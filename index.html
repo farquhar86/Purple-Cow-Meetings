@@ -3065,11 +3065,31 @@ Herd Life`;
   function tzShort(tz){ if(!tz) return ''; const p=tz.split('/'); return (p[1]||tz).replace('_',' '); }
 
   function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
-    curMtgDate=occurrenceOnOrAfter(m,new Date()); renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
+    try{ curMtgDate=occurrenceOnOrAfter(m,new Date()); }catch(e){ curMtgDate=new Date(); }
+    if(!curMtgDate || isNaN(curMtgDate.getTime())) curMtgDate=new Date();
+    renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
   function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
   function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=occStep(m,curMtgDate,dir); renderMeetingView(); }
-
+  /* clear any stale local cache and pull everything fresh from the server (in-app version of "clear cache") */
+  async function recoverMeetings(){
+    try{ localStorage.removeItem(KEY+'_mtgs'); localStorage.removeItem(KEY+'_mtgitems'); localStorage.removeItem(KEY+'_metrics'); }catch(e){}
+    mtgLoaded=false; metricsLoaded=false; mtgsStore=[]; mtgItems=[]; metricsStore=[];
+    try{ await dbLoadMeetings(); }catch(e){ console.warn('recover meetings',e); }
+    try{ if(!metricsLoaded) await dbLoadMetrics(); }catch(e){}
+    try{ seedMeetings(); }catch(e){}
+    if(curMtgId && mtgsStore.some(m=>m.id===curMtgId)) renderMeetingView(); else renderMeetingsList();
+    showToast('Reloaded from the server');
+  }
+  /* resilient wrapper — a bad cached value can never leave the meeting blank */
   function renderMeetingView(){
+    try{ renderMeetingViewInner(); }
+    catch(err){ console.warn('meeting render failed', err);
+      document.getElementById('mtgListView').style.display='none';
+      const box=document.getElementById('mtgDetailView'); if(box){ box.style.display='';
+        box.innerHTML='<button class="mtg-back" onclick="backToMeetings()">← All meetings</button>'
+          +'<div class="mtg-empty" style="margin-top:22px;line-height:1.6;">This meeting had trouble loading — usually old data cached in your browser.<br><button class="btn sm" onclick="recoverMeetings()" style="margin-top:10px;">↻ Reload from the server</button></div>'; } }
+  }
+  function renderMeetingViewInner(){
     const m=mtgsStore.find(x=>x.id===curMtgId); if(!m){ renderMeetingsList(); return; }
     document.getElementById('mtgListView').style.display='none';
     const box=document.getElementById('mtgDetailView'); box.style.display='';
@@ -3090,7 +3110,10 @@ Herd Life`;
     if(recurring && m.type!=='daily'){ const qt=mtgQuoteFor(curMtgDate);
       html+='<div class="mtg-quote"><div class="lead">💪 This week</div><div class="q">"'+esc(qt.q)+'"</div><div class="a">— '+esc(qt.a)+'</div></div>'; }
     html+='<div id="mtgSections">';
-    (m.sections||[]).forEach(sec=>{ html+=renderSection(m,sec,canEdit); });
+    (m.sections||[]).forEach(sec=>{ try{ html+=renderSection(m,sec,canEdit); }
+      catch(err){ console.warn('section render failed', sec&&sec.id, err);
+        html+='<div class="mtg-sec"><div class="mtg-sec-hd"><h3>'+esc((sec&&sec.title)||'Section')+'</h3></div>'
+          +'<div class="mtg-sec-bd"><div class="mtg-empty">This section couldn’t load right now. <button class="btn ghost sm" onclick="recoverMeetings()">↻ Reload data</button></div></div></div>'; } });
     html+='</div><div style="margin-top:6px;"><button class="btn ghost sm" onclick="openAddSection()">➕ Add section</button>'
       +(canEdit?' <span style="color:var(--muted);font-size:.8rem;">· drag the ⠿ handle to reorder sections</span>':'')+'</div>';
     // keep anything half-typed in the "Add…" boxes (and the cursor) across a re-render
