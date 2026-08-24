@@ -629,6 +629,64 @@
   .dept-group{margin-bottom:24px;}
   .dept-group > h3{font-size:15px;color:#fff;background:var(--purple);display:inline-block;padding:6px 14px;border-radius:8px;margin:0 0 12px;}
   .dept-group .dcount{font-weight:400;opacity:.85;font-size:13px;}
+  /* ===== Priorities views (whole plan / by department / by owner) ===== */
+  .tabs .pv-switch{display:inline-flex;background:#f0e9f7;border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px;margin-right:10px;}
+  .tabs .pv-switch button{border:none;background:transparent;border-radius:9px;padding:7px 14px;font-size:13.5px;}
+  .tabs .pv-switch button.on{background:var(--purple);color:#fff;}
+  .pv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:0 0 18px;}
+  .pv-stat{background:#fff;border:1px solid var(--line);border-radius:13px;padding:12px 16px;box-shadow:var(--shadow);border-top:4px solid var(--purple);}
+  .pv-stat .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;}
+  .pv-stat .num{font-size:26px;font-weight:800;color:var(--purple-dark);margin-top:3px;line-height:1;}
+  .pv-stat .sub{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .pv-stat.good{border-top-color:var(--green);} .pv-stat.good .num{color:#26834b;}
+  .pv-stat.warn{border-top-color:var(--amber);} .pv-stat.warn .num{color:#c78a00;}
+  .pv-stat.bad{border-top-color:var(--red);} .pv-stat.bad .num{color:#c9302c;}
+  .pv-chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 18px;}
+  .pv-chip{border:1px solid var(--line);background:#fff;color:var(--purple-dark);border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
+  .pv-chip:hover{background:var(--lilac);}
+  .pv-chip.on{background:var(--purple);border-color:var(--purple);color:#fff;}
+  .pv-chip .n{background:rgba(0,0,0,.08);border-radius:999px;padding:0 7px;font-size:11.5px;}
+  .pv-chip.on .n{background:rgba(255,255,255,.25);}
+  .pv-subhd{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:800;margin:22px 0 12px;}
+  .pv-tblwrap{overflow-x:auto;}
+  .pv-tbl{border-collapse:collapse;width:100%;min-width:760px;font-size:13.5px;}
+  .pv-tbl th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);background:#fdfbff;white-space:nowrap;}
+  .pv-tbl td{padding:8px 10px;border-bottom:1px solid #f1eaf8;vertical-align:top;}
+  .pv-tbl tr:last-child td{border-bottom:none;}
+  .pv-tbl tr:hover td{background:#fcf9ff;}
+  .pv-note{color:var(--muted);font-size:12px;}
+  .pv-pill{display:inline-block;font-size:11px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap;}
+  .pv-pill.done{background:#e2f5ea;color:#1d7a48;}
+  .pv-pill.prog{background:#efe7fb;color:var(--purple-dark);}
+  .pv-pill.todo{background:#eeeaf2;color:var(--muted);}
+  .pv-pill.late{background:#fbe6e2;color:#b53a24;}
+  .pv-pill.pm{background:#e0edff;color:#1a63c4;}
+  .pv-owcard{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden;}
+  .pv-owhd{display:flex;align-items:center;gap:11px;padding:12px 16px;border-bottom:1px solid var(--line);background:linear-gradient(135deg,var(--lilac),#faf6fe);flex-wrap:wrap;}
+  .pv-owhd h3{margin:0;font-size:15.5px;color:var(--purple-dark);}
+  .pv-owsub{font-size:12px;color:var(--muted);}
+  .pv-owbadges{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap;}
+  .pv-pmblock{border-bottom:1px solid var(--line);background:#fbfaff;padding:10px 16px 12px;}
+  .pv-pmhd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#1a63c4;font-weight:800;margin-bottom:7px;}
+  .pv-pmrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px;cursor:pointer;}
+  .pv-pmrow:hover{background:var(--lilac);}
+  .pv-pmrow:last-child{margin-bottom:0;}
+  .pv-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 9px;border-radius:999px;background:var(--lilac-2);color:var(--purple-dark);white-space:nowrap;}
+  .pv-tag.contrib{background:#e0edff;color:#1a63c4;}
+  .g-depthd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;color:var(--purple-dark);margin:10px 0 6px;border-bottom:1px solid var(--lilac-2);padding-bottom:3px;}
+  .g-depthd:first-child{margin-top:0;}
+  /* mockup-style priority cards + department bands */
+  .pv-card{padding:0 !important;overflow:hidden;border-left:none;}
+  .pv-priohd{display:flex;align-items:flex-start;gap:12px;padding:13px 18px;background:linear-gradient(135deg,var(--lilac),#faf6fe);cursor:pointer;flex-wrap:wrap;}
+  .pv-priohd:hover{background:linear-gradient(135deg,var(--lilac-2),var(--lilac));}
+  .pv-priohd h4{margin:0;font-size:17px;color:var(--purple-dark);display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .pv-prog{margin-left:auto;display:flex;align-items:center;gap:9px;font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .pv-sum{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .pv-priobody{padding:12px 18px 16px;}
+  .pv-band{display:flex;align-items:center;gap:10px;margin:26px 0 12px;}
+  .pv-band .nm{font-size:16px;font-weight:800;color:var(--purple-dark);}
+  .pv-band .cnt{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap;}
+  .pv-band .ln{flex:1;height:1px;background:var(--line);}
   .rev-card{border-left:6px solid var(--purple);margin-bottom:14px;}
   .rev-card h4{margin:0 0 4px;font-size:18px;color:var(--purple-dark);}
   .meta-line{font-size:12px;color:var(--muted);margin:2px 0 8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
@@ -689,10 +747,31 @@
   .stage-pill.active{background:var(--purple);color:#fff;border-color:var(--purple);}
 
   /* Gantt */
-  .sched-tbl{width:100%;border-collapse:collapse;margin-top:8px;}
+  .sched-tbl{width:100%;min-width:1120px;border-collapse:collapse;margin-top:8px;}
   .sched-tbl th{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);text-align:left;padding:6px 8px;}
   .sched-tbl td{padding:6px 8px;border-top:1px solid var(--line);font-size:13px;vertical-align:middle;}
-  .sched-tbl input[type=date]{padding:6px 8px;}
+  .sched-tbl td.st-task{width:26%;min-width:230px;}
+  .sched-tbl td.st-task input{min-width:210px;}
+  .sched-tbl select{max-width:170px;}
+  .sched-tbl input[type=date]{padding:6px 8px;width:132px;}
+  /* read-only task list (edited via popup) */
+  .sched-tbl tr.trow{cursor:pointer;}
+  .sched-tbl tr.trow:hover td{background:var(--lilac);}
+  .sched-tbl .tname{font-weight:600;}
+  .sched-tbl td.tnum{font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .sched-tbl tr.g-hd td{background:var(--lilac);color:var(--purple-dark);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;padding:5px 8px;border-top:none;}
+  .tick{display:inline-flex;width:19px;height:19px;border-radius:50%;border:2px solid var(--line);align-items:center;justify-content:center;font-size:11px;color:#fff;flex:none;}
+  .tick.done{background:var(--green);border-color:var(--green);}
+  .edit-hint{opacity:0;font-size:12px;color:var(--purple);transition:opacity .15s;white-space:nowrap;}
+  .trow:hover .edit-hint{opacity:1;}
+  .b-bump{background:#fbf1dc;color:#9a6d14;}
+  .was-dates{font-size:11px;color:#9a6d14;white-space:nowrap;}
+  .note-stamp{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .g-ghost{position:absolute;top:3px;height:16px;border:1.5px dashed #c9a24a;border-radius:5px;background:repeating-linear-gradient(45deg,rgba(224,163,46,.14),rgba(224,163,46,.14) 4px,transparent 4px,transparent 8px);box-sizing:border-box;}
+  .stage-hint{font-size:12.5px;color:var(--muted);margin:-6px 0 14px;}
+  .stage-hint a{color:var(--purple);font-weight:700;cursor:pointer;text-decoration:none;}
+  .stage-hint a:hover{text-decoration:underline;}
+  .bump-note{font-size:12px;background:#fbf1dc;color:#9a6d14;border-radius:8px;padding:7px 10px;margin:10px 0 2px;}
   .gantt{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:14px;background:#fff;}
   .gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .g-label{width:38%;font-size:12.5px;color:var(--ink);}
@@ -849,6 +928,33 @@
     <div class="modal-actions">
       <button class="btn" onclick="saveEditModal()">Save</button>
       <button class="btn ghost" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / edit task modal -->
+<div class="modal-ov no-print" id="taskModal" onclick="if(event.target===this)closeTaskModal()">
+  <div class="modal" style="text-align:left;max-width:520px;">
+    <h3 id="taskModalTitle" style="text-align:center;">Add a task</h3>
+    <div class="bump-note" id="taskModalBump" style="display:none;"></div>
+    <label>Task</label>
+    <input type="text" id="tm-task" placeholder="What's the piece of work?" style="text-align:left;margin-top:0;" onkeydown="if(event.key==='Enter')saveTaskModal()">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px;">
+      <div>
+        <label>Department <span style="font-weight:400;text-transform:none;">— defaults to the priority's</span></label>
+        <select id="tm-dept" onchange="tmDeptChange(this)"></select>
+        <input type="text" id="tm-dept-other" placeholder="Department / partner name…" style="display:none;text-align:left;margin-top:6px;width:100%;box-sizing:border-box;">
+      </div>
+      <div><label>Owner (in charge)</label><select id="tm-owner"></select></div>
+      <div><label>Start</label><input type="date" id="tm-start" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>End</label><input type="date" id="tm-end" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>% done</label><input type="number" id="tm-pct" min="0" max="100" value="0" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+      <div><label>Note</label><input type="text" id="tm-note" placeholder="Blockers, context, who asked…" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveTaskModal()">Save task</button>
+      <button class="btn ghost" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn danger" id="tm-remove" onclick="removeTaskModal()" style="display:none;">Remove</button>
     </div>
   </div>
 </div>
@@ -1147,7 +1253,7 @@
     <input type="text" id="np-title" placeholder="What's the priority?" style="width:100%;">
     <div class="pm-grid">
       <div><label>Type</label><select id="np-kind"><option value="">—</option><option value="bottleneck">🔧 Bottleneck</option><option value="innovation">💡 Innovation</option></select></div>
-      <div><label>Department</label><select id="np-dept"></select></div>
+      <div><label>Department</label><select id="np-dept" onchange="npDeptChange(this)"></select></div>
       <div><label>Impact</label><select id="np-impact"><option>High</option><option selected>Medium</option><option>Low</option></select></div>
       <div><label>Size</label><select id="np-size"><option value="">—</option><option value="S">S</option><option value="M">M</option><option value="L">L</option></select></div>
       <div><label>Project manager</label><select id="np-pm"></select></div>
@@ -1363,6 +1469,11 @@
 
   <div class="wrap">
     <div class="tabs no-print">
+      <span class="pv-switch" id="viewSwitch">
+        <button id="pv-plan" onclick="setDashView('plan')">📋 Whole plan</button>
+        <button id="pv-dept" onclick="setDashView('dept')">🏢 By department</button>
+        <button id="pv-owner" onclick="setDashView('owner')">👤 By owner</button>
+      </span>
       <button id="tab-roadmap" onclick="setTab('roadmap')">🗓 Roadmap</button>
       <button id="tab-load" onclick="setTab('load')">📊 Load</button>
       <span class="tab-spacer"></span>
@@ -1388,6 +1499,7 @@
       <span id="stageFilterLbl" style="display:flex;align-items:center;gap:6px;">
         <span class="fl">Stage</span>
         <select id="f-stage" onchange="renderDashBody()">
+          <option value="inplay" selected>🎯 Committed + scheduled</option>
           <option value="all">All</option>
           <option value="new">🆕 New</option>
           <option value="reviewed">✅ Reviewed</option>
@@ -1731,9 +1843,20 @@
     });
   }
   function saveNote(id, val){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val; persistNote(e);
+    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val;
+    e.notesAt=Date.now(); if(typeof myEmail!=='undefined' && myEmail) e.notesBy=myEmail;
+    persistNote(e);
     const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
+    document.querySelectorAll('.nstamp-'+id).forEach(el=>{ el.textContent=noteStampText(e); });
   }
+  /* when review notes were last touched, and by whom */
+  function noteStampText(e){
+    if(!e || !e.notesAt) return '';
+    const d=new Date(e.notesAt); const opts={month:'short',day:'numeric'};
+    if(d.getFullYear()!==new Date().getFullYear()) opts.year='numeric';
+    return '🕐 Last updated '+d.toLocaleDateString('en-US',opts)+(e.notesBy?' by '+pmName(e.notesBy):'');
+  }
+  function noteStampHTML(e){ const t=noteStampText(e); return '<div class="note-stamp nstamp-'+e.id+'">'+esc(t)+'</div>'; }
 
   /* ---------- meeting management ---------- */
   function applyTheme(){
@@ -1778,7 +1901,7 @@
     if(!canCreate()){ infoModal('Your account can view and update the priorities you own, but not create new ones. Ask an admin if you need a new priority added.'); return; }
     document.getElementById('np-title').value=''; document.getElementById('np-why').value=''; document.getElementById('np-done').value='';
     document.getElementById('np-kind').value=''; document.getElementById('np-impact').value='Medium'; document.getElementById('np-size').value='';
-    document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('');
+    document.getElementById('np-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('')+npExtraDeptOpts()+'<option value="__other">✏️ Other — type a name…</option>';
     document.getElementById('np-pm').innerHTML=ownerOptions('');
     document.getElementById('newPrioModal').classList.add('show');
     setTimeout(()=>document.getElementById('np-title').focus(),60);
@@ -1903,7 +2026,7 @@
     const title=document.getElementById('np-title').value.trim(); if(!title){ infoModal('Give the priority a title first.'); return; }
     const done=document.getElementById('np-done').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const e={ id:uid(), type:'priority', kind:document.getElementById('np-kind').value||'', title,
-      why:document.getElementById('np-why').value.trim(), dept:document.getElementById('np-dept').value,
+      why:document.getElementById('np-why').value.trim(), dept:(v=>v==='__other'?'':v)(document.getElementById('np-dept').value),
       impact:document.getElementById('np-impact').value||'Medium', size:document.getElementById('np-size').value||'',
       pm:document.getElementById('np-pm').value||'', done, plan:done.map(()=>({start:'',end:'',pct:0})),
       notes:'', by:'Added on dashboard', stage:'reviewed', t:Date.now() };
@@ -1918,7 +2041,7 @@
     const src=cur(); const list=carryCandidates(src); let added=0;
     list.forEach(e=>{
       const copy={ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
-        done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0})),
+        done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0,owner:(p&&p.owner)||'',dept:(p&&p.dept)||'',note:(p&&p.note)||''})),
         stage:'committed', reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() };
       target.entries.push(copy); dbUpsertEntry(target.id, copy);
       added++;
@@ -4056,13 +4179,17 @@ Herd Life`;
     cSel.innerHTML='<option value="">All contributors</option>'+people.map(p=>`<option value="${esc(p)}">${esc(p)}</option>`).join('');
     if(depts.includes(dCur)) dSel.value=dCur; if(people.includes(cCur)) cSel.value=cCur;
     // tab buttons
-    const showSort=(dashTab==='priority'||dashTab==='committed');
-    const showReviewed=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap');
+    const browsing = dashTab==='priority' && dashView!=='plan';   // dept / owner views replace the filter bar with their own chips
+    const showSort=(dashTab==='priority'||dashTab==='committed') && !browsing;
+    const showReviewed=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap') && !browsing;
     ['roadmap','load','swot','ssk'].forEach(t=>{const b=document.getElementById('tab-'+t); if(b) b.classList.toggle('active',dashTab===t);});
+    ['plan','dept','owner'].forEach(v=>{const b=document.getElementById('pv-'+v); if(b) b.classList.toggle('on',dashTab==='priority'&&dashView===v);});
+    const filtersEl=document.querySelector('#screen-dash .filters');
+    if(filtersEl) filtersEl.style.display = browsing?'none':'flex';
     document.getElementById('sortLbl').style.display = showSort?'inline':'none';
     document.getElementById('f-sort').style.display = showSort?'inline-block':'none';
     document.getElementById('stageFilterLbl').style.display = showReviewed?'flex':'none';
-    const showKind=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap'||dashTab==='load');
+    const showKind=(dashTab==='priority'||dashTab==='committed'||dashTab==='roadmap'||dashTab==='load') && !browsing;
     document.getElementById('kindFilterLbl').style.display = showKind?'flex':'none';
     renderDashBody();
   }
@@ -4077,6 +4204,8 @@ Herd Life`;
     let items=cur().entries.filter(dashFilter);
     if(dashTab==='roadmap'){ renderRoadmap(); return; }
     if(dashTab==='load'){ renderLoad(); return; }
+    if(dashTab==='priority' && dashView==='dept'){ renderViewDept(); return; }
+    if(dashTab==='priority' && dashView==='owner'){ renderViewOwner(); return; }
     if(dashTab==='priority' || dashTab==='committed'){
       let pr=items.filter(e=>e.type==='priority').filter(teamVisible);
       if(dashTab==='committed') pr=pr.filter(e=>e.committed);
@@ -4090,20 +4219,24 @@ Herd Life`;
       else if(sort==='contrib') pr.sort((a,b)=>(a.by||'').localeCompare(b.by||''));
       else if(sort==='new') pr.sort((a,b)=>(b.t||0)-(a.t||0));
       document.getElementById('dash-count').textContent = pr.length+' priorit'+(pr.length===1?'y':'ies');
-      const stageBar = stageBarHTML(baseList);
+      const stageBar = stageBarHTML(baseList) + stageHintHTML(baseList, pr.length);
       if(!pr.length){
         const msg = dashTab==='committed'
           ? 'No priorities committed yet. Open a priority and click <strong>Commit to this quarter</strong> to add it here.'
-          : (stageVal()!=='all' ? 'No priorities in this stage right now.' : 'No priorities match. They appear here as teams submit them.');
+          : (stageVal()==='inplay' ? 'Nothing committed or scheduled yet. Switch the Stage filter to <strong>All</strong> to see everything being proposed.'
+          : (stageVal()!=='all' ? 'No priorities in this stage right now.' : 'No priorities match. They appear here as teams submit them.'));
         body.innerHTML=stageBar+'<div class="card"><p class="empty">'+msg+'</p></div>'; return;
       }
       const ctrl = '<div class="no-print" style="display:flex;gap:8px;margin-bottom:12px;"><button class="btn ghost sm" onclick="expandAllCards(true)">▾ Expand all</button><button class="btn ghost sm" onclick="expandAllCards(false)">▸ Collapse all</button></div>';
       const riskN = pr.filter(isAtRisk).length;
       const riskBanner = riskN ? '<div class="risk-banner">⚠ '+riskN+' priorit'+(riskN===1?'y is':'ies are')+' at risk — has an overdue task. Open to reschedule or update progress.</div>' : '';
-      const intro = stageBar + ctrl + riskBanner + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
-      if(sort==='dept'){
+      const tiles = (dashTab==='priority') ? pvStatsHTML(pr, pvAllTasks(pr)) : '';
+      const intro = tiles + stageBar + ctrl + riskBanner + (dashTab==='committed' ? '<div class="note no-print" style="margin:0 0 16px;">✅ These are the priorities the team has agreed to work on for <strong>'+esc(cur().name)+'</strong>. Open any one to set sizing and schedule the work.</div>' : '');
+      if(dashTab==='priority' || sort==='dept'){
+        // Whole plan: always grouped by home department (the chosen sort applies within each group)
         const groups={}; pr.forEach(e=>{const d=e.dept||'Unassigned';(groups[d]=groups[d]||[]).push(e);});
-        body.innerHTML=intro+Object.keys(groups).sort().map(d=>`<div class="dept-group"><h3>${esc(d)} <span class="dcount">· ${groups[d].length}</span></h3>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
+        const keys=Object.keys(groups).sort((a,b)=> (a==='Unassigned')-(b==='Unassigned') || a.localeCompare(b));
+        body.innerHTML=intro+keys.map(d=>`<div class="dept-group"><div class="pv-band"><span class="nm">${esc(d)}</span><span class="cnt">${groups[d].length} priorit${groups[d].length===1?'y':'ies'}</span><span class="ln"></span></div>${groups[d].map(dashPrioCard).join('')}</div>`).join('');
       } else { body.innerHTML=intro+pr.map(dashPrioCard).join(''); }
     } else if(dashTab==='swot'){
       renderSimpleTab(body, items, SWOT_TYPES);
@@ -4134,33 +4267,38 @@ Herd Life`;
     const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
+    const plan=e.plan||[]; const totalT=(e.done||[]).length;
+    const doneT=plan.filter(p=>Number(p&&p.pct)===100).length;
+    const progT=plan.filter(p=>{const x=Number(p&&p.pct)||0;return x>0&&x<100;}).length;
+    const lateT=plan.filter(isOverduePlan).length;
+    const contribs=[...new Set((e.done||[]).map((_,i)=>taskDept(e,i)).filter(dd=>dd&&dd!==(e.dept||'')))];
     const badges = kindBadge(e)+(isAtRisk(e)?'<span class="badge b-risk">⚠ At risk</span> ':'')+(e.reviewed?'<span class="badge b-review">✓ Reviewed</span> ':'')+(e.committed?'<span class="badge b-commit">✓ This quarter</span> ':'')+(e.size?`<span class="badge b-size">Size ${esc(e.size)}</span> `:'')+`<span class="badge ${cls}">${esc(e.impact)} impact</span>`;
     const sched = scheduleSummary(e);
     const exp = !!cardExpanded[e.id];
-    const detail = exp ? `
+    const detail = exp ? `<div class="pv-priobody">
       ${e.why?`<p class="why">${esc(e.why)}</p>`:''}
       <p class="done-label">🛠 Tasks</p>${done}
       <div class="notes-wrap">
         <div class="nlabel">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></div>
         <textarea class="notes-area" oninput="saveNote('${e.id}', this.value)" placeholder="Notes from the review — clarifications, decisions, what 'done' really means, who owns it…">${esc(e.notes||'')}</textarea>
+        ${noteStampHTML(e)}
       </div>
       <div class="commit-row">
         <button class="btn sm" onclick="openPrio('${e.id}')">Open priority · commit, size, schedule &amp; edit →</button>
-      </div>` : '';
+      </div></div>` : '';
     const offClass = isAtRisk(e) ? ' offtrack-risk' : (isPrioBehind(e) ? ' offtrack-behind' : '');
     const offChip = isAtRisk(e) ? '<span class="offtrack-chip risk" title="Off track — has an overdue task">⚠ OFF TRACK</span>'
                   : (isPrioBehind(e) ? '<span class="offtrack-chip behind" title="Behind — progress hasn\'t kept up with the timeline">⏰ BEHIND</span>' : '');
-    return `<div class="card prio-card rev-card ${e.committed?'committed-card':''}${offClass}" style="${exp?'':'padding:14px 18px;'}">
-      <div class="prio-meta">
-        <span style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-          <button class="rm-toggle" onclick="toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button>
-          <h4 class="prio-link" onclick="openPrio('${e.id}')" title="Open this priority's page" style="margin:0;">${esc(e.title)} <span style="font-size:13px;">↗</span></h4>
-          ${offChip}
-        </span>
-        <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">${badges}</span>
+    const summary = (!exp && totalT) ? `<div class="pv-sum"><span class="pv-pill done">✔ ${doneT} done</span><span class="pv-pill prog">${progT} in progress</span><span class="pv-pill todo">${totalT-doneT-progT} not started</span>${lateT?`<span class="pv-pill late">⚠ ${lateT} overdue</span>`:''}</div>` : '';
+    return `<div class="card prio-card rev-card pv-card ${e.committed?'committed-card':''}${offClass}">
+      <div class="pv-priohd" onclick="toggleCard('${e.id}')">
+        <div style="flex:1;min-width:0;">
+          <h4><button class="rm-toggle" onclick="event.stopPropagation();toggleCard('${e.id}')" title="Expand / collapse">${exp?'▾':'▸'}</button><span class="prio-link" onclick="event.stopPropagation();openPrio('${e.id}')" title="Open this priority's page">${esc(e.title)} <span style="font-size:13px;">↗</span></span> ${offChip}</h4>
+          <div class="meta-line" style="margin:7px 0 0;"><span class="tag t-keep">${dept}</span>${contribs.length?'<span style="color:var(--muted);">+</span> '+contribs.map(dd=>`<span class="pv-tag contrib" title="Contributing department">${esc(dd)}</span>`).join(' '):''}${e.pm?`<span class="rm-pm">👤 PM: ${esc(pmName(e.pm))}</span>`:'<span class="pv-pill pm" title="No project manager set — pick one on the priority page">👤 needs a PM</span>'}${badges}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}</div>
+          ${summary}
+        </div>
+        <span class="pv-prog"><span class="pctbar" style="display:inline-block;width:120px;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%${totalT?` · ${doneT}/${totalT} tasks`:''}</span>
       </div>
-      <div class="meta-line"><span class="tag t-keep">${dept}</span>${e.pm?`<span class="rm-pm">👤 PM: ${esc(pmName(e.pm))}</span>`:''}<span>added by ${esc(e.by)}</span>${sched?`<span>· ${sched}</span>`:''}<span class="pct-chip">${pct}% done</span></div>
-      <div class="pctbar" style="margin:2px 0 ${exp?'8px':'0'};"><div class="pctbar-fill" style="width:${pct}%"></div></div>
       ${detail}
     </div>`;
   }
@@ -4176,6 +4314,143 @@ Herd Life`;
 
   function setTab(t){ dashTab=t; renderDash(); }
   function backLink(){ return '<button class="btn ghost sm no-print" style="margin-bottom:12px;" onclick="setTab(\'priority\')">← Back to priorities</button>'; }
+
+  /* ---------- custom ("Other…") departments ---------- */
+  function npExtraDeptOpts(){ try{ return [...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))].map(dd=>'<option>'+esc(dd)+'</option>').join(''); }catch(err){ return ''; } }
+  function otherDeptPrompt(cb, cancel){
+    editModal('Department / partner name (e.g. TELUS — external partner)', '', v=>{ v=String(v||'').split('\n')[0].trim(); if(v) cb(v); else if(cancel) cancel(); });
+  }
+  function setDeptSel(id,sel){ if(sel.value==='__other'){ otherDeptPrompt(v=>setField(id,'dept',v), ()=>renderPrioPage()); } else setField(id,'dept',sel.value); }
+  function setPlanDeptSel(id,i,sel){ if(sel.value==='__other'){ otherDeptPrompt(v=>setPlan(id,i,'dept',v), ()=>renderPrioPage()); } else setPlan(id,i,'dept',sel.value); }
+  function npDeptChange(sel){ if(sel.value!=='__other') return; otherDeptPrompt(v=>{ const other=sel.querySelector('option[value="__other"]'); const o=document.createElement('option'); o.value=v; o.textContent=v; sel.insertBefore(o,other); sel.value=v; }, ()=>{ sel.value=''; }); }
+
+  /* ---------- priorities views: whole plan / by department / by owner ---------- */
+  let dashView='plan', dashDeptPick='', dashOwnerPick='';
+  function setDashView(v){ dashView=v; dashTab='priority'; renderDash(); }
+  function setDashDept(d){ dashDeptPick=d; renderDashBody(); }
+  function setDashOwner(o){ dashOwnerPick=o; renderDashBody(); }
+
+  /* flatten every task of the given priorities, with its effective (contributing) department */
+  function pvAllTasks(list){
+    const out=[];
+    list.forEach(e=>{ (e.done||[]).forEach((d,i)=>{ const p=(e.plan&&e.plan[i])||{};
+      out.push({label:d||'Untitled task', p, pct:Number(p.pct)||0, owner:p.owner||'', dept:taskDept(e,i)||'Unassigned', note:p.note||'', start:p.start||'', end:p.end||'', e}); }); });
+    return out;
+  }
+  function pvStatus(t){
+    if(t.pct===100) return ['done','✔ Complete'];
+    if(isOverduePlan(t.p)) return ['late','⚠ Overdue'];
+    if(t.pct>0) return ['prog','In progress'];
+    return ['todo','Not started'];
+  }
+  function pvStatsHTML(prios,tasks){
+    const done=tasks.filter(t=>t.pct===100).length;
+    const prog=tasks.filter(t=>t.pct>0&&t.pct<100).length;
+    const late=tasks.filter(t=>isOverduePlan(t.p)).length;
+    const nD=new Set(tasks.map(t=>t.dept)).size;
+    return `<div class="pv-stats">
+      <div class="pv-stat"><div class="lbl">Priorities</div><div class="num">${prios.length}</div><div class="sub">in this view</div></div>
+      <div class="pv-stat"><div class="lbl">Tasks</div><div class="num">${tasks.length}</div><div class="sub">from ${nD} department${nD===1?'':'s'}</div></div>
+      <div class="pv-stat good"><div class="lbl">Complete</div><div class="num">${done}</div><div class="sub">${tasks.length?Math.round(done/tasks.length*100):0}% of tasks</div></div>
+      <div class="pv-stat warn"><div class="lbl">In progress</div><div class="num">${prog}</div><div class="sub">${tasks.length-done-prog} not started</div></div>
+      <div class="pv-stat bad"><div class="lbl">Overdue</div><div class="num">${late}</div><div class="sub">needs attention</div></div>
+    </div>`;
+  }
+  function pvTaskTable(tasks,showPrio){
+    if(!tasks.length) return '<p class="empty" style="padding:14px 16px;">No tasks here yet.</p>';
+    return `<div class="pv-tblwrap"><table class="pv-tbl">
+      <tr><th style="min-width:200px;">Task</th>${showPrio?'<th style="min-width:160px;">Priority</th>':''}<th>Dept</th><th>Owner</th><th>Status</th><th>Start</th><th>End</th><th>%</th><th>Notes</th></tr>
+      ${tasks.map(t=>{ const st=pvStatus(t); const homeD=(t.e.dept||'Unassigned');
+        return `<tr>
+        <td style="font-weight:600;">${esc(t.label)}</td>
+        ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="openPrio('${t.e.id}')">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
+        <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
+        <td>${t.owner?esc(pmName(t.owner)):'<span class="pv-note">Unassigned</span>'}</td>
+        <td><span class="pv-pill ${st[0]}">${st[1]}</span></td>
+        <td style="white-space:nowrap;color:var(--muted);">${t.start?fmtShort(t.start):'—'}</td>
+        <td style="white-space:nowrap;color:var(--muted);">${t.end?fmtShort(t.end):'—'}</td>
+        <td>${t.pct}%</td>
+        <td class="pv-note">${esc(t.note)}</td>
+      </tr>`;}).join('')}
+    </table></div>`;
+  }
+  function pvVisiblePrios(){ return cur().entries.filter(e=>e.type==='priority').filter(teamVisible); }
+  function pvDeptList(all,tasks){
+    const extra=[...new Set([...all.map(e=>e.dept),...tasks.map(t=>t.dept)].filter(d=>d&&d!=='Unassigned'&&!DEPARTMENTS.includes(d)))];
+    const base=[...DEPARTMENTS,...extra];
+    const hasUn = all.some(e=>!e.dept) || tasks.some(t=>t.dept==='Unassigned');
+    return hasUn?[...base,'Unassigned']:base;
+  }
+  function renderViewDept(){
+    const body=document.getElementById('dash-body');
+    const all=pvVisiblePrios();
+    const tasksAll=pvAllTasks(all);
+    const depts=pvDeptList(all,tasksAll);
+    if(!depts.includes(dashDeptPick)) dashDeptPick=depts[0]||'';
+    const owned=all.filter(e=>(e.dept||'Unassigned')===dashDeptPick);
+    const mine=tasksAll.filter(t=>t.dept===dashDeptPick);
+    const contributed=mine.filter(t=>(t.e.dept||'Unassigned')!==dashDeptPick);
+    document.getElementById('dash-count').textContent = dashDeptPick+' · '+owned.length+' owned · '+contributed.length+' contributed task'+(contributed.length===1?'':'s');
+    const chips='<div class="pv-chips no-print">'+depts.map(d=>{
+      const n=all.filter(e=>(e.dept||'Unassigned')===d).length + tasksAll.filter(t=>t.dept===d&&(t.e.dept||'Unassigned')!==d).length;
+      return `<button class="pv-chip ${d===dashDeptPick?'on':''}" onclick="setDashDept('${esc(d)}')">${esc(d)} <span class="n">${n}</span></button>`;
+    }).join('')+'</div>';
+    body.innerHTML = pvStatsHTML(owned,mine) + chips
+      + `<div class="pv-subhd">Priorities ${esc(dashDeptPick)} owns</div>`
+      + (owned.length?owned.map(dashPrioCard).join(''):'<div class="card"><p class="empty">'+esc(dashDeptPick)+' doesn\'t own any priorities this quarter.</p></div>')
+      + `<div class="pv-subhd">Contributions to other departments' priorities</div>`
+      + `<div class="card" style="padding:0;">${pvTaskTable(contributed,true)}</div>`;
+  }
+  function renderViewOwner(){
+    const body=document.getElementById('dash-body');
+    const all=pvVisiblePrios();
+    const tasksAll=pvAllTasks(all);
+    const keys=new Map();  // lowercase email -> canonical value
+    tasksAll.forEach(t=>{ const r=resolvePerson(t.owner)||''; if(r) keys.set(String(r).toLowerCase(), r); });
+    all.forEach(e=>{ const r=resolvePerson(e.pm)||''; if(r) keys.set(String(r).toLowerCase(), r); });
+    const owners=[...keys.values()].sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
+    const hasUn=tasksAll.some(t=>!t.owner);
+    const ownerTasks=o=>tasksAll.filter(t=> o? sameEmail(t.owner,o) : !t.owner);
+    const ownerPms=o=>o?all.filter(e=>sameEmail(e.pm,o)):[];
+    if(dashOwnerPick && dashOwnerPick!=='__un' && !owners.some(o=>sameEmail(o,dashOwnerPick))) dashOwnerPick='';
+    const shown = dashOwnerPick ? [dashOwnerPick==='__un'?'':dashOwnerPick] : [...owners, ...(hasUn?[''] : [])];
+    const scope = dashOwnerPick ? ownerTasks(dashOwnerPick==='__un'?'':dashOwnerPick) : tasksAll;
+    const scopePrios = dashOwnerPick&&dashOwnerPick!=='__un' ? all.filter(e=>sameEmail(e.pm,dashOwnerPick)||ownerTasks(dashOwnerPick).some(t=>t.e.id===e.id)) : all;
+    document.getElementById('dash-count').textContent = scope.length+' task'+(scope.length===1?'':'s')+' · '+(dashOwnerPick?(dashOwnerPick==='__un'?'Unassigned':pmName(dashOwnerPick)):'all owners');
+    const chips='<div class="pv-chips no-print"><button class="pv-chip '+(dashOwnerPick?'':'on')+'" onclick="setDashOwner(\'\')">Everyone</button>'
+      + owners.map(o=>{ const n=ownerTasks(o).length, pm=ownerPms(o).length;
+        return `<button class="pv-chip ${sameEmail(o,dashOwnerPick)?'on':''}" onclick="setDashOwner('${esc(o)}')">${esc(pmName(o))} <span class="n">${n}${pm?' · PM '+pm:''}</span></button>`;}).join('')
+      + (hasUn?`<button class="pv-chip ${dashOwnerPick==='__un'?'on':''}" onclick="setDashOwner('__un')">Unassigned <span class="n">${ownerTasks('').length}</span></button>`:'')
+      + '</div>';
+    body.innerHTML = pvStatsHTML(scopePrios,scope) + chips + shown.map(o=>{
+      const mine=ownerTasks(o);
+      const pms=ownerPms(o);
+      if(!mine.length && !pms.length) return '';
+      const done=mine.filter(t=>t.pct===100).length;
+      const late=mine.filter(t=>isOverduePlan(t.p)).length;
+      const nP=new Set(mine.map(t=>t.e.id)).size;
+      const pmRows=pms.map(e=>{ const pct=prioPct(e);
+        return `<div class="pv-pmrow" onclick="openPrio('${e.id}')" title="Open this priority">
+          <span class="prio-link" style="font-weight:700;">🎯 ${esc(e.title||'Untitled')} ↗</span>
+          <span class="pv-tag">${esc(e.dept||'Unassigned')}</span>
+          ${isAtRisk(e)?'<span class="pv-pill late">⚠ at risk</span>':''}
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600;"><span class="pctbar" style="display:inline-block;width:110px;margin:0;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%</span>
+        </div>`;}).join('');
+      return `<div class="pv-owcard">
+        <div class="pv-owhd">${o?avatarHtml(resolvePerson(o)):'<span class="tm-initials">?</span>'}
+          <div><h3>${o?esc(pmName(o)):'Unassigned'}</h3><div class="pv-owsub">${pms.length?`PM of ${pms.length} priorit${pms.length===1?'y':'ies'} · `:''}${mine.length} task${mine.length===1?'':'s'} on ${nP} priorit${nP===1?'y':'ies'}</div></div>
+          <div class="pv-owbadges">
+            ${pms.length?`<span class="pv-pill pm">📋 PM × ${pms.length}</span>`:''}
+            <span class="pv-pill done">✔ ${done} done</span>
+            <span class="pv-pill prog">${mine.filter(t=>t.pct>0&&t.pct<100).length} in progress</span>
+            ${late?`<span class="pv-pill late">⚠ ${late} overdue</span>`:''}
+          </div>
+        </div>
+        ${pms.length?`<div class="pv-pmblock"><div class="pv-pmhd">📋 Priorities ${o?esc(pmName(o)):''} is PMing</div>${pmRows}</div>`:''}
+        ${mine.length?pvTaskTable(mine,true):'<p class="empty" style="padding:14px 16px;">No tasks assigned — PM only.</p>'}
+      </div>`;
+    }).join('');
+  }
 
   /* ---------- reusable modals (confirm / info / edit) ---------- */
   let _confirmCb=null;
@@ -4365,23 +4640,31 @@ Herd Life`;
   function kindBadge(e){ if(e.kind==='bottleneck') return '<span class="badge b-bottleneck">🔧 Bottleneck</span> '; if(e.kind==='innovation') return '<span class="badge b-innovation">💡 Innovation</span> '; return ''; }
   function passKind(e){ const s=document.getElementById('f-kind'); const k=s&&s.value; return !k || (e.kind||'')===k; }
   const SIZE_WEIGHT={S:1,M:2,L:3};
-  const STAGE_DEFS=[['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  const STAGE_DEFS=[['inplay','🎯 Committed + scheduled'],['all','All'],['new','🆕 New'],['reviewed','✅ Reviewed'],['proposed','🔖 Proposed'],['sized','📏 Sized'],['committed','🎯 Committed'],['scheduled','🗓 Scheduled'],['complete','✔ Complete']];
+  const INPLAY_STAGES=['committed','scheduled','complete'];   // "the plan": what we've committed to, scheduled, or finished
+  function stageCountFor(v,counts,total){ if(v==='all') return total; if(v==='inplay') return INPLAY_STAGES.reduce((n,s)=>n+(counts[s]||0),0); return counts[v]||0; }
   function stageVal(){ const s=document.getElementById('f-stage'); return (s && s.value) || 'all'; }
-  function passReview(e){ if(presenting && stageOf(e)==='new') return false; const v=stageVal(); return v==='all' || stageOf(e)===v; }
+  function passReview(e){ if(presenting && stageOf(e)==='new') return false; const v=stageVal(); if(v==='all') return true; if(v==='inplay') return INPLAY_STAGES.indexOf(stageOf(e))>=0; return stageOf(e)===v; }
   function stageBarHTML(list){
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
     const cv=stageVal();
     return '<div class="stage-bar no-print">'+STAGE_DEFS.map(([v,lbl])=>{
-      const n=(v==='all')?list.length:(counts[v]||0);
+      const n=stageCountFor(v,counts,list.length);
       return '<button class="stage-pill'+(cv===v?' active':'')+'" onclick="setStageFilter(\''+v+'\')">'+lbl+' ('+n+')</button>';
     }).join('')+'</div>';
+  }
+  function stageHintHTML(list,shown){
+    const v=stageVal(); const hidden=list.length-shown;
+    if(v==='inplay' && hidden>0) return '<p class="stage-hint no-print">Showing the work we\'ve committed to. '+hidden+' earlier-stage priorit'+(hidden===1?'y':'ies')+' not shown · <a onclick="setStageFilter(\'all\')">show everything</a></p>';
+    if(v==='all') return '<p class="stage-hint no-print">Showing every stage · <a onclick="setStageFilter(\'inplay\')">back to committed + scheduled</a></p>';
+    return '';
   }
   function setStageFilter(v){ const s=document.getElementById('f-stage'); if(s) s.value=v; renderDashBody(); }
   function setReviewCounts(list){
     const sel=document.getElementById('f-stage'); if(!sel) return;
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
-    const keep=sel.value||'all';
-    sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+(v==='all'?list.length:(counts[v]||0))+')</option>').join('');
+    const keep=sel.value||'inplay';
+    sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+stageCountFor(v,counts,list.length)+')</option>').join('');
     sel.value=keep;
   }
   function setSize(id,v){ setField(id,'size',v); }
@@ -4411,13 +4694,26 @@ Herd Life`;
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; const ent=cur().entries.find(x=>x.id===id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  function openPrio(id){ if(!reviewUnlocked) return; const ent=cur().entries.find(x=>x.id===id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||''} : {start:'',end:'',pct:0,owner:''}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0}); });
     e.plan=np;
   }
+  /* a task counts as "bumped" once its end date has been pushed later than the original plan */
+  function bumpInfo(p){
+    if(!p || !p.origEnd || !p.end) return null;
+    const oe=parseD(p.origEnd), ne=parseD(p.end);
+    if(!oe || !ne || ne<=oe) return null;
+    const w=Math.max(1,Math.round(daysBetween(oe,ne)/7));
+    const n=Number(p.bumps)||1;
+    return { w, n,
+      label:'↦ bumped '+(n>1?'×'+n+' · ':'')+'+'+w+' wk'+(w===1?'':'s'),
+      was:(p.origStart?fmtShort(p.origStart)+' – ':'')+fmtShort(p.origEnd) };
+  }
+  /* a task's contributing department: its own dept if set, else the priority's home department */
+  function taskDept(e,i){ const p=(e.plan&&e.plan[i])||{}; return p.dept || e.dept || ''; }
   function prioPct(e){
     const done=e.done||[], plan=e.plan||[];
     if(!done.length) return 0;
@@ -4434,26 +4730,48 @@ Herd Life`;
     document.getElementById('prioCrumb').textContent = cur().name+' · '+(cur().theme||'');
     if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to priorities</button></div>'; return; }
     syncPlan(e);
-    const deptOpts=['',...DEPARTMENTS].map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
+    const extraDepts=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
+    const deptAll=['',...DEPARTMENTS,...extraDepts,...(e.dept&&!DEPARTMENTS.includes(e.dept)&&!extraDepts.includes(e.dept)?[e.dept]:[])];
+    const deptOpts=deptAll.map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
     const pct=prioPct(e);
     const dodText = ((e.dod!==undefined) ? e.dod : (e.done||[]).slice()).join('\n');
-    const doneRows = e.done.length ? e.done.map((d,i)=>`
-      <tr>
-        <td style="text-align:center;"><input type="checkbox" ${(Number(e.plan[i].pct)||0)===100?'checked':''} onchange="setPlan('${e.id}',${i},'pct',this.checked?100:0)" title="Mark this item done (100%)" style="width:18px;height:18px;cursor:pointer;"></td>
-        <td><input type="text" value="${esc(d)}" onchange="editDoneText('${e.id}',${i},this.value)" placeholder="Task…" style="width:100%;"></td>
-        <td><select onchange="setPlan('${e.id}',${i},'owner',this.value)" title="In charge">${ownerOptions(e.plan[i].owner)}</select></td>
-        <td><input type="date" value="${e.plan[i].start||''}" onchange="setPlan('${e.id}',${i},'start',this.value)"></td>
-        <td><input type="date" value="${e.plan[i].end||''}" onchange="setPlan('${e.id}',${i},'end',this.value)"></td>
-        <td style="white-space:nowrap;"><input type="number" min="0" max="100" value="${Number(e.plan[i].pct)||0}" onchange="setPlan('${e.id}',${i},'pct',Math.max(0,Math.min(100,Number(this.value)||0)))" style="width:64px;"> %</td>
-        <td><button class="btn danger sm" title="Remove item" onclick="removeDone('${e.id}',${i})">✕</button></td>
-      </tr>`).join('') : '<tr><td colspan="7" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
+    const taskRow=(d,i)=>{
+      const p=e.plan[i]||{}; const tpct=Number(p.pct)||0;
+      const od=isOverduePlan(p); const b=bumpInfo(p);
+      return `
+      <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
+        <td style="text-align:center;"><span class="tick ${tpct===100?'done':''}">${tpct===100?'✓':''}</span></td>
+        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
+        <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
+        <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
+        <td class="tnum">${p.start?fmtShort(p.start):'—'}${(b&&p.origStart)?`<br><span class="was-dates">was ${fmtShort(p.origStart)}</span>`:''}</td>
+        <td class="tnum">${p.end?fmtShort(p.end):'—'}${b?`<br><span class="was-dates">was ${fmtShort(p.origEnd)}</span>`:''}</td>
+        <td class="tnum">${tpct}%${b?`<br><span class="badge b-bump" title="${esc('Originally '+b.was)}">${b.label}</span>`:''}</td>
+        <td style="font-size:12.5px;color:var(--muted);">${esc(p.note||'')}</td>
+        <td><span class="edit-hint">✏️ edit</span></td>
+      </tr>`;
+    };
+    let doneRows='';
+    if(!e.done.length){
+      doneRows='<tr><td colspan="9" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
+    } else if(prioTaskGroup){
+      const ds=[...new Set(e.done.map((_,i)=>taskDept(e,i)||'Unassigned'))];
+      const home=e.dept||'Unassigned';
+      const order=[...(ds.includes(home)?[home]:[]), ...ds.filter(dd=>dd!==home).sort()];
+      order.forEach(dd=>{
+        doneRows+=`<tr class="g-hd"><td colspan="9">${esc(dd)}${dd===home?' · home':''}</td></tr>`;
+        e.done.forEach((d,i)=>{ if((taskDept(e,i)||'Unassigned')===dd) doneRows+=taskRow(d,i); });
+      });
+    } else {
+      doneRows=e.done.map(taskRow).join('');
+    }
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
         ${stepperFor(e)}
         <label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;">
         <div class="pm-grid">
-          <div><label>Department</label><select onchange="setField('${e.id}','dept',this.value)">${deptOpts}</select></div>
+          <div><label>Department</label><select onchange="setDeptSel('${e.id}',this)">${deptOpts}<option value="__other">✏️ Other — type a name…</option></select></div>
           <div><label>Impact</label><select onchange="setField('${e.id}','impact',this.value)">
             <option ${e.impact==='High'?'selected':''}>High</option>
             <option ${e.impact==='Medium'?'selected':''}>Medium</option>
@@ -4480,6 +4798,7 @@ Herd Life`;
       <div class="card" style="margin-bottom:16px;">
         <p class="done-label">📝 Review notes <span class="saved-flash" id="flash-${e.id}">saved ✓</span></p>
         <textarea class="notes-area" oninput="saveNote('${e.id}',this.value)" style="width:100%;min-height:70px;" placeholder="Notes from the review — decisions, clarifications, who owns it…">${esc(e.notes||'')}</textarea>
+        ${noteStampHTML(e)}
       </div>
 
       <div class="card" style="margin-bottom:16px;">
@@ -4487,49 +4806,157 @@ Herd Life`;
         <textarea onchange="setDod('${e.id}',this.value)" style="width:100%;min-height:80px;" placeholder="e.g. New installs scheduled within 5 business days">${esc(dodText)}</textarea>
       </div>
 
-      <div class="card" style="margin-bottom:16px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-          <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline</span></p>
-          <button class="btn sm" onclick="addDone('${e.id}')">+ Add task</button>
-        </div>
-        <table class="sched-tbl"><thead><tr><th>✓</th><th>Task</th><th>In charge</th><th>Start</th><th>End</th><th>% done</th><th></th></tr></thead><tbody>${doneRows}</tbody></table>
+      <div class="td-scope no-print" style="margin-bottom:14px;">
+        <button class="${prioDetailView==='tasks'?'on':''}" onclick="setPrioDetailView('tasks')">📋 Tasks</button>
+        <button class="${prioDetailView==='timeline'?'on':''}" onclick="setPrioDetailView('timeline')">🗓 Timeline</button>
       </div>
 
+      ${prioDetailView==='tasks' ? `
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline. Click a task to edit it in a popup.</span></p>
+          <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <span class="td-scope no-print">
+              <button class="${prioTaskGroup?'':'on'}" onclick="setPrioTaskGroup(false)">List</button>
+              <button class="${prioTaskGroup?'on':''}" onclick="setPrioTaskGroup(true)">By department</button>
+            </span>
+            <button class="btn sm" onclick="openTaskModal('${e.id}')">+ Add task</button>
+          </span>
+        </div>
+        <div style="overflow-x:auto;"><table class="sched-tbl" style="min-width:860px;"><thead><tr><th>✓</th><th>Task</th><th>Dept</th><th>Owner</th><th>Start</th><th>End</th><th>% done</th><th>Notes</th><th></th></tr></thead><tbody>${doneRows}</tbody></table></div>
+      </div>` : `
+      <div class="card" style="margin-bottom:16px;">
+        <p class="done-label">Timeline (Gantt) <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— grouped by contributing department</span></p>
+        ${ganttHTML(e,true)}
+        <p class="sched-summary">As things slip, edit the task's dates in the Tasks view — the timeline updates automatically and keeps a dashed ghost of the original plan.</p>
+      </div>`}
+
       <div class="card">
-        <p class="done-label">Timeline (Gantt)</p>
-        ${ganttHTML(e)}
-        <p class="sched-summary">As things slip, change the dates above — the timeline updates automatically.</p>
-        <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
           <button class="btn ghost" onclick="gotoDash()">← Back to priorities</button>
           <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">Remove priority</button>
         </div>
       </div>
     `;
   }
-  function ganttHTML(e){
+  let prioDetailView='tasks';
+  function setPrioDetailView(v){ prioDetailView=v; renderPrioPage(); }
+  let prioTaskGroup=true;   // task list grouped by contributing department (same as the timeline)
+  function setPrioTaskGroup(v){ prioTaskGroup=v; renderPrioPage(); }
+
+  /* ---------- add / edit task popup ---------- */
+  let taskModalEntry=null, taskModalIdx=null;
+  function taskDeptOptions(sel){
+    const extra=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
+    const opts=['',...DEPARTMENTS,...extra];
+    if(sel && opts.indexOf(sel)<0) opts.push(sel);
+    return opts.map(dd=>`<option value="${esc(dd)}" ${(sel||'')===dd?'selected':''}>${dd?esc(dd):'— same as priority'}</option>`).join('')+'<option value="__other">✏️ Other — type a name…</option>';
+  }
+  function tmDeptChange(sel){
+    const other=document.getElementById('tm-dept-other');
+    other.style.display = sel.value==='__other' ? 'block' : 'none';
+    if(sel.value==='__other') setTimeout(()=>other.focus(),40);
+  }
+  function openTaskModal(id, i){
+    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    syncPlan(e);
+    taskModalEntry=id; taskModalIdx=(typeof i==='number')?i:null;
+    const p=(taskModalIdx!=null && e.plan[taskModalIdx]) ? e.plan[taskModalIdx] : {start:'',end:'',pct:0,owner:'',dept:'',note:''};
+    document.getElementById('taskModalTitle').textContent = taskModalIdx!=null?'Edit task':'Add a task';
+    document.getElementById('tm-task').value = taskModalIdx!=null?(e.done[taskModalIdx]||''):'';
+    document.getElementById('tm-dept').innerHTML = taskDeptOptions(p.dept||'');
+    const other=document.getElementById('tm-dept-other'); other.value=''; other.style.display='none';
+    document.getElementById('tm-owner').innerHTML = ownerOptions(p.owner||'');
+    document.getElementById('tm-start').value=p.start||'';
+    document.getElementById('tm-end').value=p.end||'';
+    document.getElementById('tm-pct').value=Number(p.pct)||0;
+    document.getElementById('tm-note').value=p.note||'';
+    document.getElementById('tm-remove').style.display = taskModalIdx!=null?'':'none';
+    const bn=document.getElementById('taskModalBump'); const b=bumpInfo(p);
+    if(b){ bn.style.display='block'; bn.textContent='↦ This task has been bumped'+(b.n>1?' ×'+b.n:'')+': originally '+b.was+'. If the end date moves out again, the chip updates on its own.'; }
+    else bn.style.display='none';
+    document.getElementById('taskModal').classList.add('show');
+    setTimeout(()=>document.getElementById('tm-task').focus(),60);
+  }
+  function closeTaskModal(){ document.getElementById('taskModal').classList.remove('show'); taskModalEntry=null; taskModalIdx=null; }
+  function saveTaskModal(){
+    const e=cur().entries.find(x=>x.id===taskModalEntry); if(!e){ closeTaskModal(); return; }
+    syncPlan(e);
+    const dSel=document.getElementById('tm-dept');
+    let dept=dSel.value; if(dept==='__other') dept=document.getElementById('tm-dept-other').value.trim();
+    const title=document.getElementById('tm-task').value.trim();
+    const nv={ start:document.getElementById('tm-start').value||'', end:document.getElementById('tm-end').value||'',
+      pct:Math.max(0,Math.min(100,Number(document.getElementById('tm-pct').value)||0)),
+      owner:document.getElementById('tm-owner').value||'', dept:dept||'', note:document.getElementById('tm-note').value.trim(),
+      origStart:'', origEnd:'', datesSetAt:0, bumps:0 };
+    if(taskModalIdx!=null && e.plan[taskModalIdx]){
+      const old=e.plan[taskModalIdx];
+      nv.origStart=old.origStart||''; nv.origEnd=old.origEnd||''; nv.datesSetAt=old.datesSetAt||0; nv.bumps=Number(old.bumps)||0;
+      if(!old.end && nv.end){ nv.datesSetAt=Date.now(); }                       // dates set for the first time → baseline starts here
+      else if(old.end && nv.end && parseD(old.end) && parseD(nv.end) && parseD(nv.end)>parseD(old.end)){
+        if((Date.now()-(nv.datesSetAt||0)) > 48*3600*1000){                     // 48h grace so fixing a typo doesn't count as a bump
+          if(!nv.origEnd){ nv.origStart=old.start||''; nv.origEnd=old.end; }
+          nv.bumps=nv.bumps+1;
+        }
+      }
+      if(nv.origEnd && nv.end && parseD(nv.end) && parseD(nv.origEnd) && parseD(nv.end)<=parseD(nv.origEnd)){ nv.origStart=''; nv.origEnd=''; }   // pulled back on plan → no longer bumped
+      e.done[taskModalIdx]=title||e.done[taskModalIdx]||'Untitled task';
+      e.plan[taskModalIdx]=nv;
+    } else {
+      if(nv.end) nv.datesSetAt=Date.now();
+      e.done.push(title||'Untitled task'); e.plan.push(nv);
+    }
+    autoStage(e); persist(e); closeTaskModal(); refreshPrio();
+  }
+  function removeTaskModal(){
+    const id=taskModalEntry, i=taskModalIdx; closeTaskModal();
+    if(i==null) return;
+    confirmModal('Remove this task? This cannot be undone.', ()=>{ removeDone(id,i); }, 'Remove task');
+  }
+  function ganttHTML(e, groupByDept){
     const done=e.done||[], plan=e.plan||[];
-    const tasks=done.map((d,i)=>({label:d, start:plan[i]&&plan[i].start, end:plan[i]&&plan[i].end, pct:(plan[i]&&Number(plan[i].pct))||0}));
+    const tasks=done.map((d,i)=>({label:d, start:plan[i]&&plan[i].start, end:plan[i]&&plan[i].end, pct:(plan[i]&&Number(plan[i].pct))||0, dept:taskDept(e,i)||'Unassigned', p:plan[i]||{}}));
     const dated=tasks.filter(t=>t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start));
-    if(!dated.length) return '<div class="gantt"><p class="empty" style="margin:0;">Set start and end dates above to see the timeline.</p></div>';
+    if(!dated.length) return '<div class="gantt"><p class="empty" style="margin:0;">Set start and end dates on the tasks to see the timeline.</p></div>';
     let min=parseD(dated[0].start), max=parseD(dated[0].end);
     dated.forEach(t=>{ const s=parseD(t.start),en=parseD(t.end); if(s<min)min=s; if(en>max)max=en; });
+    let anyBumped=false;
+    dated.forEach(t=>{ if(bumpInfo(t.p)){ anyBumped=true; const os=parseD(t.p.origStart), oe=parseD(t.p.origEnd); if(os&&os<min)min=os; if(oe&&oe>max)max=oe; } });
     const total=Math.max(1, daysBetween(min,max)+1);
     const now=todayStart();
     const todayIn = now>=min && now<=max;
     const todayPct = todayIn ? (daysBetween(min,now)/total*100) : 0;
     const todayMark = todayIn ? `<div class="today-line" style="left:${todayPct}%"></div>` : '';
     let overdue=0;
-    const rows=tasks.map(t=>{
+    const rowFor=t=>{
       if(!(t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start)))
         return `<div class="gantt-row"><div class="g-label">${esc(t.label)}</div><div class="g-track">${todayMark}<span class="g-none">not scheduled</span></div></div>`;
       const s=parseD(t.start),en=parseD(t.end);
       const left=daysBetween(min,s)/total*100;
       const width=Math.max(3,(daysBetween(s,en)+1)/total*100);
       const od=isOverduePlan({end:t.end,pct:t.pct}); if(od) overdue++;
-      return `<div class="gantt-row"><div class="g-label">${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
-    }).join('');
+      const b=bumpInfo(t.p);
+      let ghost='';
+      if(b && parseD(t.p.origStart) && parseD(t.p.origEnd)){
+        const gl=daysBetween(min,parseD(t.p.origStart))/total*100;
+        const gw=Math.max(2,(daysBetween(parseD(t.p.origStart),parseD(t.p.origEnd))+1)/total*100);
+        ghost=`<div class="g-ghost" style="left:${gl}%;width:${gw}%;" title="Originally ${t.p.origStart} → ${t.p.origEnd}"></div>`;
+      }
+      return `<div class="gantt-row"><div class="g-label">${b?'↦ ':''}${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${ghost}${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}${b?' · was '+b.was:''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
+    };
+    let rows='';
+    const distinctDepts=[...new Set(tasks.map(t=>t.dept))];
+    if(groupByDept && distinctDepts.length>1){
+      const home=e.dept||'Unassigned';
+      const order=[...(distinctDepts.includes(home)?[home]:[]), ...distinctDepts.filter(d=>d!==home).sort()];
+      order.forEach(d=>{
+        rows+=`<div class="g-depthd">${esc(d)}${d===home?' · home':''}</div>`+tasks.filter(t=>t.dept===d).map(rowFor).join('');
+      });
+    } else {
+      rows=tasks.map(rowFor).join('');
+    }
     const flag = overdue ? `<span style="color:var(--red);font-weight:700;">⚠ ${overdue} task${overdue===1?'':'s'} past due</span>` : `<span style="color:var(--green);">On track</span>`;
-    const legend = todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '';
+    const legend = (todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '') + (anyBumped ? ` &nbsp;·&nbsp; <span style="color:#9a6d14;">▨</span> original dates (bumped)` : '');
     return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${flag}${legend}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
   }
 
