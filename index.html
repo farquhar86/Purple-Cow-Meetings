@@ -2063,6 +2063,7 @@
   function tierOf(m,v){ return tierOfGoal(m,v,m.goal); }
   function goalLabel(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return '—';
     const op=(m.direction==='lower'?'≤ ':'≥ ');
+    if(m.goalKind==='cumulative') return fmtVal(m,g)+'<span class="mx-per"> by qtr-end</span><div class="mx-pace">pace '+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+'/wk</div>';
     let out=op+fmtVal(m,g)+'<span class="mx-per"> /qtr</span>';
     if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+' a week</div>';
     return out; }
@@ -3339,18 +3340,29 @@ Herd Life`;
     }
     const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
     return topBar
-      + list.map(m=>{ try{ normalizeMetric(m); const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
-      const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
-      const dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
+      + list.map(m=>{ try{ normalizeMetric(m);
       const cid='mxsnap-'+m.id;
       const av=m.owner?('<span class="rk-av" title="'+esc(pmName(m.owner))+'">'+avatarHtml(m.owner)+'</span>'):'';
       let chart=''; try{ chart=renderMetricChart(m); }catch(ce){ console.warn('metric chart failed', m&&m.id, ce); chart='<p class="empty">Graph couldn’t load.</p>'; }
+      let dot, valHtml;
+      if(isCumulative(m)){
+        const qi=metricQuarterInfo(m,wk); const tier=qi?cumTier(m,qi):'';
+        dot=tier?'<span style="color:'+(TIER_COLORS[tier]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
+        valHtml = qi
+          ? '<b>'+esc(fmtVal(m,qi.cum))+'</b> / '+esc(fmtVal(m,qi.G))+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+(qi.onTrack?'on pace':'behind by '+esc(fmtVal(m,Math.abs(qi.diff))))+' · by qtr-end</span>'
+          : '<span style="color:var(--muted);font-weight:400;">set a quarter goal</span>';
+      } else {
+        const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
+        const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
+        dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
+        valHtml=(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,' '))+'</span>';
+      }
       return '<div class="rock-row">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
         +'<span class="caret">▶</span>'
         +'<span class="rk-title">'+dot+esc(m.name)+'</span>'
         +av
-        +'<span class="v" style="font-weight:700;">'+(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,''))+'</span></span>'
+        +'<span class="v" style="font-weight:700;">'+valHtml+'</span>'
         +'</div><div class="rock-gantt">'+chart+'</div></div>';
       }catch(err){ console.warn('metric row failed', m&&m.id, err); return '<div class="rock-row"><div class="rock-hd"><span class="rk-title">'+esc((m&&m.name)||'Metric')+'</span><span class="v" style="color:var(--muted);font-weight:400;">couldn’t load</span></div></div>'; }
     }).join(''); }

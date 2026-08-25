@@ -35,6 +35,15 @@ const cors = {
 
 const p2 = (n: number) => String(n).padStart(2, "0");
 
+// First day of the current calendar quarter, America/Halifax, as YYYY-MM-DD.
+function halifaxQuarterStart(): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Halifax", year: "numeric", month: "2-digit" }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const y = +get("year"), mo = +get("month");
+  const qStartMonth = Math.floor((mo - 1) / 3) * 3 + 1; // 1,4,7,10
+  return y + "-" + p2(qStartMonth) + "-01";
+}
+
 // The Sunday that starts the current week, in America/Halifax time, as YYYY-MM-DD.
 // Matches the "week start" the app uses (default week start = Sunday).
 function halifaxWeekStart(): string {
@@ -114,7 +123,23 @@ Deno.serve(async (req) => {
       );
       if (!metric) { results.push({ metric: job.metricName, error: "metric not found in the app" }); continue; }
 
-      const value = await reportGrandTotal(auth, job.reportId, job.aggregateIndex);
+      const reportTotal = await reportGrandTotal(auth, job.reportId, job.aggregateIndex);
+
+      // The metric is a "running total" that SUMS the weekly numbers, but the report is
+      // already cumulative for the quarter — so store this week's NEW amount:
+      //   thisWeek = report total − everything already counted earlier this quarter.
+      const qStart = halifaxQuarterStart();
+      let priorSum = 0;
+      try {
+        const pv = await fetch(
+          `${url}/rest/v1/metric_values?metric_id=eq.${metric.id}&wk=gte.${qStart}&wk=lt.${wk}&select=value`,
+          { headers: { apikey: service, Authorization: `Bearer ${service}` } },
+        );
+        const prior = await pv.json();
+        if (Array.isArray(prior)) priorSum = prior.reduce((s: number, r: { value?: unknown }) => s + (Number(r.value) || 0), 0);
+      } catch (_) { /* first run of the quarter: nothing prior */ }
+
+      const value = reportTotal - priorSum;
       const rowId = `${metric.id}|${wk}`;
 
       const up = await fetch(`${url}/rest/v1/metric_values`, {
@@ -128,7 +153,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify({ id: rowId, metric_id: metric.id, wk, value }),
       });
       if (!up.ok) { results.push({ metric: job.metricName, error: "write failed: " + (await up.text()) }); continue; }
-      results.push({ metric: job.metricName, week: wk, value });
+      results.push({ metric: job.metricName, week: wk, reportTotal, priorSum, thisWeek: value });
     }
     return json({ ok: true, ranAt: new Date().toISOString(), results });
   } catch (e) {
