@@ -2591,6 +2591,8 @@
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
     if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); Object.keys(mxPendingBackfill).forEach(wk=>dbUpsertMetricValue(m.id,wk,mxPendingBackfill[wk])); mxPendingBackfill=null; }
     persistMetric(m); closeMetricModal(); renderMetrics();
+    // if the chart/history window is open for this metric, refresh it so the new goal type shows
+    if(curChartMetricId===m.id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(m.id);
   }
   function deleteMetric(){
     const id=document.getElementById('mx-id').value; const m=metricsStore.find(x=>x.id===id); if(!m) return;
