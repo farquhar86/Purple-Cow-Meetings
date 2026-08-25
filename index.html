@@ -2380,6 +2380,7 @@
     const qk=quarterKeyOf(today), r=quarterRange(qk);
     const G=goalForDate(m,today);
     if(G===''||G==null||isNaN(Number(G))) return '<p class="empty">Set a quarter-end total for this metric to see the pace chart. Edit the metric and enter a <b>Quarterly target</b>.</p>';
+    if(!r) return '<p class="empty">Couldn’t work out the current quarter to chart this metric.</p>';
     const firstWk=alignWeekStart(r.start);
     const nowWk=alignWeekStart(today);
     const weeks=[]; for(let i=0;i<WEEKS_PER_QUARTER;i++){ weeks.push(new Date(firstWk.getTime()+i*7*86400000)); }
@@ -2460,9 +2461,12 @@
     document.getElementById('chTitle').textContent='📈 '+m.name;
     document.getElementById('chSub').textContent=(m.direction==='lower'?'Lower is better':'Higher is better')+' · owner '+(pmName(m.owner)||'—');
     const tools = canEditMetric(m) ? '<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn ghost sm" onclick="openMetricModal(\''+id+'\')">✎ Edit metric &amp; targets</button></div>' : '';
-    document.getElementById('chBody').innerHTML=tools+renderMetricChart(m)
+    let chartHtml, histHtml='';
+    try{ chartHtml=renderMetricChart(m); }catch(e){ console.warn('metric chart failed', id, e); chartHtml='<p class="empty">The graph couldn’t render for this metric — its data may need a fix. You can still edit it above.</p>'; }
+    try{ histHtml=editableHistoryTable(m); }catch(e){ console.warn('metric history failed', id, e); histHtml=''; }
+    document.getElementById('chBody').innerHTML=tools+chartHtml
       + '<h4 style="margin:20px 0 8px;color:var(--purple-dark);">Weekly history <span style="font-weight:400;color:var(--muted);font-size:.85rem;">— type to add or correct past weeks</span></h4>'
-      + editableHistoryTable(m);
+      + histHtml;
     document.getElementById('chartModal').classList.add('show');
   }
   function editableHistoryTable(m){
