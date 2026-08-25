@@ -2040,7 +2040,7 @@
   /* quarters — targets can be set per quarter, ahead of time */
   function quarterKeyOf(d){ return d.getFullYear()+'-Q'+(Math.floor(d.getMonth()/3)+1); }
   function quarterLabel(k){ const p=String(k).split('-Q'); return 'Q'+p[1]+' '+p[0]; }
-  function quarterRange(k){ const p=String(k).split('-Q'); const y=Number(p[0]), q=Number(p[1]);
+  function mxQuarterRange(k){ const p=String(k).split('-Q'); const y=Number(p[0]), q=Number(p[1]);
     if(!y||!q) return null; return { start:new Date(y,(q-1)*3,1), end:new Date(y,q*3,0) }; }
   function quarterList(back,fwd){ const out=[]; const t=new Date(); const cy=t.getFullYear(), cq=Math.floor(t.getMonth()/3)+1;
     for(let i=-back;i<=fwd;i++){ let q=cq+i, y=cy; while(q<1){q+=4;y--;} while(q>4){q-=4;y++;} out.push(y+'-Q'+q); } return out; }
@@ -2117,7 +2117,7 @@
   function metricQuarterInfo(m,date){
     const G=goalForDate(m,date);
     if(G===''||G==null||isNaN(Number(G))) return null;
-    const qk=quarterKeyOf(date), r=quarterRange(qk); if(!r) return null;
+    const qk=quarterKeyOf(date), r=mxQuarterRange(qk); if(!r) return null;
     const wkStart=alignWeekStart(date);
     const firstWk=alignWeekStart(r.start);
     let we=Math.round((wkStart.getTime()-firstWk.getTime())/(7*86400000))+1;
@@ -2294,7 +2294,7 @@
     const qg=m.quarterGoals||{}, vals=m.values||{};
     const dates=[];
     Object.keys(vals).forEach(k=>{ const d=new Date(k+'T00:00:00'); if(!isNaN(d)) dates.push(d); });
-    Object.keys(qg).forEach(k=>{ const r=quarterRange(k); if(r){ dates.push(r.start); dates.push(r.end); } });
+    Object.keys(qg).forEach(k=>{ const r=mxQuarterRange(k); if(r){ dates.push(r.start); dates.push(r.end); } });
     if(!dates.length){ const w=weekStarts(METRIC_WEEKS,weekStartDay); dates.push(w[0], w[w.length-1]); }
     const min=new Date(Math.min.apply(null,dates.map(d=>d.getTime())));
     const max=new Date(Math.max.apply(null,dates.map(d=>d.getTime())));
@@ -2394,7 +2394,7 @@
   /* cumulative chart: running total vs the straight-line pace to the quarter-end goal */
   function renderCumulativeChart(m){
     const today=new Date(); today.setHours(0,0,0,0);
-    const qk=quarterKeyOf(today), r=quarterRange(qk);
+    const qk=quarterKeyOf(today), r=mxQuarterRange(qk);
     const G=goalForDate(m,today);
     if(G===''||G==null||isNaN(Number(G))) return '<p class="empty">Set a quarter-end total for this metric to see the pace chart. Edit the metric and enter a <b>Quarterly target</b>.</p>';
     if(!r) return '<p class="empty">Couldn’t work out the current quarter to chart this metric.</p>';
@@ -2489,16 +2489,28 @@
       + histHtml;
     document.getElementById('chartModal').classList.add('show');
   }
+  /* where a running total should be BY a given week — the pace ramp: goal × week-in-quarter ÷ 13 */
+  function cumPaceTarget(m,w){ const g=goalForDate(m,w); if(g===''||g==null||isNaN(Number(g))) return null;
+    const r=mxQuarterRange(quarterKeyOf(w)); if(!r) return null;
+    const firstWk=alignWeekStart(r.start);
+    let pos=Math.round((alignWeekStart(w).getTime()-firstWk.getTime())/(7*86400000))+1; pos=Math.max(1,Math.min(WEEKS_PER_QUARTER,pos));
+    return Number(g)*pos/WEEKS_PER_QUARTER; }
   function editableHistoryTable(m){
     const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canEditMetric(m);
-    const rows=weeks.map(w=>{ const cv=cellValue(m,colFor(w)); const g=effectiveGoal(m,w); const has=cv.eff!==null&&!isNaN(cv.eff);
-      const t=has?tierOfGoal(m,cv.eff,g):''; const now=(wkKey(w)===wkKey(weekStarts(1,weekStartDay)[0]));
+    const cum=isCumulative(m); const absolute=m.cumEntry==='absolute';
+    const rows=weeks.map(w=>{ const cv=cellValue(m,colFor(w)); const has=cv.eff!==null&&!isNaN(cv.eff);
+      const now=(wkKey(w)===wkKey(weekStarts(1,weekStartDay)[0]));
+      let t='', goalCell;
+      if(cum){ const pace=cumPaceTarget(m,w); goalCell=(pace==null)?'—':esc(fmtVal(m,Math.round(pace)));
+        if(absolute && has && pace!=null) t=((m.direction==='lower')? cv.eff<=pace : cv.eff>=pace)?'great':'bad'; }
+      else { const g=effectiveGoal(m,w); t=has?tierOfGoal(m,cv.eff,g):''; goalCell=(g===''||g==null?'—':esc(fmtTgt(m,g))); }
       const inp = editable ? '<input class="mx-val" value="'+esc(cv.direct)+'" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(w)+'\',this.value)">' : (has?esc(fmtVal(m,cv.eff)):'—');
       return '<tr><td class="lft">'+w.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(now?' <b style="color:var(--purple)">· now</b>':'')+'</td>'
         +'<td class="'+(t?'mx-cell '+t:'')+'" style="text-align:center;">'+inp+'</td>'
-        +'<td style="text-align:center;color:var(--muted);">'+(g===''||g==null?'—':esc(fmtTgt(m,g)))+'</td></tr>';
+        +'<td style="text-align:center;color:var(--muted);">'+goalCell+'</td></tr>';
     }).join('');
-    return '<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Value</th><th>Weekly goal</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    const goalHdr = cum ? 'Should be at' : 'Weekly goal';
+    return '<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Value</th><th>'+goalHdr+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function closeChartModal(){ document.getElementById('chartModal').classList.remove('show'); }
   function openMetricModal(id){
