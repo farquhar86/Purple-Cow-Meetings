@@ -3358,7 +3358,9 @@ Herd Life`;
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
     mxPickSecId=secId;
     const chosen=new Set(sec.metricIds||[]);
-    const list=metricsStore.filter(metricVisible).slice().sort((a,b)=>
+    // only metrics owned by someone attending this meeting (plus any already picked, so they can be unticked)
+    const attendeeSet=new Set((m.attendees||[]).map(e=>String(e).toLowerCase()));
+    const list=metricsStore.filter(metricVisible).filter(mm=>{ const oe=String(resolvePerson(mm.owner||'')).toLowerCase(); return (oe && attendeeSet.has(oe)) || chosen.has(mm.id); }).slice().sort((a,b)=>
       String(pmName(resolvePerson(a.owner))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.owner))).toLowerCase())
       || String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
     const groups=new Map(); list.forEach(mm=>{ const o=mm.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(mm); });
@@ -3367,7 +3369,7 @@ Herd Life`;
       html+='<div class="mxpick-group"><div class="mxpick-owner">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')+'<span>'+esc(o?pmName(person):'Unassigned')+'</span></div>';
       groups.get(o).forEach(mm=>{ html+='<label class="mxpick-row" data-name="'+esc((mm.name||'').toLowerCase())+'"><input type="checkbox" value="'+mm.id+'"'+(chosen.has(mm.id)?' checked':'')+'>'+(mm.company?'🏢 ':'')+esc(mm.name||'Untitled')+'</label>'; });
       html+='</div>'; });
-    document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">No metrics available.</div>';
+    document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">No metrics are assigned to the people in this meeting yet. Add the meeting’s attendees as metric owners in the Metrics tab, and they’ll show up here.</div>';
     const s=document.getElementById('mxPickSearch'); if(s) s.value='';
     document.getElementById('mxPickModal').classList.add('show');
   }
