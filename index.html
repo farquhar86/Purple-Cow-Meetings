@@ -135,6 +135,24 @@
   .td-item .x:hover{color:#c9302c;}
   .td-item .src{font-size:.72rem;color:var(--purple);cursor:pointer;}
   .td-empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted);}
+  /* Home — your targets */
+  .home-wrap{margin-top:6px;}
+  .home-h{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin:8px 0 12px;}
+  .home-targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;}
+  .ht-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--purple);cursor:pointer;transition:box-shadow .12s;}
+  .ht-card:hover{box-shadow:0 6px 18px rgba(40,15,60,.13);}
+  .ht-top{display:flex;justify-content:space-between;align-items:center;gap:10px;}
+  .ht-name{font-weight:800;color:var(--purple-dark);font-size:1rem;}
+  .ht-chip{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em;color:#fff;border-radius:999px;padding:3px 9px;white-space:nowrap;}
+  .ht-bar{height:8px;background:var(--lilac);border-radius:999px;margin:12px 0 8px;overflow:hidden;}
+  .ht-bar>span{display:block;height:100%;border-radius:999px;transition:width .3s;}
+  .ht-detail{font-size:.82rem;color:var(--muted);line-height:1.4;}
+  .ht-detail b{color:var(--ink);}
+  .home-bonus{background:#faf6ff;border:1px dashed var(--purple);border-radius:14px;padding:16px 18px;color:var(--ink);font-size:.9rem;line-height:1.55;margin-top:20px;}
+  .home-person{border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:16px;background:#fdfcff;}
+  .home-person .hp-hd{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--purple-dark);font-size:1.05rem;margin-bottom:12px;}
+  .home-person .hp-hd img,.home-person .hp-hd .tm-initials{width:30px;height:30px;border-radius:50%;}
+  .home-person .home-bonus{margin-top:14px;}
   /* Swimlanes */
   .swim-scroll{overflow-x:auto;padding-bottom:14px;}
   .swim-grid{display:grid;grid-template-columns:190px repeat(var(--cols),210px);gap:8px;align-items:start;min-width:min-content;}
@@ -1550,13 +1568,8 @@
 
 <!-- ====================== SECTION: HOME ====================== -->
 <div id="screen-home" style="display:none;">
-  <div class="sec-head"><h1>👋 Welcome back<span id="homeName"></span></h1><p>Your Purple Cow operating system — everything in one place.</p></div>
-  <div class="sec-body">
-    <div class="sec-emoji">🏠</div>
-    <h2>Home</h2>
-    <p>This will become your dashboard — a snapshot of your priorities, this week's to-dos, key metrics, and upcoming meetings. Use the sidebar to jump into any section. <b>Priorities</b> is live now; the rest are on the way.</p>
-    <span class="sec-soon">Overview coming soon</span>
-  </div>
+  <div class="sec-head"><h1>👋 Welcome back<span id="homeName"></span></h1><p>Your targets and where you stand this quarter.</p></div>
+  <div id="homeWrap" class="home-wrap"></div>
 </div>
 
 <!-- ====================== SECTION: CORE VALUES / VISION ====================== -->
@@ -1717,7 +1730,7 @@
 
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function defaultQuarterName(){ const d=new Date(); return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(); }
-  function esc(s){ return (s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
   let reviewUnlocked = false;
   try{ if(sessionStorage.getItem(KEY+'_unlocked')==='1') reviewUnlocked=true; }catch(e){}
@@ -4199,7 +4212,54 @@ Herd Life`;
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
-  function renderHome(){ const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : ''; }
+  function renderHome(){ const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : '';
+    const wrap=document.getElementById('homeWrap'); if(!wrap) return;
+    if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB){ dbLoadMetrics().then(renderHome); } wrap.innerHTML='<div class="mtg-empty">Loading your targets…</div>'; if(!USE_DB) wrap.innerHTML=''; return; }
+    let html='<div class="home-h">🎯 Your targets this quarter</div>'+homeTargetsHtml(myEmail)+HOME_BONUS_NOTE;
+    // preview mode — only the super admin sees how everyone else's Home will look (nothing shows on theirs yet)
+    if(isSuperAdmin()){
+      const owners=[]; const seen={};
+      metricsStore.forEach(m=>{ const o=m.owner||''; if(!o) return; if(sameEmail(o,myEmail)) return; const k=String(resolvePerson(o)).toLowerCase(); if(seen[k]) return; seen[k]=1; owners.push(o); });
+      owners.sort((a,b)=>String(pmName(resolvePerson(a))).toLowerCase().localeCompare(String(pmName(resolvePerson(b))).toLowerCase()));
+      if(owners.length){
+        html+='<div class="home-h" style="margin-top:28px;">👀 Preview — how each person’s Home will look <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--purple);">· only you can see this</span></div>';
+        html+=owners.map(o=>{ const p=resolvePerson(o);
+          return '<div class="home-person"><div class="hp-hd">'+avatarHtml(p)+'<span>'+esc(pmName(p)||o)+'</span></div>'+homeTargetsHtml(o)+HOME_BONUS_NOTE+'</div>'; }).join('');
+      }
+    }
+    wrap.innerHTML=html;
+  }
+  const HOME_BONUS_NOTE='<div class="home-bonus">💰 <b>Bonus tracker — coming soon.</b> Once the bonus is set up against these targets, this is where it shows: how much is on track for, and how far off.</div>';
+  function homeTargetsHtml(ownerEmail){
+    const mine=metricsStore.filter(m=>sameEmail(m.owner,ownerEmail));
+    if(!mine.length) return '<div class="mtg-empty">No metrics with a quarterly target assigned yet.</div>';
+    return '<div class="home-targets">'+mine.map(m=>{ try{ return homeMetricCard(m); }catch(e){ console.warn('home card',m&&m.id,e); return ''; } }).join('')+'</div>';
+  }
+  function homeMetricCard(m){ normalizeMetric(m);
+    const thisW=weekStarts(1,weekStartDay)[0]; const g=goalForDate(m,thisW);
+    const hasGoal=!(g===''||g==null||isNaN(Number(g)));
+    const cv=cellValue(m,colFor(thisW)); const cur=(cv.eff===null||isNaN(cv.eff))?null:cv.eff;
+    let onTrack=null, offBy=null, pct=0, statusTxt='No goal set', detail='', goalLine='';
+    if(isCumulative(m)){
+      const qi=metricQuarterInfo(m,thisW);
+      if(qi){ onTrack=qi.onTrack; offBy=Math.abs(qi.diff); pct=qi.G?Math.max(0,Math.min(100,Math.round(qi.cum/qi.G*100))):0;
+        statusTxt=onTrack?'On pace':'Behind'; detail='<b>'+esc(fmtVal(m,qi.cum))+'</b> of '+esc(fmtVal(m,qi.G))+' · should be at '+esc(fmtVal(m,qi.expected));
+        goalLine=esc(fmtVal(m,qi.G))+' by quarter-end'; }
+    } else if(m.goalKind==='level'){
+      if(hasGoal){ const G=Number(g); onTrack=(cur!=null)?((m.direction==='lower')?cur<=G:cur>=G):null; offBy=(cur!=null)?Math.abs(cur-G):null; pct=G?Math.max(0,Math.min(100,Math.round((cur||0)/G*100))):0;
+        statusTxt=(onTrack==null)?'—':(onTrack?'On target':'Off target'); detail='<b>'+esc(cur!=null?fmtVal(m,cur):'—')+'</b> of '+esc(fmtVal(m,G)); goalLine=esc(fmtVal(m,G))+' target'; }
+    } else {
+      if(hasGoal){ const wt=Number(g)/WEEKS_PER_QUARTER; onTrack=(cur!=null)?((m.direction==='lower')?cur<=wt:cur>=wt):null; offBy=(cur!=null)?Math.abs(cur-wt):null; pct=wt?Math.max(0,Math.min(100,Math.round((cur||0)/wt*100))):0;
+        statusTxt=(onTrack==null)?'—':(onTrack?'On pace':'Behind'); detail='this week <b>'+esc(cur!=null?fmtVal(m,cur):'—')+'</b> vs '+esc(fmtTgt(m,wt))+'/wk'; goalLine=esc(fmtVal(m,g))+'/qtr'; }
+    }
+    const color=(onTrack==null)?'#c9bcd9':(onTrack?'#2e9e6b':'#d8533b');
+    const offTxt=(offBy!=null&&onTrack!=null)?('<span class="ht-off" style="color:'+color+'">'+(onTrack?'ahead by ':'behind by ')+esc(fmtVal(m,Math.round(offBy)))+'</span>'):'';
+    return '<div class="ht-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
+      +'<div class="ht-top"><span class="ht-name">'+esc(m.name)+'</span><span class="ht-chip" style="background:'+color+'">'+esc(statusTxt)+'</span></div>'
+      +'<div class="ht-bar"><span style="width:'+pct+'%;background:'+color+'"></span></div>'
+      +'<div class="ht-detail">'+(detail||'Set a quarterly target to track this')+'</div>'
+      +'<div class="ht-detail" style="margin-top:4px;display:flex;justify-content:space-between;gap:8px;"><span>Goal: '+(goalLine||'—')+'</span>'+offTxt+'</div>'
+      +'</div>'; }
   function updateSidebarAccount(){
     const nm = myEmail ? pmName(myEmail) : 'Account';
     const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
