@@ -1089,10 +1089,17 @@
     </div>
     <div style="margin-top:10px;">
       <label>What kind of quarterly goal is this?</label>
-      <select id="mx-goalkind" onchange="mxRenderLegend()" style="width:100%;">
+      <select id="mx-goalkind" onchange="mxRenderLegend();mxToggleCumEntry()" style="width:100%;">
         <option value="total">Weekly target — hit the same number every week, target ÷ 13 (churn, weekly sales)</option>
         <option value="level">A level to reach — every week is measured against the full target (active members, %)</option>
         <option value="cumulative">A running total by quarter-end — just track if we're on or off pace (e.g. 1,500 by end of Q)</option>
+      </select>
+    </div>
+    <div id="mx-cumentry-row" style="margin-top:10px;display:none;">
+      <label>How do you record this running total?</label>
+      <select id="mx-cumentry" onchange="mxRenderLegend()" style="width:100%;">
+        <option value="weekly">I enter each week's NEW amount — they add up (e.g. 120 signed this week)</option>
+        <option value="absolute">I enter the RUNNING TOTAL to date each week (e.g. the report's quarter total, 1,161)</option>
       </select>
     </div>
     <label style="display:flex;align-items:center;gap:9px;margin-top:12px;cursor:pointer;font-weight:600;">
@@ -2073,12 +2080,16 @@
     const gEl=document.getElementById('mx-goal'); if(!gEl) return;
     const m={ goal: gEl.value===''?'':Number(gEl.value), unit:(document.getElementById('mx-unit')||{}).value||'number',
               direction:(document.getElementById('mx-dir')||{}).value||'higher', tierPct:(document.getElementById('mx-pct')||{}).value,
-              goalKind:(document.getElementById('mx-goalkind')||{}).value||'total' };
+              goalKind:(document.getElementById('mx-goalkind')||{}).value||'total',
+              cumEntry:(document.getElementById('mx-cumentry')||{}).value||'weekly' };
     if(m.goalKind==='cumulative'){
       if(m.goal===''||isNaN(Number(m.goal))){ box.innerHTML='<p class="lg-tt">Enter the quarter-end total to preview the pace.</p>'; return; }
       const per=Number(m.goal)/WEEKS_PER_QUARTER;
+      const how = (m.cumEntry==='absolute')
+        ? 'You enter the running total to date each week. We compare it against the straight-line pace ('+fmtTgt(m,per)+' by week 1, climbing to '+fmtVal(m,m.goal)+' by the end) and show if you\'re ahead or behind — no weekly pass/fail.'
+        : 'Each week adds to the total. We compare where you are against the straight-line pace ('+fmtTgt(m,per)+' a week) and show if you\'re ahead or behind — no weekly pass/fail.';
       box.innerHTML='<p class="lg-tt">RUNNING TOTAL — GOAL IS <b>'+fmtVal(m,m.goal)+' BY QUARTER-END</b></p>'
-        +'<p class="lg-tt">Each week adds to the total. We compare where you are against the straight-line pace ('+fmtTgt(m,per)+' a week) and show if you\'re ahead or behind — no weekly pass/fail.</p>'
+        +'<p class="lg-tt">'+how+'</p>'
         +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.great+'"></span><span class="lg-lab">At or ahead of pace</span></div>'
         +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-lab">Behind pace</span></div>';
       return;
@@ -2112,8 +2123,13 @@
     let we=Math.round((wkStart.getTime()-firstWk.getTime())/(7*86400000))+1;
     we=Math.max(1,Math.min(WEEKS_PER_QUARTER,we));
     let cum=0, any=false;
-    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
-      if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
+    if(m.cumEntry==='absolute'){ let bestD=null;
+      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
+        if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ any=true; if(!bestD||d>bestD){ bestD=d; cum=n; } } } });
+    } else {
+      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
+        if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
+    }
     const expected=Number(G)*we/WEEKS_PER_QUARTER;
     const diff=cum-expected;
     const projected= we>0 ? cum/we*WEEKS_PER_QUARTER : 0;
@@ -2386,14 +2402,17 @@
     const nowWk=alignWeekStart(today);
     const weeks=[]; for(let i=0;i<WEEKS_PER_QUARTER;i++){ weeks.push(new Date(firstWk.getTime()+i*7*86400000)); }
     // cumulative actual per week (null for future / no data yet)
-    let running=0, sawAny=false;
+    const absolute = m.cumEntry==='absolute';
+    let running=0, sawAny=false, lastAbs=null;
     const rows=weeks.map((w,i)=>{
       const key=wkKey(w); const raw=(m.values||{})[key];
       const has=!(raw===undefined||raw===null||raw===''||isNaN(Number(raw)));
       const isFuture=w.getTime()>nowWk.getTime();
-      if(has){ running+=Number(raw); sawAny=true; }
+      let cumVal;
+      if(absolute){ if(has){ lastAbs=Number(raw); sawAny=true; } cumVal=(isFuture&&!has)?null:(sawAny?lastAbs:null); }
+      else { if(has){ running+=Number(raw); sawAny=true; } cumVal=(isFuture&&!has)?null:(sawAny||has?running:null); }
       const pace=Number(G)*(i+1)/WEEKS_PER_QUARTER;
-      return { i, date:w, added:has?Number(raw):null, cum:(isFuture&&!has)?null:(sawAny||has?running:null), pace, isFuture, isNow:(w.getTime()===nowWk.getTime()) };
+      return { i, date:w, added:has?Number(raw):null, cum:cumVal, pace, isFuture, isNow:(w.getTime()===nowWk.getTime()) };
     });
     const qi=metricQuarterInfo(m,today);
     const nums=[0,Number(G)]; rows.forEach(p=>{ if(p.cum!==null) nums.push(p.cum); });
@@ -2439,7 +2458,7 @@
       banner='<div class="ch-proj">Enter this quarter\'s weekly numbers to see how you\'re tracking against the '+esc(fmtVal(m,G))+' goal.</div>';
     }
     // table
-    let tbl='<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Added</th><th>Running total</th><th>Pace target</th><th>Ahead / behind</th></tr></thead><tbody>';
+    let tbl='<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>'+(absolute?'Entered total':'Added')+'</th><th>Running total</th><th>Pace target</th><th>Ahead / behind</th></tr></thead><tbody>';
     rows.slice().reverse().forEach(p=>{
       const diff=(p.cum===null)?null:(p.cum-p.pace);
       const good=diff===null?null:((m.direction==='lower')?diff<=0:diff>=0);
@@ -2496,6 +2515,7 @@
     if(editing) normalizeMetric(m);
     set('mx-unit', editing?(m.unit||'number'):'number');
     set('mx-goalkind', editing?(m.goalKind||'total'):'total');
+    set('mx-cumentry', editing?(m.cumEntry||'weekly'):'weekly');
     document.getElementById('mx-company').checked = editing ? !!m.company : false;
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
@@ -2508,7 +2528,7 @@
     const bf=document.getElementById('mx-backfill'); if(bf) bf.value='';
     const bfm=document.getElementById('mxBackfillMsg'); if(bfm) bfm.textContent='';
     mxRenderQuarters(editing?m:null);
-    mxToggleSource(); mxRenderLegend();
+    mxToggleSource(); mxToggleCumEntry(); mxRenderLegend();
     document.getElementById('metricModal').classList.add('show');
     setTimeout(()=>{ const el=document.getElementById('mx-name'); if(el) el.focus(); },60);
   }
@@ -2554,6 +2574,7 @@
     if(hit){ inp.value=hit.name; note.innerHTML='✅ Linked to report <b>'+esc(hit.id)+'</b>. The scheduled sync will pull this report’s total each week.'; }
     else if(inp.value.trim()){ note.textContent='Not recognised yet — pick a report from the list, or paste the report link from Salesforce and it will be matched automatically.'; }
   }
+  function mxToggleCumEntry(){ const row=document.getElementById('mx-cumentry-row'); if(!row) return; row.style.display=(document.getElementById('mx-goalkind').value==='cumulative')?'block':'none'; }
   function mxToggleSource(){
     const s=document.getElementById('mx-source').value;
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
@@ -2580,6 +2601,7 @@
       unit:document.getElementById('mx-unit').value||'number',
       period:'weekly',
       goalKind:document.getElementById('mx-goalkind').value||'total',
+      cumEntry:document.getElementById('mx-cumentry').value||'weekly',
       company:document.getElementById('mx-company').checked,
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',

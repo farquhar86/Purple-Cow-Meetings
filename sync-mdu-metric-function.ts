@@ -24,6 +24,11 @@ const JOBS = [
     reportId: "00OOO000005fnt72AA",             // "Units Signed This Quarter"
     metricName: "MDU Access Agreements Signed",  // must match the metric name in the app
     aggregateIndex: 0,                            // 0 = Sum of Residential Unit Count (the grand-total column)
+    // "absolute" = the report already IS the running total, so write it straight in
+    //   (metric's "How do you record this running total?" = running total to date).
+    // "weekly"   = write only this week's NEW amount (report total − what's counted earlier this quarter)
+    //   (metric's setting = weekly additions).
+    mode: "absolute" as "absolute" | "weekly",
   },
 ];
 
@@ -125,21 +130,24 @@ Deno.serve(async (req) => {
 
       const reportTotal = await reportGrandTotal(auth, job.reportId, job.aggregateIndex);
 
-      // The metric is a "running total" that SUMS the weekly numbers, but the report is
-      // already cumulative for the quarter — so store this week's NEW amount:
-      //   thisWeek = report total − everything already counted earlier this quarter.
-      const qStart = halifaxQuarterStart();
+      let value = reportTotal;
       let priorSum = 0;
-      try {
-        const pv = await fetch(
-          `${url}/rest/v1/metric_values?metric_id=eq.${metric.id}&wk=gte.${qStart}&wk=lt.${wk}&select=value`,
-          { headers: { apikey: service, Authorization: `Bearer ${service}` } },
-        );
-        const prior = await pv.json();
-        if (Array.isArray(prior)) priorSum = prior.reduce((s: number, r: { value?: unknown }) => s + (Number(r.value) || 0), 0);
-      } catch (_) { /* first run of the quarter: nothing prior */ }
+      if (job.mode === "weekly") {
+        // The metric SUMS weekly numbers, but the report is already cumulative — so store
+        // this week's NEW amount: report total − everything already counted this quarter.
+        const qStart = halifaxQuarterStart();
+        try {
+          const pv = await fetch(
+            `${url}/rest/v1/metric_values?metric_id=eq.${metric.id}&wk=gte.${qStart}&wk=lt.${wk}&select=value`,
+            { headers: { apikey: service, Authorization: `Bearer ${service}` } },
+          );
+          const prior = await pv.json();
+          if (Array.isArray(prior)) priorSum = prior.reduce((s: number, r: { value?: unknown }) => s + (Number(r.value) || 0), 0);
+        } catch (_) { /* first run of the quarter: nothing prior */ }
+        value = reportTotal - priorSum;
+      }
+      // mode "absolute": the report IS the running total, so write it as-is.
 
-      const value = reportTotal - priorSum;
       const rowId = `${metric.id}|${wk}`;
 
       const up = await fetch(`${url}/rest/v1/metric_values`, {
