@@ -1524,13 +1524,13 @@
       <span id="stageFilterLbl" style="display:flex;align-items:center;gap:6px;">
         <span class="fl">Stage</span>
         <select id="f-stage" onchange="renderDashBody()">
-          <option value="inplay" selected>🎯 Committed + scheduled</option>
+          <option value="inplay">🎯 Committed + scheduled</option>
           <option value="all">All</option>
           <option value="new">🆕 New</option>
           <option value="reviewed">✅ Reviewed</option>
           <option value="sized">📏 Sized</option>
           <option value="committed">🎯 Committed</option>
-          <option value="scheduled">🗓 Scheduled</option>
+          <option value="scheduled" selected>🗓 Scheduled</option>
           <option value="complete">✔ Complete</option>
         </select>
       </span>
@@ -4794,15 +4794,16 @@ Herd Life`;
   }
   function stageHintHTML(list,shown){
     const v=stageVal(); const hidden=list.length-shown;
+    if(v==='scheduled' && hidden>0) return '<p class="stage-hint no-print">Showing scheduled work. '+hidden+' other priorit'+(hidden===1?'y':'ies')+' not shown · <a onclick="setStageFilter(\'all\')">show everything</a></p>';
     if(v==='inplay' && hidden>0) return '<p class="stage-hint no-print">Showing the work we\'ve committed to. '+hidden+' earlier-stage priorit'+(hidden===1?'y':'ies')+' not shown · <a onclick="setStageFilter(\'all\')">show everything</a></p>';
-    if(v==='all') return '<p class="stage-hint no-print">Showing every stage · <a onclick="setStageFilter(\'inplay\')">back to committed + scheduled</a></p>';
+    if(v==='all') return '<p class="stage-hint no-print">Showing every stage · <a onclick="setStageFilter(\'scheduled\')">back to scheduled</a></p>';
     return '';
   }
   function setStageFilter(v){ const s=document.getElementById('f-stage'); if(s) s.value=v; renderDashBody(); }
   function setReviewCounts(list){
     const sel=document.getElementById('f-stage'); if(!sel) return;
     const counts={}; list.forEach(e=>{ const s=stageOf(e); counts[s]=(counts[s]||0)+1; });
-    const keep=sel.value||'inplay';
+    const keep=sel.value||'scheduled';
     sel.innerHTML=STAGE_DEFS.map(([v,lbl])=> '<option value="'+v+'">'+lbl+' ('+stageCountFor(v,counts,list.length)+')</option>').join('');
     sel.value=keep;
   }
