@@ -191,6 +191,52 @@
   .vz-editcard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;box-shadow:var(--shadow);}
   .vz-editcard label{font-size:.78rem;font-weight:700;color:var(--muted);}
   .vz-editrow{border-top:1px solid var(--line);margin-top:12px;padding-top:12px;}
+  /* ---- company targets tile (top of Metrics) ---- */
+  .cg-outer{padding:6px 34px 0;}
+  .cg-tile{background:#fff;border:1px solid #eadfc2;border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:8px;}
+  .cg-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fdf6e6;border-bottom:1px solid #eadfc2;padding:11px 18px;}
+  .cg-title{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--purple-dark);font-size:1.02rem;}
+  .cg-title .cg-sub{display:block;font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
+  .cg-state{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+  .cg-state.behind{background:#fbe6e5;color:#c9302c;}
+  .cg-state.ahead{background:#e5f4ea;color:#26834b;}
+  .cg-ptoggle{display:inline-flex;background:#f0e9f7;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;}
+  .cg-ptoggle button{border:none;background:transparent;padding:5px 12px;border-radius:8px;font-weight:700;font-size:.8rem;color:var(--purple-dark);cursor:pointer;}
+  .cg-ptoggle button.on{background:var(--purple);color:#fff;}
+  .cg-cowwrap{padding:14px 18px 6px;}
+  .cg-track{position:relative;height:38px;background:linear-gradient(180deg,#f6effc 0 66%,#dff0e2 66% 100%);border:1px solid var(--line);border-radius:12px;}
+  .cg-fill{position:absolute;left:0;top:66%;bottom:0;background:var(--green);opacity:.55;border-radius:0 4px 4px 12px;transition:width .7s cubic-bezier(.3,1.2,.4,1);}
+  .cg-pace{position:absolute;top:4px;bottom:4px;width:0;border-left:2px dashed var(--purple-light);opacity:.75;}
+  .cg-pace::after{content:"pace";position:absolute;top:-2px;left:4px;font-size:.56rem;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.04em;}
+  .cg-cow{position:absolute;top:3px;font-size:24px;transform:translateX(-60%) scaleX(-1);transition:left .7s cubic-bezier(.3,1.2,.4,1);text-shadow:0 1px 2px rgba(40,15,60,.25);}
+  .cg-flag{position:absolute;right:4px;top:2px;font-size:18px;}
+  .cg-nums{display:flex;justify-content:space-between;gap:8px;font-size:.76rem;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums;}
+  .cg-nums b{color:var(--ink);}
+  .cg-pct{font-weight:800;}
+  .cg-pct.bad{color:var(--red);} .cg-pct.good{color:var(--green);}
+  .cg-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;padding:10px 16px 16px;}
+  .cg-row{border:1px solid var(--line);border-radius:11px;padding:9px 11px;cursor:pointer;background:#fdfcff;}
+  .cg-row:hover{background:var(--lilac);}
+  .cg-row .hd{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .cg-row .hd img,.cg-row .hd .tm-initials{width:22px;height:22px;border-radius:50%;font-size:.6rem;flex:0 0 auto;}
+  .cg-row .nm{flex:1;min-width:0;font-weight:800;color:var(--purple-dark);font-size:.77rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cg-row .vals{display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-variant-numeric:tabular-nums;}
+  .cg-row .a{font-size:1.02rem;font-weight:800;}
+  .cg-row .a.hit{color:var(--green);} .cg-row .a.miss{color:var(--red);} .cg-row .a.na{color:var(--muted);font-weight:700;}
+  .cg-row .t{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.3;}
+  .cg-empty{border:1.5px dashed #eadfc2;border-radius:14px;padding:16px 18px;color:var(--muted);font-size:.88rem;margin-bottom:8px;background:#fffdf6;}
+  .cg-unowned{background:#fdeece !important;color:#8a6100 !important;border:1.5px dashed #d9a940;}
+  /* purple cow press in the metric modal */
+  .cg-cowbtn{margin-top:14px;width:100%;display:flex;align-items:center;gap:12px;border:1.5px solid var(--line);background:#fdfcff;border-radius:12px;padding:10px 13px;cursor:pointer;text-align:left;font-family:inherit;font-size:inherit;}
+  .cg-cowbtn .big{font-size:1.45rem;filter:grayscale(1);opacity:.55;transition:.15s;}
+  .cg-cowbtn .tt{flex:1;}
+  .cg-cowbtn .tt b{display:block;font-size:.87rem;color:var(--purple-dark);}
+  .cg-cowbtn .tt span{font-size:.73rem;color:var(--muted);}
+  .cg-cowbtn .st{font-size:.66rem;font-weight:800;text-transform:uppercase;color:var(--muted);}
+  .cg-cowbtn.on{border-color:var(--purple);background:var(--lilac);}
+  .cg-cowbtn.on .big{filter:none;opacity:1;}
+  .cg-cowbtn.on .st{color:var(--purple);}
+  @media (prefers-reduced-motion:reduce){.cg-cow,.cg-fill{transition:none;}}
   /* ---- scorecard / metrics ---- */
   .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
   .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
@@ -1212,6 +1258,14 @@
       </div>
     </div>
     <div style="margin-top:10px;">
+      <label>Function / team <span style="font-weight:400;color:var(--muted)">— which scorecard this lives on</span></label>
+      <select id="mx-dept" style="width:100%;">
+        <option value="">No function yet</option>
+        <option>Growth</option><option>Operations</option><option>Customer Care</option><option>Support</option>
+        <option>Marketing</option><option>Product</option><option>Dev</option><option>TELUS</option>
+      </select>
+    </div>
+    <div style="margin-top:10px;">
       <label>What kind of quarterly goal is this?</label>
       <select id="mx-goalkind" onchange="mxRenderLegend();mxToggleCumEntry()" style="width:100%;">
         <option value="total">Weekly target — hit the same number every week, target ÷ 13 (churn, weekly sales)</option>
@@ -1226,10 +1280,12 @@
         <option value="absolute">I enter the RUNNING TOTAL to date each week (e.g. the report's quarter total, 1,161)</option>
       </select>
     </div>
-    <label style="display:flex;align-items:center;gap:9px;margin-top:12px;cursor:pointer;font-weight:600;">
-      <input type="checkbox" id="mx-company" style="width:17px;height:17px;">
-      🏢 Company metric — show this on meeting scorecards
-    </label>
+    <input type="checkbox" id="mx-company" style="display:none;">
+    <button type="button" class="cg-cowbtn" id="mxCowBtn" onclick="mxToggleCompany()" aria-pressed="false">
+      <span class="big">🐄</span>
+      <span class="tt"><b>Company goal</b><span>Shows on the Company Targets tile at the top of this page, and on meeting scorecards.</span></span>
+      <span class="st" id="mxCowState">Off</span>
+    </button>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px;">
       <div style="width:140px;"><label>Quarterly target</label><input type="number" id="mx-goal" step="any" style="width:100%;" oninput="mxRenderLegend()"></div>
       <div style="flex:1;min-width:175px;"><label>Direction</label>
@@ -1596,6 +1652,7 @@
       </select>
     </span>
   </div>
+  <div class="cg-outer" id="companyTargets"></div>
   <div class="mx-wrap" id="metricsWrap"></div>
 </div>
 
@@ -2280,7 +2337,7 @@
     const qi=metricQuarterInfo(m,thisW);
     const tier=qi?cumTier(m,qi):''; const color=TIER_COLORS[tier]||'#c9bcd9';
     const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
-    const coBadge=m.company?' <span title="Company metric — shows on meeting scorecards">🏢</span>':'';
+    const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
     const big = editable
       ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
       : '<span class="sc-big">'+(cvT.eff!=null&&!isNaN(cvT.eff)?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
@@ -2316,7 +2373,7 @@
       ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
       : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
     const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
-    const coBadge=m.company?' <span title="Company metric — shows on meeting scorecards">🏢</span>':'';
+    const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
@@ -2325,18 +2382,152 @@
       +'<div class="sc-foot">'+trend+'<span class="sc-open">History &amp; graph →</span></div>'
       +'</div>';
   }
-  let mxGroupByOwner=true;
-  function setMxGroup(v){ mxGroupByOwner=v; renderMetrics(); }
+  let mxGroupMode='func';   // 'func' | 'owner' | 'all'
+  function setMxGroup(v){ mxGroupMode = (v===true)?'owner':(v===false)?'all':v; renderMetrics(); }
+
+  /* ---------- Company Targets tile (the five 🐄 goals up top) ---------- */
+  let mxPeriod='qtd';   // 'wk' | 'mtd' | 'qtd' | 'ytd'
+  function loadMxPeriod(){ try{ const v=localStorage.getItem(KEY+'_mxperiod'); if(v) mxPeriod=v; }catch(e){} }
+  function setMxPeriod(p){ mxPeriod=p; try{ localStorage.setItem(KEY+'_mxperiod',p); }catch(e){} renderCompanyTargets(); }
+  loadMxPeriod();
+  function cgRange(){
+    const t=new Date(); t.setHours(0,0,0,0);
+    if(mxPeriod==='wk'){ const s=weekStarts(2,weekStartDay)[0]; const e=new Date(s.getTime()+6*86400000);
+      return { start:s, end:e, frac:1, label:'Week of '+wkLabel(s) }; }
+    if(mxPeriod==='mtd'){ const s=new Date(t.getFullYear(),t.getMonth(),1); const dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
+      return { start:s, end:t, frac:Math.min(1,t.getDate()/dim), label:t.toLocaleDateString(undefined,{month:'long'})+' so far' }; }
+    if(mxPeriod==='ytd'){ const s=new Date(t.getFullYear(),0,1); const days=(t-s)/86400000+1;
+      return { start:s, end:t, frac:Math.min(1,days/365), label:t.getFullYear()+' so far' }; }
+    const r=mxQuarterRange(quarterKeyOf(t));
+    const total=(r.end-r.start)/86400000+1, done=(t-r.start)/86400000+1;
+    return { start:r.start, end:t, frac:Math.min(1,done/total), label:quarterLabel(quarterKeyOf(t))+' so far' };
+  }
+  function cgIsLevel(m){ return (m.goalKind||'total')==='level'; }
+  function cgLatestAt(m,date){ let bd=null,val=null;
+    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; const n=Number(m.values[k]); if(isNaN(n)) return;
+      if(!bd||d>bd){ bd=d; val=n; } });
+    return val; }
+  function cgActual(m,r){
+    normalizeMetric(m);
+    if(cgIsLevel(m)) return cgLatestAt(m,r.end);
+    if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null;
+      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(m.values[k]); if(isNaN(n)) return;
+        if(!bd||d>bd){ bd=d; val=n; } });
+      return val; }
+    let sum=0, any=false;
+    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(m.values[k]); if(isNaN(n)) return; sum+=n; any=true; });
+    return any?sum:null;
+  }
+  function cgTarget(m,r){
+    const base=goalForDate(m,r.end);
+    if(base===''||base===null||base===undefined||isNaN(Number(base))) return null;
+    if(cgIsLevel(m)){
+      if(mxPeriod==='ytd'){ const g=goalForDate(m,new Date(r.end.getFullYear(),11,31)); return (g===''||isNaN(Number(g)))?Number(base):Number(g); }
+      return Number(base);
+    }
+    if(mxPeriod==='wk') return Number(base)/WEEKS_PER_QUARTER;
+    if(mxPeriod==='mtd') return Number(base)/3;
+    if(mxPeriod==='ytd'){ let s=0; const y=r.end.getFullYear();
+      for(let q=0;q<4;q++){ const g=goalForDate(m,new Date(y,q*3,15)); if(!(g===''||g===null||g===undefined||isNaN(Number(g)))) s+=Number(g); }
+      return s||Number(base)*4; }
+    return Number(base);
+  }
+  function cgHit(m,t,a,frac){
+    if(t===null||a===null) return null;
+    const goal=cgIsLevel(m)?t:t*frac;
+    return (m.direction==='lower') ? (a<=goal) : (a>=goal);
+  }
+  function cgHerdMetric(list){
+    const co=list.filter(m=>m.company);
+    let h=co.find(m=>/herd/i.test(m.name||''));
+    if(!h){ const lv=co.filter(m=>cgIsLevel(m)&&m.direction!=='lower'&&m.goal!==''&&!isNaN(Number(m.goal)));
+      lv.sort((a,b)=>Number(b.goal||0)-Number(a.goal||0)); h=lv[0]; }
+    return h||null;
+  }
+  function cgRowHtml(m,r){
+    const t=cgTarget(m,r), a=cgActual(m,r), hit=cgHit(m,t,a,r.frac);
+    const soFar=(mxPeriod!=='wk')?' so far':'';
+    const owner = (m.owner||'')
+      ? '<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span>'
+      : '<span class="tm-initials cg-unowned" title="Needs an owner">?</span>';
+    const aHtml = (a===null) ? '<span class="a na">no data</span>'
+      : '<span class="a '+(hit===null?'na':(hit?'hit':'miss'))+'">'+esc(fmtVal(m,a))+(cgIsLevel(m)?'':soFar)+'</span>';
+    return '<div class="cg-row" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
+      +'<div class="hd">'+owner+'<span class="nm">'+esc(m.name||'Untitled')+'</span></div>'
+      +'<div class="vals">'+aHtml+'<span class="t">target<br><b>'+(t===null?'—':esc(fmtVal(m,cgIsLevel(m)?t:Math.round(t))))+'</b></span></div>'
+      +'</div>';
+  }
+  function renderCompanyTargets(){
+    const box=document.getElementById('companyTargets'); if(!box) return;
+    const list=metricsStore.filter(metricVisible); list.forEach(normalizeMetric);
+    const co=list.filter(m=>m.company);
+    if(!co.length){ box.innerHTML = canCreate()
+      ? '<div class="cg-empty">🐄 No company goals yet. Open a metric and press the purple cow to put it on the Company Targets tile.</div>' : ''; return; }
+    const r=cgRange();
+    /* cow track: the quarter's run (or the year's, on YTD), driven by the herd metric */
+    let trackHtml='';
+    const herd=cgHerdMetric(list);
+    let behind=null;
+    if(herd){
+      const today=new Date(); today.setHours(0,0,0,0);
+      let runStart, runGoalDate, paceFrac;
+      if(mxPeriod==='ytd'){ runStart=new Date(today.getFullYear(),0,1); runGoalDate=new Date(today.getFullYear(),11,31);
+        paceFrac=Math.min(1,((today-runStart)/86400000+1)/365); }
+      else { const qr=mxQuarterRange(quarterKeyOf(today)); runStart=qr.start; runGoalDate=today;
+        paceFrac=Math.min(1,((today-qr.start)/86400000+1)/(((qr.end-qr.start)/86400000)+1)); }
+      let startVal=cgLatestAt(herd,runStart);
+      if(startVal===null){ /* metric younger than the period — use its earliest number instead */
+        let bd=null; Object.keys(herd.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>today) return; const n=Number(herd.values[k]); if(isNaN(n)) return;
+          if(!bd||d<bd){ bd=d; startVal=n; } });
+      }
+      const goal=goalForDate(herd,runGoalDate);
+      const cur=cgLatestAt(herd,today);
+      if(startVal!==null && cur!==null && !(goal===''||goal===null||isNaN(Number(goal))) && Number(goal)>startVal){
+        const p=Math.max(0,Math.min(1,(cur-startVal)/(Number(goal)-startVal)));
+        behind = p < paceFrac-0.005;
+        trackHtml='<div class="cg-cowwrap"><div class="cg-track">'
+          +'<div class="cg-fill" style="width:'+(p*100)+'%"></div>'
+          +(paceFrac<0.98?'<div class="cg-pace" style="left:'+(paceFrac*100)+'%"></div>':'')
+          +'<span class="cg-cow" style="left:'+Math.max(2.5,p*100)+'%">🐄</span><span class="cg-flag">🚩</span></div>'
+          +'<div class="cg-nums"><span>'+esc(fmtVal(herd,startVal))+'</span>'
+          +'<span class="cg-pct '+(behind?'bad':'good')+'">'+Math.round(p*100)+'% of the way · '+esc(herd.name)+'</span>'
+          +'<span><b>'+esc(fmtVal(herd,Number(goal)))+' 🎯</b></span></div></div>';
+      }
+    }
+    const stateHtml = behind===null ? '' : '<span class="cg-state '+(behind?'behind':'ahead')+'">'+(behind?'▼ Behind pace':'▲ On pace')+'</span>';
+    const btn=p=>'<button class="'+(mxPeriod===p?'on':'')+'" onclick="setMxPeriod(\''+p+'\')">'+({wk:'Last week',mtd:'MTD',qtd:'QTD',ytd:'YTD'}[p])+'</button>';
+    box.innerHTML='<div class="cg-tile">'
+      +'<div class="cg-top"><div class="cg-title"><span style="font-size:1.35rem;">🐄</span><span>Company Targets<span class="cg-sub">'+esc(r.label)+'</span></span></div>'
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'+stateHtml
+      +'<div class="cg-ptoggle">'+btn('wk')+btn('mtd')+btn('qtd')+btn('ytd')+'</div></div></div>'
+      +trackHtml
+      +'<div class="cg-rows">'+co.map(m=>cgRowHtml(m,r)).join('')+'</div>'
+      +'</div>';
+  }
+
   function renderMetrics(){
+    renderCompanyTargets();
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
     const list=metricsStore.filter(metricVisible);
     if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
     list.forEach(normalizeMetric);
     const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
-    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'
-      +'<button class="btn '+(mxGroupByOwner?'':'ghost')+' sm" onclick="setMxGroup(true)">By owner</button>'
-      +'<button class="btn '+(mxGroupByOwner?'ghost':'')+' sm" onclick="setMxGroup(false)">All together</button></div>';
-    if(!mxGroupByOwner){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
+    const gbtn=(mode,label)=>'<button class="btn '+(mxGroupMode===mode?'':'ghost')+' sm" onclick="setMxGroup(\''+mode+'\')">'+label+'</button>';
+    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+'</div>';
+    if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
+    if(mxGroupMode==='func'){
+      const groups=new Map();
+      list.forEach(m=>{ const d=m.dept||''; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(m); });
+      const keys=Array.from(groups.keys()).sort((a,b)=>{ if(!a) return 1; if(!b) return -1; return a.toLowerCase().localeCompare(b.toLowerCase()); });
+      const html=keys.map(d=>{ const items=groups.get(d).slice().sort((a,b)=>(b.company?1:0)-(a.company?1:0));
+        const owners=[]; items.forEach(m=>{ const o=m.owner||''; if(o && owners.indexOf(o)<0) owners.push(o); });
+        const avs=owners.slice(0,3).map(o=>'<span title="'+esc(pmName(o))+'">'+avatarHtml(resolvePerson(o))+'</span>').join('');
+        return '<div class="mx-owner-group"><div class="mx-owner-hd">'+(avs||'<span class="tm-initials">?</span>')
+          +'<span class="nm">'+(d?esc(d):'No function yet')+'</span><span class="cnt">'+items.length+'</span></div>'
+          +'<div class="sc-cards">'+items.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div></div>';
+      }).join('');
+      wrap.innerHTML=toggle+html; return;
+    }
     const groups=new Map();
     list.forEach(m=>{ const o=m.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(m); });
     const keys=Array.from(groups.keys()).sort((a,b)=>{ const na=a?pmName(resolvePerson(a)):'￿', nb=b?pmName(resolvePerson(b)):'￿'; return String(na).toLowerCase().localeCompare(String(nb).toLowerCase()); });
@@ -2665,6 +2856,8 @@
     set('mx-goalkind', editing?(m.goalKind||'total'):'total');
     set('mx-cumentry', editing?(m.cumEntry||'weekly'):'weekly');
     document.getElementById('mx-company').checked = editing ? !!m.company : false;
+    mxSyncCowBtn();
+    set('mx-dept', editing?(m.dept||''):'');
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
@@ -2681,6 +2874,11 @@
     setTimeout(()=>{ const el=document.getElementById('mx-name'); if(el) el.focus(); },60);
   }
   function closeMetricModal(){ document.getElementById('metricModal').classList.remove('show'); }
+  /* purple cow press — marks a metric as a company goal */
+  function mxToggleCompany(){ const cb=document.getElementById('mx-company'); cb.checked=!cb.checked; mxSyncCowBtn(); }
+  function mxSyncCowBtn(){ const cb=document.getElementById('mx-company'), b=document.getElementById('mxCowBtn'); if(!cb||!b) return;
+    b.classList.toggle('on', cb.checked); b.setAttribute('aria-pressed', String(cb.checked));
+    const st=document.getElementById('mxCowState'); if(st) st.textContent=cb.checked?'On':'Off'; }
   /* Salesforce report catalogue — pick an existing saved report by name,
      or paste a report link / ID from Salesforce (always works, never stale). */
   const SF_REPORTS=[
@@ -2751,6 +2949,7 @@
       goalKind:document.getElementById('mx-goalkind').value||'total',
       cumEntry:document.getElementById('mx-cumentry').value||'weekly',
       company:document.getElementById('mx-company').checked,
+      dept:document.getElementById('mx-dept').value||'',
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
@@ -3507,7 +3706,7 @@ Herd Life`;
       + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':'Company metrics — latest week vs goal.')+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
     if(!list.length){
       const msg = custom ? 'The metrics chosen here aren’t visible to you or were removed.'
-        : 'No company metrics yet — tick <b>🏢 Company metric</b> on a metric, or use <b>⚙ Choose metrics</b> to pick exactly which ones show in this meeting (great for 1-1s).';
+        : 'No company metrics yet — press the <b>🐄 Company goal</b> button on a metric, or use <b>⚙ Choose metrics</b> to pick exactly which ones show in this meeting (great for 1-1s).';
       return topBar+'<div class="mtg-empty">'+msg+'</div>';
     }
     const weeks=weekStarts(1,weekStartDay); const wk=weeks[0];
@@ -3555,7 +3754,7 @@ Herd Life`;
     let html='';
     Array.from(groups.keys()).forEach(o=>{ const person=resolvePerson(o);
       html+='<div class="mxpick-group"><div class="mxpick-owner">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')+'<span>'+esc(o?pmName(person):'Unassigned')+'</span></div>';
-      groups.get(o).forEach(mm=>{ html+='<label class="mxpick-row" data-name="'+esc((mm.name||'').toLowerCase())+'"><input type="checkbox" value="'+mm.id+'"'+(chosen.has(mm.id)?' checked':'')+'>'+(mm.company?'🏢 ':'')+esc(mm.name||'Untitled')+'</label>'; });
+      groups.get(o).forEach(mm=>{ html+='<label class="mxpick-row" data-name="'+esc((mm.name||'').toLowerCase())+'"><input type="checkbox" value="'+mm.id+'"'+(chosen.has(mm.id)?' checked':'')+'>'+(mm.company?'🐄 ':'')+esc(mm.name||'Untitled')+'</label>'; });
       html+='</div>'; });
     document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">No metrics are assigned to the people in this meeting yet. Add the meeting’s attendees as metric owners in the Metrics tab, and they’ll show up here.</div>';
     const s=document.getElementById('mxPickSearch'); if(s) s.value='';
