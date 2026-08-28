@@ -237,6 +237,25 @@
   .cg-cowbtn.on .big{filter:none;opacity:1;}
   .cg-cowbtn.on .st{color:var(--purple);}
   @media (prefers-reduced-motion:reduce){.cg-cow,.cg-fill{transition:none;}}
+  /* function sections: drag to reorder + sub-function groups */
+  .mx-fn-group .mx-owner-hd{cursor:grab;}
+  .mx-fn-group.dragging{opacity:.45;}
+  .mx-fn-group.drop-before{box-shadow:0 -3px 0 0 var(--purple);}
+  .mx-fn-group .mx-owner-hd .grip{color:var(--muted);font-size:.9rem;margin-right:2px;cursor:grab;}
+  .mx-sub-hd{display:flex;align-items:center;gap:7px;font-size:.78rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:14px 0 8px;}
+  .mx-sub-hd::after{content:"";flex:1;height:1px;background:var(--line);}
+  .cg-qsel{border:1px solid var(--line);border-radius:9px;padding:5px 8px;font-size:.8rem;font-weight:700;color:var(--purple-dark);background:#fff;}
+  /* functions manager modal */
+  .fn-row{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-bottom:8px;background:#fdfcff;}
+  .fn-row .fn-hd{display:flex;align-items:center;gap:8px;}
+  .fn-row .fn-hd b{flex:1;color:var(--purple-dark);}
+  .fn-row .fn-x{border:none;background:transparent;color:#bbb;cursor:pointer;font-size:1rem;padding:2px 4px;}
+  .fn-row .fn-x:hover{color:#c9302c;}
+  .fn-subs{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;align-items:center;}
+  .fn-chip{display:inline-flex;align-items:center;gap:5px;background:var(--lilac);color:var(--purple-dark);border-radius:999px;padding:2px 5px 2px 10px;font-size:.76rem;font-weight:700;}
+  .fn-chip button{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 3px;}
+  .fn-chip button:hover{color:#c9302c;}
+  .fn-subs input{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.76rem;width:130px;}
   /* ---- scorecard / metrics ---- */
   .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
   .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
@@ -1257,13 +1276,11 @@
         <select id="mx-unit" style="width:100%;" onchange="mxRenderLegend()"><option value="number">Number</option><option value="currency">$ Currency</option><option value="percent">% Percent</option></select>
       </div>
     </div>
-    <div style="margin-top:10px;">
-      <label>Function / team <span style="font-weight:400;color:var(--muted)">— which scorecard this lives on</span></label>
-      <select id="mx-dept" style="width:100%;">
-        <option value="">No function yet</option>
-        <option>Growth</option><option>Operations</option><option>Customer Care</option><option>Support</option>
-        <option>Marketing</option><option>Product</option><option>Dev</option><option>TELUS</option>
-      </select>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;">
+      <div style="flex:1;min-width:150px;"><label>Function <span style="font-weight:400;color:var(--muted)">— which scorecard</span></label>
+        <select id="mx-dept" style="width:100%;" onchange="mxSyncSubs()"></select></div>
+      <div style="flex:1;min-width:150px;"><label>Sub-function <span style="font-weight:400;color:var(--muted)">— optional</span></label>
+        <select id="mx-sub" style="width:100%;"></select></div>
     </div>
     <div style="margin-top:10px;">
       <label>What kind of quarterly goal is this?</label>
@@ -1642,6 +1659,7 @@
   <div class="sec-head"><h1>📈 Metrics</h1><p>Your weekly scorecard — the numbers that matter, each with an owner and a target.</p></div>
   <div class="mx-toolbar">
     <button class="btn sm admin-only" onclick="openMetricModal()">➕ New metric</button>
+    <button class="btn ghost sm admin-only" onclick="openFnModal()" title="Add or organize functions and sub-functions">⚙ Functions</button>
     <button class="btn ghost sm" onclick="ensureMetrics()" title="Pull the latest numbers everyone has entered">↻ Refresh</button>
     <p class="mx-hint">Type this week's number on each card. Click a card to see the full history and trend graph.</p>
     <span class="mx-wkbar">Week starts
@@ -1654,6 +1672,22 @@
   </div>
   <div class="cg-outer" id="companyTargets"></div>
   <div class="mx-wrap" id="metricsWrap"></div>
+</div>
+
+<!-- Functions & sub-functions manager -->
+<div class="modal-ov no-print" id="fnModal" onclick="if(event.target===this)closeFnModal()">
+  <div class="modal modal-scroll" style="text-align:left;max-width:480px;">
+    <h3 style="text-align:center;">⚙ Functions</h3>
+    <p class="block-desc" style="margin:2px 0 12px;">Each function gets its own scorecard section. Drag the section headers on the Metrics page to reorder them. Sub-functions group metrics inside a function (e.g. Operations → Field Support).</p>
+    <div id="fnList"></div>
+    <div style="display:flex;gap:8px;margin-top:14px;">
+      <input type="text" id="fn-new" placeholder="New function, e.g. Sales" style="flex:1;" onkeydown="if(event.key==='Enter')addFn()">
+      <button class="btn sm" onclick="addFn()">➕ Add</button>
+    </div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn" onclick="closeFnModal()">Done</button>
+    </div>
+  </div>
 </div>
 
 <!-- ====================== SECTION: TO-DOS ====================== -->
@@ -2131,7 +2165,22 @@
   /* ---------- metrics / scorecard ---------- */
   const METRIC_WEEKS=13;
   let metricsStore=[], metricsLoaded=false;
-  function loadMetricsLocal(){ try{ metricsStore=JSON.parse(localStorage.getItem(KEY+'_metrics')||'[]')||[]; }catch(e){ metricsStore=[]; } }
+  function loadMetricsLocal(){ try{ metricsStore=JSON.parse(localStorage.getItem(KEY+'_metrics')||'[]')||[]; }catch(e){ metricsStore=[]; }
+    metricsStore=(metricsStore||[]).filter(m=>m && m.id!=='fnconfig'); }
+  /* ---- functions & sub-functions (their own scorecard sections) ---- */
+  let fnConfig=null;
+  const FN_DEFAULTS=[ {name:'Growth',subs:[]}, {name:'Sales',subs:[]}, {name:'Operations',subs:['Field Support','Logistics']},
+    {name:'Customer Care',subs:[]}, {name:'Marketing',subs:[]}, {name:'Product',subs:[]}, {name:'Dev',subs:[]}, {name:'TELUS',subs:[]} ];
+  function normalizeFn(o){ const list=(o&&Array.isArray(o.list))?o.list:[];
+    return { id:'fnconfig', kind:'fnconfig', name:'fnconfig',
+      list:list.filter(f=>f&&f.name).map(f=>({name:String(f.name), subs:(f.subs||[]).map(String)})) }; }
+  function loadFnLocal(){ try{ const o=JSON.parse(localStorage.getItem(KEY+'_fnconfig')||'null'); if(o) fnConfig=normalizeFn(o); }catch(e){} }
+  function saveFnLocal(){ try{ localStorage.setItem(KEY+'_fnconfig', JSON.stringify(fnConfig)); }catch(e){} }
+  function ensureFnConfig(){ if(!fnConfig) loadFnLocal();
+    if(!fnConfig){ fnConfig=normalizeFn({list:FN_DEFAULTS}); saveFnLocal(); dbUpsertMetric(fnConfig); }
+    return fnConfig; }
+  function persistFnConfig(){ saveFnLocal(); dbUpsertMetric(fnConfig); }
+  function fnByName(n){ return ensureFnConfig().list.find(f=>f.name.toLowerCase()===String(n||'').toLowerCase()); }
   function saveMetricsLocal(){ try{ localStorage.setItem(KEY+'_metrics', JSON.stringify(metricsStore)); }catch(e){} }
   function persistMetric(m){ saveMetricsLocal(); dbUpsertMetric(m); }
   function dbUpsertMetric(m){ if(!USE_DB) return; sb.from('metrics').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('metric save failed', r.error); }); }
@@ -2152,6 +2201,7 @@
         const rvals=vals[lm.id]=vals[lm.id]||{};
         Object.keys(lm.values||{}).forEach(wk=>{ if(rvals[wk]===undefined && lm.values[wk]!=='' && lm.values[wk]!=null){ rvals[wk]=lm.values[wk]; dbUpsertMetricValue(lm.id,wk,lm.values[wk]); } });
       });
+      if(byId['fnconfig']){ fnConfig=normalizeFn(byId['fnconfig']); saveFnLocal(); delete byId['fnconfig']; }
       Object.keys(byId).forEach(id=>{ byId[id].values = vals[id] || {}; });
       metricsStore=Object.values(byId); saveMetricsLocal();
     }
@@ -2386,21 +2436,25 @@
   function setMxGroup(v){ mxGroupMode = (v===true)?'owner':(v===false)?'all':v; renderMetrics(); }
 
   /* ---------- Company Targets tile (the five 🐄 goals up top) ---------- */
-  let mxPeriod='qtd';   // 'wk' | 'mtd' | 'qtd' | 'ytd'
-  function loadMxPeriod(){ try{ const v=localStorage.getItem(KEY+'_mxperiod'); if(v) mxPeriod=v; }catch(e){} }
-  function setMxPeriod(p){ mxPeriod=p; try{ localStorage.setItem(KEY+'_mxperiod',p); }catch(e){} renderCompanyTargets(); }
+  let mxPeriod='q';        // 'wk' (this week) | 'mtd' | 'q' (a quarter, past/current/future)
+  let mxQuarterSel='';     // quarter key when mxPeriod==='q'; '' = current quarter
+  function loadMxPeriod(){ try{ const v=localStorage.getItem(KEY+'_mxperiod'); if(v) mxPeriod=(v==='wk'||v==='mtd')?v:'q'; }catch(e){} }
+  function setMxPeriod(p){ mxPeriod=p; if(p!=='q') mxQuarterSel=''; try{ localStorage.setItem(KEY+'_mxperiod',p); }catch(e){} renderCompanyTargets(); }
+  function setMxQuarter(k){ mxPeriod='q'; mxQuarterSel=(k===quarterKeyOf(new Date()))?'':k;
+    try{ localStorage.setItem(KEY+'_mxperiod','q'); }catch(e){} renderCompanyTargets(); }
   loadMxPeriod();
   function cgRange(){
     const t=new Date(); t.setHours(0,0,0,0);
-    if(mxPeriod==='wk'){ const s=weekStarts(2,weekStartDay)[0]; const e=new Date(s.getTime()+6*86400000);
-      return { start:s, end:e, frac:1, label:'Week of '+wkLabel(s) }; }
+    if(mxPeriod==='wk'){ const s=weekStarts(2,weekStartDay)[1]; const days=Math.min(7,(t-s)/86400000+1);
+      return { start:s, end:t, frac:Math.min(1,days/7), partial:true, future:false, label:'This week' }; }
     if(mxPeriod==='mtd'){ const s=new Date(t.getFullYear(),t.getMonth(),1); const dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
-      return { start:s, end:t, frac:Math.min(1,t.getDate()/dim), label:t.toLocaleDateString(undefined,{month:'long'})+' so far' }; }
-    if(mxPeriod==='ytd'){ const s=new Date(t.getFullYear(),0,1); const days=(t-s)/86400000+1;
-      return { start:s, end:t, frac:Math.min(1,days/365), label:t.getFullYear()+' so far' }; }
-    const r=mxQuarterRange(quarterKeyOf(t));
+      return { start:s, end:t, frac:Math.min(1,t.getDate()/dim), partial:true, future:false, label:t.toLocaleDateString(undefined,{month:'long'})+' so far' }; }
+    const qk=mxQuarterSel||quarterKeyOf(t);
+    const r=mxQuarterRange(qk);
+    if(r.end<t)  return { start:r.start, end:r.end, frac:1, partial:false, future:false, qk, label:quarterLabel(qk) };
+    if(r.start>t) return { start:r.start, end:r.end, frac:0, partial:false, future:true, qk, label:quarterLabel(qk)+' · upcoming' };
     const total=(r.end-r.start)/86400000+1, done=(t-r.start)/86400000+1;
-    return { start:r.start, end:t, frac:Math.min(1,done/total), label:quarterLabel(quarterKeyOf(t))+' so far' };
+    return { start:r.start, end:t, frac:Math.min(1,done/total), partial:true, future:false, qk, label:quarterLabel(qk)+' so far' };
   }
   function cgIsLevel(m){ return (m.goalKind||'total')==='level'; }
   function cgLatestAt(m,date){ let bd=null,val=null;
@@ -2421,15 +2475,9 @@
   function cgTarget(m,r){
     const base=goalForDate(m,r.end);
     if(base===''||base===null||base===undefined||isNaN(Number(base))) return null;
-    if(cgIsLevel(m)){
-      if(mxPeriod==='ytd'){ const g=goalForDate(m,new Date(r.end.getFullYear(),11,31)); return (g===''||isNaN(Number(g)))?Number(base):Number(g); }
-      return Number(base);
-    }
+    if(cgIsLevel(m)) return Number(base);
     if(mxPeriod==='wk') return Number(base)/WEEKS_PER_QUARTER;
     if(mxPeriod==='mtd') return Number(base)/3;
-    if(mxPeriod==='ytd'){ let s=0; const y=r.end.getFullYear();
-      for(let q=0;q<4;q++){ const g=goalForDate(m,new Date(y,q*3,15)); if(!(g===''||g===null||g===undefined||isNaN(Number(g)))) s+=Number(g); }
-      return s||Number(base)*4; }
     return Number(base);
   }
   function cgHit(m,t,a,frac){
@@ -2445,12 +2493,13 @@
     return h||null;
   }
   function cgRowHtml(m,r){
-    const t=cgTarget(m,r), a=cgActual(m,r), hit=cgHit(m,t,a,r.frac);
-    const soFar=(mxPeriod!=='wk')?' so far':'';
+    const t=cgTarget(m,r), a=r.future?null:cgActual(m,r), hit=r.future?null:cgHit(m,t,a,r.frac);
+    const soFar=r.partial?' so far':'';
     const owner = (m.owner||'')
       ? '<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span>'
       : '<span class="tm-initials cg-unowned" title="Needs an owner">?</span>';
-    const aHtml = (a===null) ? '<span class="a na">no data</span>'
+    const aHtml = r.future ? '<span class="a na">upcoming</span>'
+      : (a===null) ? '<span class="a na">no data</span>'
       : '<span class="a '+(hit===null?'na':(hit?'hit':'miss'))+'">'+esc(fmtVal(m,a))+(cgIsLevel(m)?'':soFar)+'</span>';
     return '<div class="cg-row" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
       +'<div class="hd">'+owner+'<span class="nm">'+esc(m.name||'Untitled')+'</span></div>'
@@ -2464,24 +2513,23 @@
     if(!co.length){ box.innerHTML = canCreate()
       ? '<div class="cg-empty">🐄 No company goals yet. Open a metric and press the purple cow to put it on the Company Targets tile.</div>' : ''; return; }
     const r=cgRange();
-    /* cow track: the quarter's run (or the year's, on YTD), driven by the herd metric */
+    /* cow track: the selected quarter's run (this week / MTD show the current quarter's run), driven by the herd metric */
     let trackHtml='';
     const herd=cgHerdMetric(list);
     let behind=null;
-    if(herd){
+    if(herd && !r.future){
       const today=new Date(); today.setHours(0,0,0,0);
-      let runStart, runGoalDate, paceFrac;
-      if(mxPeriod==='ytd'){ runStart=new Date(today.getFullYear(),0,1); runGoalDate=new Date(today.getFullYear(),11,31);
-        paceFrac=Math.min(1,((today-runStart)/86400000+1)/365); }
-      else { const qr=mxQuarterRange(quarterKeyOf(today)); runStart=qr.start; runGoalDate=today;
-        paceFrac=Math.min(1,((today-qr.start)/86400000+1)/(((qr.end-qr.start)/86400000)+1)); }
+      const qk=(mxPeriod==='q' && r.qk) ? r.qk : quarterKeyOf(today);
+      const qr=mxQuarterRange(qk);
+      const runStart=qr.start, runEnd=(qr.end<today)?qr.end:today, runGoalDate=new Date(qr.start.getTime()+45*86400000);
+      const paceFrac=Math.min(1,((runEnd-qr.start)/86400000+1)/(((qr.end-qr.start)/86400000)+1));
       let startVal=cgLatestAt(herd,runStart);
       if(startVal===null){ /* metric younger than the period — use its earliest number instead */
-        let bd=null; Object.keys(herd.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>today) return; const n=Number(herd.values[k]); if(isNaN(n)) return;
+        let bd=null; Object.keys(herd.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>runEnd) return; const n=Number(herd.values[k]); if(isNaN(n)) return;
           if(!bd||d<bd){ bd=d; startVal=n; } });
       }
       const goal=goalForDate(herd,runGoalDate);
-      const cur=cgLatestAt(herd,today);
+      const cur=cgLatestAt(herd,runEnd);
       if(startVal!==null && cur!==null && !(goal===''||goal===null||isNaN(Number(goal))) && Number(goal)>startVal){
         const p=Math.max(0,Math.min(1,(cur-startVal)/(Number(goal)-startVal)));
         behind = p < paceFrac-0.005;
@@ -2494,12 +2542,18 @@
           +'<span><b>'+esc(fmtVal(herd,Number(goal)))+' 🎯</b></span></div></div>';
       }
     }
-    const stateHtml = behind===null ? '' : '<span class="cg-state '+(behind?'behind':'ahead')+'">'+(behind?'▼ Behind pace':'▲ On pace')+'</span>';
-    const btn=p=>'<button class="'+(mxPeriod===p?'on':'')+'" onclick="setMxPeriod(\''+p+'\')">'+({wk:'Last week',mtd:'MTD',qtd:'QTD',ytd:'YTD'}[p])+'</button>';
+    const done=(!r.partial && !r.future);
+    const stateHtml = behind===null ? '' : '<span class="cg-state '+(behind?'behind':'ahead')+'">'
+      +(done ? (behind?'✕ Missed':'✓ Hit') : (behind?'▼ Behind pace':'▲ On pace'))+'</span>';
+    const btn=p=>'<button class="'+(mxPeriod===p?'on':'')+'" onclick="setMxPeriod(\''+p+'\')">'+({wk:'This week',mtd:'MTD',q:'Quarter'}[p])+'</button>';
+    const curQk=(mxPeriod==='q'&&r.qk)?r.qk:quarterKeyOf(new Date());
+    const qsel='<select class="cg-qsel" onchange="setMxQuarter(this.value)" title="See any quarter, past or future">'
+      + quarterList(4,4).map(k=>'<option value="'+esc(k)+'"'+(k===curQk?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('')
+      + '</select>';
     box.innerHTML='<div class="cg-tile">'
       +'<div class="cg-top"><div class="cg-title"><span style="font-size:1.35rem;">🐄</span><span>Company Targets<span class="cg-sub">'+esc(r.label)+'</span></span></div>'
       +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'+stateHtml
-      +'<div class="cg-ptoggle">'+btn('wk')+btn('mtd')+btn('qtd')+btn('ytd')+'</div></div></div>'
+      +'<div class="cg-ptoggle">'+btn('wk')+btn('mtd')+btn('q')+'</div>'+(mxPeriod==='q'?qsel:'')+'</div></div>'
       +trackHtml
       +'<div class="cg-rows">'+co.map(m=>cgRowHtml(m,r)).join('')+'</div>'
       +'</div>';
@@ -2516,17 +2570,30 @@
     const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+'</div>';
     if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
     if(mxGroupMode==='func'){
+      const cfg=ensureFnConfig();
       const groups=new Map();
       list.forEach(m=>{ const d=m.dept||''; if(!groups.has(d)) groups.set(d,[]); groups.get(d).push(m); });
-      const keys=Array.from(groups.keys()).sort((a,b)=>{ if(!a) return 1; if(!b) return -1; return a.toLowerCase().localeCompare(b.toLowerCase()); });
-      const html=keys.map(d=>{ const items=groups.get(d).slice().sort((a,b)=>(b.company?1:0)-(a.company?1:0));
+      const order=[]; cfg.list.forEach(f=>{ if(groups.has(f.name)) order.push(f.name); });
+      Array.from(groups.keys()).filter(d=>d && order.indexOf(d)<0).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase())).forEach(d=>order.push(d));
+      if(groups.has('')) order.push('');
+      const coFirst=(a,b)=>(b.company?1:0)-(a.company?1:0);
+      const html=order.map(d=>{ const items=groups.get(d);
         const owners=[]; items.forEach(m=>{ const o=m.owner||''; if(o && owners.indexOf(o)<0) owners.push(o); });
         const avs=owners.slice(0,3).map(o=>'<span title="'+esc(pmName(o))+'">'+avatarHtml(resolvePerson(o))+'</span>').join('');
-        return '<div class="mx-owner-group"><div class="mx-owner-hd">'+(avs||'<span class="tm-initials">?</span>')
+        const f=d?fnByName(d):null;
+        const subOrder=[]; (f?f.subs:[]).forEach(s=>{ if(subOrder.indexOf(s)<0) subOrder.push(s); });
+        items.forEach(m=>{ const s=m.sub||''; if(s && subOrder.indexOf(s)<0) subOrder.push(s); });
+        const noSub=items.filter(m=>!(m.sub||'')).slice().sort(coFirst);
+        let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
+        subOrder.forEach(s=>{ const su=items.filter(m=>(m.sub||'')===s).slice().sort(coFirst); if(!su.length) return;
+          body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; });
+        return '<div class="mx-owner-group mx-fn-group" data-fn="'+esc(d)+'"><div class="mx-owner-hd" draggable="true" title="Drag to reorder the sections"><span class="grip">⠿</span>'+(avs||'<span class="tm-initials">?</span>')
           +'<span class="nm">'+(d?esc(d):'No function yet')+'</span><span class="cnt">'+items.length+'</span></div>'
-          +'<div class="sc-cards">'+items.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div></div>';
+          + body + '</div>';
       }).join('');
-      wrap.innerHTML=toggle+html; return;
+      wrap.innerHTML=toggle+html;
+      enableFnDrag();
+      return;
     }
     const groups=new Map();
     list.forEach(m=>{ const o=m.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(m); });
@@ -2857,7 +2924,8 @@
     set('mx-cumentry', editing?(m.cumEntry||'weekly'):'weekly');
     document.getElementById('mx-company').checked = editing ? !!m.company : false;
     mxSyncCowBtn();
-    set('mx-dept', editing?(m.dept||''):'');
+    mxFillDeptSelect(editing?(m.dept||''):'');
+    mxSyncSubs(editing?(m.sub||''):'');
     set('mx-goal', (editing && m.goal!==undefined && m.goal!==null)?m.goal:'');
     set('mx-dir', editing?(m.direction||'higher'):'higher');
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
@@ -2879,6 +2947,62 @@
   function mxSyncCowBtn(){ const cb=document.getElementById('mx-company'), b=document.getElementById('mxCowBtn'); if(!cb||!b) return;
     b.classList.toggle('on', cb.checked); b.setAttribute('aria-pressed', String(cb.checked));
     const st=document.getElementById('mxCowState'); if(st) st.textContent=cb.checked?'On':'Off'; }
+  /* function + sub-function pickers in the metric modal */
+  function mxFillDeptSelect(dept){ const sel=document.getElementById('mx-dept'); if(!sel) return;
+    const names=ensureFnConfig().list.map(f=>f.name);
+    if(dept && names.indexOf(dept)<0) names.push(dept);
+    sel.innerHTML='<option value="">No function yet</option>'+names.map(n=>'<option'+(n===dept?' selected':'')+'>'+esc(n)+'</option>').join(''); }
+  function mxSyncSubs(sub){ const sel=document.getElementById('mx-sub'); if(!sel) return;
+    const dept=document.getElementById('mx-dept').value; const f=dept?fnByName(dept):null;
+    const subs=f?f.subs.slice():[]; const cur=(typeof sub==='string')?sub:'';
+    if(cur && subs.indexOf(cur)<0) subs.push(cur);
+    sel.innerHTML='<option value="">None</option>'+subs.map(s=>'<option'+(s===cur?' selected':'')+'>'+esc(s)+'</option>').join('');
+    sel.disabled=!subs.length; }
+  /* ----- ⚙ Functions manager ----- */
+  function openFnModal(){ if(!canCreate()) return; renderFnModal(); document.getElementById('fnModal').classList.add('show'); }
+  function closeFnModal(){ document.getElementById('fnModal').classList.remove('show'); renderMetrics(); }
+  function renderFnModal(){ const cfg=ensureFnConfig(); const box=document.getElementById('fnList');
+    box.innerHTML=cfg.list.map((f,i)=>'<div class="fn-row"><div class="fn-hd"><b>'+esc(f.name)+'</b>'
+      +'<button class="fn-x" title="Remove this function" onclick="delFn('+i+')">✕</button></div>'
+      +'<div class="fn-subs">'+f.subs.map((s,j)=>'<span class="fn-chip">'+esc(s)+'<button title="Remove" onclick="delSub('+i+','+j+')">✕</button></span>').join('')
+      +'<input type="text" placeholder="Add sub-function" id="fnsub-'+i+'" onkeydown="if(event.key===\'Enter\')addSub('+i+')">'
+      +'<button class="btn ghost sm" onclick="addSub('+i+')">＋</button></div></div>').join('')
+      || '<p class="block-desc">No functions yet, add one below.</p>'; }
+  function addFn(){ const el=document.getElementById('fn-new'); const n=el.value.trim(); if(!n) return;
+    const cfg=ensureFnConfig(); if(!fnByName(n)) cfg.list.push({name:n,subs:[]});
+    el.value=''; persistFnConfig(); renderFnModal(); }
+  function delFn(i){ const cfg=ensureFnConfig(); const f=cfg.list[i]; if(!f) return;
+    confirmModal('Remove the function “'+f.name+'”? Its metrics keep their tag and show as their own section until you re-file them.', ()=>{ cfg.list.splice(i,1); persistFnConfig(); renderFnModal(); renderMetrics(); }, 'Remove function'); }
+  function addSub(i){ const el=document.getElementById('fnsub-'+i); const n=(el&&el.value||'').trim(); if(!n) return;
+    const cfg=ensureFnConfig(); const f=cfg.list[i]; if(!f) return;
+    if(f.subs.map(s=>s.toLowerCase()).indexOf(n.toLowerCase())<0) f.subs.push(n);
+    persistFnConfig(); renderFnModal(); }
+  function delSub(i,j){ const cfg=ensureFnConfig(); const f=cfg.list[i]; if(!f) return; f.subs.splice(j,1); persistFnConfig(); renderFnModal(); }
+  /* ----- drag a function section to reorder the page ----- */
+  let fnDrag=null;
+  function enableFnDrag(){
+    document.querySelectorAll('#metricsWrap .mx-fn-group .mx-owner-hd').forEach(hd=>{ if(hd.dataset.dnd) return; hd.dataset.dnd='1';
+      const grp=hd.parentElement;
+      hd.addEventListener('dragstart',e=>{ fnDrag=grp.getAttribute('data-fn'); grp.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',fnDrag);}catch(_){} });
+      hd.addEventListener('dragend',()=>{ fnDrag=null; document.querySelectorAll('.mx-fn-group').forEach(g=>g.classList.remove('dragging','drop-before')); });
+    });
+    document.querySelectorAll('#metricsWrap .mx-fn-group').forEach(grp=>{ if(grp.dataset.dnd) return; grp.dataset.dnd='1';
+      grp.addEventListener('dragover',e=>{ if(fnDrag===null) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; grp.classList.add('drop-before'); });
+      grp.addEventListener('dragleave',()=>grp.classList.remove('drop-before'));
+      grp.addEventListener('drop',e=>{ if(fnDrag===null) return; e.preventDefault();
+        const target=grp.getAttribute('data-fn'); if(target===fnDrag){ fnDrag=null; return; }
+        const doms=Array.from(document.querySelectorAll('#metricsWrap .mx-fn-group')).map(g=>g.getAttribute('data-fn'));
+        const from=doms.indexOf(fnDrag); if(from<0){ fnDrag=null; return; }
+        doms.splice(from,1);
+        const to=doms.indexOf(target); doms.splice(to<0?doms.length:to,0,fnDrag);
+        const cfg=ensureFnConfig();
+        const newList=[];
+        doms.forEach(d=>{ if(d==='') return; const ex=fnByName(d); newList.push(ex||{name:d,subs:[]}); });
+        cfg.list.forEach(f=>{ if(!newList.some(x=>x.name.toLowerCase()===f.name.toLowerCase())) newList.push(f); });
+        cfg.list=newList; fnDrag=null; persistFnConfig(); renderMetrics();
+      });
+    });
+  }
   /* Salesforce report catalogue — pick an existing saved report by name,
      or paste a report link / ID from Salesforce (always works, never stale). */
   const SF_REPORTS=[
@@ -2950,6 +3074,7 @@
       cumEntry:document.getElementById('mx-cumentry').value||'weekly',
       company:document.getElementById('mx-company').checked,
       dept:document.getElementById('mx-dept').value||'',
+      sub:document.getElementById('mx-sub').value||'',
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
