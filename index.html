@@ -1448,6 +1448,9 @@
     <div id="mxLegend" class="mx-legend"></div>
     <label style="margin-top:14px;display:block;">Targets by quarter <span style="font-weight:400;color:var(--muted)">— set them ahead of time; blank uses the default target above</span></label>
     <div id="mxQuarters" class="mx-qgrid"></div>
+    <p class="block-desc" id="mxStartHint" style="display:none;margin-top:7px;font-size:.78rem;">
+      <b>Started at</b> is the number this was sitting at when the quarter opened (e.g. 43,439 herd members on July 1).
+      Progress and pace are measured from there to the target. Leave it blank and the last reading before the quarter is used instead.</p>
     <label style="margin-top:12px;display:block;">Where does this number come from?</label>
     <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
       <option value="manual">Manual entry — someone types it in weekly</option>
@@ -2580,9 +2583,13 @@
       Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
         if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
     }
-    const expected=Number(G)*we/WEEKS_PER_QUARTER;
+    /* If the quarter opened at a number (43,439 herd members), pace runs from there
+       to the goal — not from zero, which makes any large running total look finished. */
+    const S=metricStart(m,qk);
+    const base=(S===null)?0:S;
+    const expected=base+(Number(G)-base)*we/WEEKS_PER_QUARTER;
     const diff=cum-expected;
-    const projected= we>0 ? cum/we*WEEKS_PER_QUARTER : 0;
+    const projected= we>0 ? base+(cum-base)/we*WEEKS_PER_QUARTER : 0;
     const onTrack=(m.direction==='lower')?(cum<=expected):(cum>=expected);
     return { qk, G:Number(G), weeksElapsed:we, weeksTotal:WEEKS_PER_QUARTER, cum, expected, diff, projected, any, onTrack };
   }
@@ -2970,12 +2977,19 @@
     }).join('');
     mxToggleStarts();
   }
-  /* the starting line only means something for a count that grows toward a target */
+  /* A starting line matters for anything that accumulates: a running total, or a
+     count that climbs toward a target. It means nothing for a weekly total or a
+     rate that just has to hold. */
+  function mxWantsStart(kind,mode){
+    return kind==='cumulative' || (kind==='level' && mode==='climb');
+  }
   function mxToggleStarts(){
     const box=document.getElementById('mxQuarters'); if(!box) return;
     const kind=(document.getElementById('mx-goalkind')||{}).value;
     const mode=(document.getElementById('mx-levelmode')||{}).value;
-    box.classList.toggle('show-starts', kind==='level' && mode==='climb');
+    const on=mxWantsStart(kind,mode);
+    box.classList.toggle('show-starts', on);
+    const h=document.getElementById('mxStartHint'); if(h) h.style.display=on?'block':'none';
   }
   function mxReadQuarterStarts(){
     const out={};
@@ -4270,9 +4284,11 @@ Herd Life`;
       ? ids.map(id=>metricsStore.find(m=>m.id===id)).filter(Boolean).filter(metricVisible)
       : metricsStore.filter(metricVisible).filter(m=>m.company);
     /* company goals belong to everyone, so they stay whoever owns them */
+    /* Scope only decides the DEFAULT set. Once someone has picked metrics for this
+       meeting, that list is the answer — filtering it again would silently drop a
+       metric they went out of their way to choose. */
     if(scope!==null && !custom) list = list.concat(
       metricsStore.filter(metricVisible).filter(m=>!m.company && mtgInScope(scope,m.owner)));
-    if(scope!==null && custom) list = list.filter(m=>m.company || mtgInScope(scope,m.owner));
     const chooseBtn = (canCreate() && sec) ? '<button class="btn ghost sm" onclick="event.stopPropagation();openMetricPicker(\''+sec.id+'\')">⚙ Choose metrics</button>' : '';
     const topBar = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
       + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':(scope!==null?'Company goals plus the metrics owned by the people here.':'Company metrics — latest week vs goal.'))+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
