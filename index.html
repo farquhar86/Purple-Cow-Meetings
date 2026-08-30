@@ -137,6 +137,84 @@
   .td-empty{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:30px;text-align:center;color:var(--muted);}
   /* Home — your targets */
   .home-wrap{margin-top:6px;}
+  /* ---- home: vision band. Light on purpose: white ground, hairline rules,
+       colour only where it means something. ---- */
+  .hv{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 22px 6px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .hv-lead{display:flex;align-items:baseline;gap:18px;flex-wrap:wrap;padding-bottom:15px;}
+  .hv-lbl{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.11em;color:var(--muted);margin-bottom:2px;}
+  .hv-strat{font-size:1.3rem;font-weight:800;color:var(--purple);letter-spacing:-.3px;line-height:1.15;}
+  .hv-purpose{margin:0;font-size:.95rem;color:var(--ink);max-width:34ch;}
+  .hv-more{margin-left:auto;align-self:center;font-size:.74rem;font-weight:700;color:var(--purple);text-decoration:none;white-space:nowrap;}
+  .hv-more:hover{text-decoration:underline;}
+  .hv-split{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:26px;border-top:1px solid var(--line);padding-top:14px;}
+  .hv-col+.hv-col{border-left:1px solid var(--line);padding-left:26px;}
+  .hv-vals,.hv-climb{list-style:none;margin:7px 0 0;padding:0;}
+  .hv-vals li{display:flex;align-items:baseline;gap:8px;font-size:.85rem;color:var(--ink);padding:3px 0;}
+  .hv-vals li .e{font-size:.95rem;line-height:1;flex:0 0 auto;}
+  .hv-climb li{display:flex;align-items:baseline;gap:12px;font-size:.83rem;padding:6px 0;}
+  .hv-climb li+li{border-top:1px solid var(--line);}
+  .hv-climb .yr{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.62rem;font-weight:700;color:var(--purple);letter-spacing:.06em;flex:0 0 38px;text-transform:uppercase;}
+  .hv-climb .gt{flex:1;min-width:0;color:var(--ink);}
+  .hv-climb .gw{color:var(--muted);font-size:.74rem;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .hv-foot{border-top:1px solid var(--line);margin-top:14px;padding:9px 0;font-size:.74rem;color:var(--muted);}
+  @media(max-width:860px){.hv-split{grid-template-columns:1fr;gap:6px;}
+    .hv-col+.hv-col{border-left:none;padding-left:0;border-top:1px solid var(--line);padding-top:13px;margin-top:2px;}}
+  /* ---- home: the two columns ---- */
+  .home-cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start;margin-bottom:20px;}
+  @media(max-width:900px){.home-cols{grid-template-columns:minmax(0,1fr);}}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden;}
+  .panel-hd{display:flex;align-items:center;gap:10px;padding:11px 15px;background:var(--lilac);border-bottom:1px solid var(--line);}
+  .panel-hd h2{margin:0;font-size:.95rem;color:var(--purple-dark);flex:1;}
+  .panel-hd img,.panel-hd .tm-initials{width:26px;height:26px;border-radius:50%;}
+  .panel-bd{padding:6px 15px 14px;}
+  .psel{border:1px solid var(--line);border-radius:9px;padding:5px 9px;font:inherit;font-size:.8rem;font-weight:700;color:var(--purple-dark);background:#fff;}
+  .plink{font-size:.76rem;font-weight:700;color:var(--purple);text-decoration:none;white-space:nowrap;}
+  .plink:hover{text-decoration:underline;}
+  .home-more{font-size:.72rem;color:var(--muted);padding:7px 2px 0;}
+  .mg{display:flex;align-items:center;gap:11px;padding:10px 2px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .mg:last-child{border-bottom:none;} .mg:hover{background:#fcfaff;}
+  .mg .nm{flex:1;min-width:0;font-weight:700;color:var(--purple-dark);font-size:.85rem;}
+  .mg .nm small{display:block;font-weight:600;color:var(--muted);font-size:.68rem;}
+  .mg .pair{text-align:right;font-variant-numeric:tabular-nums;min-width:60px;flex:0 0 auto;}
+  .mg .pair .v{font-size:1rem;font-weight:800;line-height:1.2;}
+  .mg .pair .v.hit{color:var(--green);} .mg .pair .v.miss{color:var(--red);} .mg .pair .v.na{color:var(--muted);}
+  .mg .pair .t{font-size:.64rem;color:var(--muted);}
+  .mg .pair.q .v{font-size:.88rem;}
+  .mg-hd{display:flex;gap:11px;padding:6px 2px 4px;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+  .mg-hd .sp{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mg-hd .c{min-width:60px;flex:0 0 auto;text-align:right;}
+  .td{display:flex;align-items:flex-start;gap:9px;padding:8px 2px;border-bottom:1px solid var(--line);font-size:.85rem;cursor:pointer;}
+  .td:last-of-type{border-bottom:none;}
+  .td input[type=checkbox]{margin-top:3px;flex:0 0 auto;accent-color:var(--purple);}
+  .td .tx{flex:1;min-width:0;}
+  .td .due{font-size:.68rem;font-weight:700;color:var(--muted);background:var(--lilac);border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .td .due.over{background:#fbe6e5;color:#c9302c;}
+  .addrow{display:flex;gap:7px;margin-top:11px;}
+  .addrow input[type=text],.addrow input:not([type]){flex:1;min-width:0;}
+  .mtgrow{border-bottom:1px solid var(--line);} .mtgrow:last-child{border-bottom:none;}
+  .mtgrow .hd{display:flex;align-items:center;gap:9px;padding:9px 2px;cursor:pointer;width:100%;background:none;border:none;font:inherit;text-align:left;color:inherit;}
+  .mtgrow .caret{color:var(--muted);font-size:.75rem;transition:.15s;flex:0 0 auto;}
+  .mtgrow .hd.open .caret{transform:rotate(90deg);}
+  .mtgrow .ti{flex:1;min-width:0;font-weight:700;color:var(--purple-dark);font-size:.85rem;}
+  .mtgrow .ti small{display:block;font-weight:600;color:var(--muted);font-size:.68rem;}
+  .mtgrow .avs{display:flex;}
+  .mtgrow .avs img,.mtgrow .avs .tm-initials{width:22px;height:22px;border-radius:50%;margin-left:-7px;border:2px solid #fff;}
+  .mtgbody{display:none;padding:2px 2px 12px 24px;} .mtgbody.open{display:block;}
+  .mtgbody .lb{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:5px;}
+  .secnote{margin-top:8px;font-size:.68rem;color:var(--muted);display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+  .secnote .sec{background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-weight:700;color:var(--purple-dark);}
+  .secnote .sec.ro{background:#fff;color:var(--muted);font-weight:600;border-style:dashed;}
+  .prow{display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .prow:last-of-type{border-bottom:none;} .prow:hover{background:#fcfaff;}
+  .prow .ti{flex:1;min-width:0;font-weight:700;color:var(--purple-dark);font-size:.85rem;}
+  .prow .ti small{display:block;font-weight:600;color:var(--muted);font-size:.68rem;}
+  .prow .bar{width:70px;height:7px;border-radius:99px;background:var(--lilac-2);overflow:hidden;flex:0 0 auto;}
+  .prow .bar i{display:block;height:100%;background:var(--green);}
+  .prow .bar i.warn{background:var(--amber);} .prow .bar i.bad{background:var(--red);}
+  .prow .pct{font-size:.75rem;font-weight:800;color:var(--muted);min-width:34px;text-align:right;font-variant-numeric:tabular-nums;}
+  .prow .trk{font-size:.62rem;font-weight:800;border-radius:999px;padding:2px 8px;white-space:nowrap;}
+  .prow .trk.on{background:#e5f4ea;color:#26834b;} .prow .trk.off{background:#fbe6e5;color:#c9302c;}
+  .prow .trk.behind{background:#fdf1dc;color:#8a6100;} .prow .trk.none{background:var(--line);color:var(--muted);}
   .home-h{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);font-weight:800;margin:8px 0 12px;}
   .home-targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px;}
   .ht-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);border-left:4px solid var(--purple);cursor:pointer;transition:box-shadow .12s;}
@@ -194,8 +272,8 @@
   /* ---- company targets tile (top of Metrics) ---- */
   .cg-outer{padding:6px 34px 0;}
   .cg-tile{background:#fff;border:1px solid #eadfc2;border-radius:16px;box-shadow:var(--shadow);overflow:hidden;margin-bottom:8px;}
-  .cg-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fdf6e6;border-bottom:1px solid #eadfc2;padding:11px 18px;}
-  .cg-title{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--purple-dark);font-size:1.02rem;}
+  .cg-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#fdf6e6;border-bottom:1px solid #eadfc2;padding:13px 20px;}
+  .cg-title{display:flex;align-items:center;gap:11px;font-weight:800;color:var(--purple-dark);font-size:1.18rem;}
   .cg-title .cg-sub{display:block;font-size:.66rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;}
   .cg-state{font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;border-radius:999px;padding:3px 10px;white-space:nowrap;}
   .cg-state.behind{background:#fbe6e5;color:#c9302c;}
@@ -203,29 +281,29 @@
   .cg-ptoggle{display:inline-flex;background:#f0e9f7;border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;}
   .cg-ptoggle button{border:none;background:transparent;padding:5px 12px;border-radius:8px;font-weight:700;font-size:.8rem;color:var(--purple-dark);cursor:pointer;}
   .cg-ptoggle button.on{background:var(--purple);color:#fff;}
-  .cg-cowwrap{padding:14px 18px 6px;}
-  .cg-track{position:relative;height:38px;background:linear-gradient(180deg,#f6effc 0 66%,#dff0e2 66% 100%);border:1px solid var(--line);border-radius:12px;}
+  .cg-cowwrap{padding:16px 20px 6px;}
+  .cg-track{position:relative;height:44px;background:linear-gradient(180deg,#f6effc 0 66%,#dff0e2 66% 100%);border:1px solid var(--line);border-radius:12px;}
   .cg-fill{position:absolute;left:0;top:66%;bottom:0;background:var(--green);opacity:.55;border-radius:0 4px 4px 12px;transition:width .7s cubic-bezier(.3,1.2,.4,1);}
   .cg-pace{position:absolute;top:4px;bottom:4px;width:0;border-left:2px dashed var(--purple-light);opacity:.75;}
   .cg-pace::after{content:"pace";position:absolute;top:-2px;left:4px;font-size:.56rem;font-weight:800;color:var(--purple);text-transform:uppercase;letter-spacing:.04em;}
-  .cg-cow{position:absolute;top:3px;font-size:24px;transform:translateX(-60%) scaleX(-1);transition:left .7s cubic-bezier(.3,1.2,.4,1);text-shadow:0 1px 2px rgba(40,15,60,.25);}
+  .cg-cow{position:absolute;top:5px;font-size:27px;transform:translateX(-60%) scaleX(-1);transition:left .7s cubic-bezier(.3,1.2,.4,1);text-shadow:0 1px 2px rgba(40,15,60,.25);}
   .cg-flag{position:absolute;right:4px;top:2px;font-size:18px;}
   .cg-nums{display:flex;justify-content:space-between;gap:8px;font-size:.76rem;color:var(--muted);margin-top:5px;font-variant-numeric:tabular-nums;}
   .cg-nums b{color:var(--ink);}
   .cg-pct{font-weight:800;}
   .cg-pct.bad{color:var(--red);} .cg-pct.good{color:var(--green);}
-  .cg-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;padding:10px 16px 16px;}
-  .cg-row{border:1px solid var(--line);border-radius:11px;padding:9px 11px;cursor:pointer;background:#fdfcff;}
-  .cg-row:hover{background:var(--lilac);}
-  .cg-row .hd{display:flex;align-items:center;gap:6px;margin-bottom:5px;}
+  .cg-rows{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;padding:14px 20px 20px;}
+  .cg-row{border:1px solid var(--line);border-radius:13px;padding:14px 15px;cursor:pointer;background:#fdfcff;transition:.12s;}
+  .cg-row:hover{background:var(--lilac);border-color:var(--purple-light);}
+  .cg-row .hd{display:flex;align-items:center;gap:7px;margin-bottom:9px;}
   .cg-row .hd img,.cg-row .hd .tm-initials{width:22px;height:22px;border-radius:50%;font-size:.6rem;flex:0 0 auto;}
-  .cg-row .nm{flex:1;min-width:0;font-weight:800;color:var(--purple-dark);font-size:.77rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .cg-row .nm{flex:1;min-width:0;font-weight:800;color:var(--purple-dark);font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .cg-row .vals{display:flex;align-items:baseline;justify-content:space-between;gap:6px;font-variant-numeric:tabular-nums;}
-  .cg-row .a{font-size:1.02rem;font-weight:800;}
+  .cg-row .a{font-size:1.85rem;font-weight:800;letter-spacing:-.5px;line-height:1.1;}
   .cg-row .a.hit{color:var(--green);} .cg-row .a.miss{color:var(--red);} .cg-row .a.na{color:var(--muted);font-weight:700;}
   .cg-row .t{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.3;}
   .cg-row .t b{color:var(--ink);font-size:.86rem;}
-  .cg-lvl{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .cg-lvl{margin-top:9px;padding-top:8px;border-top:1px dashed var(--line);font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums;}
   .cg-lvl b{color:var(--ink);}
   .cg-wk{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--purple-dark);background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;}
   .cg-empty{border:1.5px dashed #eadfc2;border-radius:14px;padding:16px 18px;color:var(--muted);font-size:.88rem;margin-bottom:8px;background:#fffdf6;}
@@ -357,7 +435,7 @@
   .mx-calcrow .op{width:74px;flex:0 0 auto;}
   .mx-empty{max-width:560px;margin:50px auto;text-align:center;color:var(--muted);}
   /* scorecard cards (this-week focused) */
-  .sc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:6px 0;}
+  .sc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:13px;padding:6px 0;}
   .sc-card{background:#fff;border:1px solid var(--line);border-left:5px solid var(--line);border-radius:14px;padding:16px 18px;cursor:pointer;box-shadow:var(--shadow);transition:.12s;}
   .sc-card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(80,30,110,.13);}
   .sc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
@@ -415,6 +493,13 @@
   .mtg-sec-hd h3{margin:0;font-size:1rem;color:var(--purple-dark);flex:1;}
   .mtg-sec-hd .btn{padding:5px 10px;}
   .mtg-sec-bd{padding:14px 16px;}
+  .mtg-scope{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fbf9fe;border:1px solid var(--line);
+    border-radius:10px;padding:7px 11px;margin-bottom:10px;font-size:.76rem;color:var(--muted);}
+  .mtg-scope b{color:var(--ink);}
+  .mtg-scope-who{display:inline-flex;align-items:center;gap:5px;background:#fff;border:1px solid var(--line);
+    border-radius:999px;padding:2px 10px 2px 3px;font-weight:700;color:var(--purple-dark);font-size:.73rem;}
+  .mtg-scope-who img,.mtg-scope-who .tm-initials{width:20px;height:20px;border-radius:50%;}
+  .mtg-scope-who.out{background:#fdf1dc;border-color:#e3c98a;color:#8a6100;text-decoration:line-through;}
   .mtg-corevals{white-space:pre-wrap;font-size:.92rem;line-height:1.6;color:var(--ink);}
   .mtg-note{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
   .mtg-note img,.mtg-note .tm-initials{width:34px;height:34px;border-radius:50%;flex:0 0 auto;margin-top:2px;}
@@ -1240,6 +1325,19 @@
       <span class="att-select-all" onclick="mtgAttToggleAll()">Select all / none</span>
     </div>
     <div id="mtg-attendees" class="att-grid"></div>
+    <div style="margin-top:14px;"><label>Organizer</label>
+      <select id="mtg-organizer" style="width:100%;"></select>
+      <p class="block-desc" style="margin-top:5px;font-size:.78rem;">Whoever runs it. Only used by the setting below.</p></div>
+    <div style="margin-top:12px;"><label>Whose metrics and priorities show</label>
+      <select id="mtg-scope" onchange="mtgToggleScope()" style="width:100%;">
+        <option value="all">Everyone in the company</option>
+        <option value="attendees">Just the people in this meeting</option>
+      </select></div>
+    <label id="mtg-inclorg-row" style="margin-top:10px;display:none;align-items:flex-start;gap:9px;border:1.5px solid var(--line);background:#fdfcff;border-radius:12px;padding:10px 13px;font-weight:400;">
+      <input type="checkbox" id="mtg-inclorg" style="width:auto;margin:3px 0 0;">
+      <span><b style="display:block;font-size:.87rem;color:var(--purple-dark);">Include the organizer&rsquo;s metrics and priorities</b>
+      <span style="font-size:.75rem;color:var(--muted);">Leave off for a 1-1 your manager runs: the time is about your work, not theirs. Company goals (&#127404;) always show either way.</span></span>
+    </label>
     <div class="lock-err" id="mtgErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
       <button class="btn danger sm" id="mtgDeleteBtn" onclick="deleteMeeting2()" style="display:none;margin-right:auto;">Delete</button>
@@ -1688,7 +1786,12 @@
 
 <!-- ====================== SECTION: HOME ====================== -->
 <div id="screen-home" style="display:none;">
-  <div class="sec-head"><h1>👋 Welcome back<span id="homeName"></span></h1><p>Your targets and where you stand this quarter.</p></div>
+  <div class="sec-head"><h1>👋 Welcome back<span id="homeName"></span></h1><p>Where we&rsquo;re headed, where your numbers stand, and what&rsquo;s on you this week.</p></div>
+  <div id="homeVision" class="hv"></div>
+  <div class="home-cols">
+    <div id="homeMetrics"></div>
+    <div id="homePanel"></div>
+  </div>
   <div id="homeWrap" class="home-wrap"></div>
 </div>
 
@@ -4090,15 +4193,53 @@ Herd Life`;
         +'<span class="t">of '+esc(t===null?'—':cgFmt(m,t,signed))+'</span></span>';
     }).join('')+'</span>';
   }
+  function mtgToggleScope(){ const r=document.getElementById('mtg-inclorg-row');
+    if(r) r.style.display=((document.getElementById('mtg-scope')||{}).value==='attendees')?'flex':'none'; }
+  /* Who a meeting's metrics and priorities are about. null = everyone, which is
+     what every meeting did before this setting existed. */
+  function mtgScopeEmails(m){
+    if(!m || m.scope!=='attendees') return null;
+    const org=String(resolvePerson(m.organizer||m.by||'')).toLowerCase();
+    const keepOrg = m.includeOrganizer!==false ? true : false;
+    const out=(m.attendees||[]).filter(e=>{
+      if(keepOrg || !org) return true;
+      return String(resolvePerson(e)).toLowerCase()!==org;
+    });
+    return out;
+  }
+  function mtgInScope(list,email){
+    if(list===null) return true;
+    const t=String(resolvePerson(email||'')).toLowerCase();
+    if(!t) return false;
+    return list.some(e=>String(resolvePerson(e)).toLowerCase()===t);
+  }
+  /* a line saying who is being shown, so nothing looks mysteriously missing */
+  function mtgScopeNote(m){
+    const list=mtgScopeEmails(m); if(list===null) return '';
+    const org=String(resolvePerson(m.organizer||m.by||'')).toLowerCase();
+    const shown=list.map(e=>'<span class="mtg-scope-who">'+avatarHtml(e)+esc(pmName(resolvePerson(e)))+'</span>').join('');
+    const dropped=(m.attendees||[]).filter(e=>!mtgInScope(list,e))
+      .map(e=>'<span class="mtg-scope-who out" title="Organizer — left out by this meeting&rsquo;s settings">'+avatarHtml(e)+esc(pmName(resolvePerson(e)))+'</span>').join('');
+    return '<div class="mtg-scope">Showing <b>the people in this meeting</b>: '+shown
+      + (dropped?dropped+'<span style="color:var(--muted);">organizer, left out by this meeting&rsquo;s settings</span>':'')
+      + '</div>';
+  }
   function renderMetricSnapshot(sec){
     const ids = sec && Array.isArray(sec.metricIds) ? sec.metricIds : null;
     const custom = ids && ids.length;
-    const list = custom
+    const mtg = mtgsStore.find(x=>x.id===curMtgId);
+    const scope = mtgScopeEmails(mtg);
+    let list = custom
       ? ids.map(id=>metricsStore.find(m=>m.id===id)).filter(Boolean).filter(metricVisible)
       : metricsStore.filter(metricVisible).filter(m=>m.company);
+    /* company goals belong to everyone, so they stay whoever owns them */
+    if(scope!==null && !custom) list = list.concat(
+      metricsStore.filter(metricVisible).filter(m=>!m.company && mtgInScope(scope,m.owner)));
+    if(scope!==null && custom) list = list.filter(m=>m.company || mtgInScope(scope,m.owner));
     const chooseBtn = (canCreate() && sec) ? '<button class="btn ghost sm" onclick="event.stopPropagation();openMetricPicker(\''+sec.id+'\')">⚙ Choose metrics</button>' : '';
     const topBar = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
-      + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':'Company metrics — latest week vs goal.')+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
+      + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':(scope!==null?'Company goals plus the metrics owned by the people here.':'Company metrics — latest week vs goal.'))+' Click a metric for its graph.</span>'+chooseBtn+'</div>'
+      + mtgScopeNote(mtg);
     if(!list.length){
       const msg = custom ? 'The metrics chosen here aren’t visible to you or were removed.'
         : 'No company metrics yet — press the <b>🐄 Company goal</b> button on a metric, or use <b>⚙ Choose metrics</b> to pick exactly which ones show in this meeting (great for 1-1s).';
@@ -4180,14 +4321,20 @@ Herd Life`;
     const q=(typeof cur==='function')?cur():null;
     if(!q){ return '<div class="mtg-empty">No quarter loaded.</div>'; }
     let rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
-    if(!rocks.length) return '<div class="mtg-empty">No scheduled or completed priorities this quarter yet. Add them in the Priorities section.</div>';
+    const mtg=mtgsStore.find(x=>x.id===curMtgId);
+    const scope=mtgScopeEmails(mtg);
+    if(scope!==null) rocks=rocks.filter(e=>
+      mtgInScope(scope,e.pm) || (e.plan||[]).some(pp=>pp && mtgInScope(scope,pp.owner)));
+    if(!rocks.length) return mtgScopeNote(mtg)+'<div class="mtg-empty">'
+      +(scope!==null?'Nobody in this meeting is PMing a priority or holding a task on one this quarter.'
+                    :'No scheduled or completed priorities this quarter yet. Add them in the Priorities section.')+'</div>';
     rocks=sortRocks(rocks);
     const opt=(v,l)=>'<option value="'+v+'"'+(rockSort===v?' selected':'')+'>'+l+'</option>';
     const bar='<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;">'
-      + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+'. Click a name to open it, or the row for its timeline.</span>'
+      + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+(scope!==null?' for the people here':'')+'. Click a name to open it, or the row for its timeline.</span>'
       + '<span style="font-size:.82rem;color:var(--muted);">Sort: <select onchange="setRockSort(this.value)">'
       + opt('progDesc','Most done first')+opt('progAsc','Least done first')+opt('complete','Complete first')+opt('pm','By owner')+'</select></span></div>';
-    return bar+rocks.map((e,i)=>{
+    return mtgScopeNote(mtg)+bar+rocks.map((e,i)=>{
       const done=isComplete(e); const st=done?'complete':'scheduled';
       const pct=priProgress(e); const rid='rk-'+secId+'-'+e.id;
       const person=resolvePerson(e.pm);
@@ -4623,6 +4770,12 @@ Herd Life`;
     document.getElementById('mtg-attendees').innerHTML=pool.map(e=>{ const on=chosen.indexOf(e)>=0;
       return '<div class="att-opt'+(on?' on':'')+'" data-email="'+esc(e)+'" onclick="mtgAttToggle(this)">'
         + avatarHtml(e) + '<span class="nm">'+esc(pmName(e))+'</span><span class="tick">'+(on?'✓':'')+'</span></div>'; }).join('');
+    const orgSel=document.getElementById('mtg-organizer');
+    if(orgSel) orgSel.innerHTML=ownerOptions(editing?(m.organizer||m.by||''):myEmail);
+    set('mtg-scope', editing?(m.scope==='attendees'?'attendees':'all'):'attendees');
+    const io=document.getElementById('mtg-inclorg');
+    if(io) io.checked = editing ? (m.includeOrganizer!==false) : false;
+    mtgToggleScope();
     mtgRenderDays(editing && Array.isArray(m.days) ? m.days : null); mtgToggleDaysRow();
     // "start from an existing meeting" — only when creating a new one
     const copyRow=document.getElementById('mtg-copyrow'), copySel=document.getElementById('mtg-copyfrom');
@@ -4660,7 +4813,10 @@ Herd Life`;
       if(days.length===7) days=null; }   // every day = plain daily, no restriction
     const data={ title, type, days, date:document.getElementById('mtg-date').value||wkKey(new Date()),
       time:document.getElementById('mtg-time').value, dur:Number(document.getElementById('mtg-dur').value)||30,
-      tz:document.getElementById('mtg-tz').value, attendees };
+      tz:document.getElementById('mtg-tz').value, attendees,
+      organizer:(document.getElementById('mtg-organizer')||{}).value||'',
+      scope:((document.getElementById('mtg-scope')||{}).value==='attendees')?'attendees':'all',
+      includeOrganizer:!!(document.getElementById('mtg-inclorg')||{}).checked };
     let m;
     if(id){ m=mtgsStore.find(x=>x.id===id); if(!m){ closeMeetingCreate(); return; } Object.assign(m,data); }
     else {
@@ -4806,19 +4962,214 @@ Herd Life`;
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
-  function renderHome(){ const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : '';
+  /* ================= HOME =================
+     Lands here on login. Vision band up top, your own metrics on the left,
+     and a switchable panel of to-dos / meetings / priorities on the right. */
+  let homePanelView='todos';
+  try{ const v=localStorage.getItem(KEY+'_homepanel'); if(v==='meetings'||v==='priorities') homePanelView=v; }catch(e){}
+  function setHomePanel(v){ homePanelView=v; try{ localStorage.setItem(KEY+'_homepanel',v); }catch(e){} renderHomePanel(); }
+
+  function renderHome(){
+    const el=document.getElementById('homeName'); if(el) el.textContent = myEmail ? (', '+pmName(myEmail)) : '';
+    if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB) dbLoadMetrics().then(renderHome); }
+    if(!mtgLoaded && USE_DB) dbLoadMeetings().then(renderHome);
+    try{ renderHomeVision(); }catch(e){ console.warn('home vision',e); }
+    try{ renderHomeMetrics(); }catch(e){ console.warn('home metrics',e); }
+    try{ renderHomePanel(); }catch(e){ console.warn('home panel',e); }
+    renderHomeExtras();
+  }
+
+  /* ---- the vision band: strategy, purpose, values, the climb ---- */
+  function renderHomeVision(){
+    const box=document.getElementById('homeVision'); if(!box) return;
+    const v=visionData||{};
+    const vals=(v.values||[]).map(c=>'<li><span class="e">'+esc(c.emoji||'')+'</span>'+esc(c.name||'')+'</li>').join('');
+    const climb=(v.goals||[]).map(g=>'<li><span class="yr">'+esc(g.sub||'')+'</span>'
+      +'<span class="gt">'+esc(g.text||'')+'</span>'
+      +'<span class="gw">'+esc(String(g.when||'').replace(/^🎯\s*by\s*/i,''))+'</span></li>').join('');
+    let foot='';
+    try{
+      const herd=cgHerdMetric(metricsStore.filter(metricVisible));
+      if(herd){ const r=mxRangeFor('q',''); const now=cgLatestAt(herd,r.end); const G=goalForDate(herd,r.end);
+        const b=cgBaseline(herd,r);
+        if(now!==null && b!==null && !(G===''||G===null||isNaN(Number(G))) && Number(G)>b){
+          const p=Math.max(0,Math.min(1,(now-b)/(Number(G)-b)));
+          foot='<div class="hv-foot">🐄 '+esc(fmtVal(herd,now))+' '+esc(herd.name.toLowerCase())+' today · '
+             + Math.round(p*100)+'% of the way to '+esc(fmtVal(herd,Number(G)))+' this quarter</div>';
+        } }
+    }catch(e){}
+    box.innerHTML='<div class="hv-lead">'
+      +'<div><div class="hv-lbl">One phrase strategy</div><div class="hv-strat">'+esc(v.strategy||'')+'</div></div>'
+      +'<div><div class="hv-lbl">Core purpose</div><p class="hv-purpose">'+esc(v.purpose||'')+'</p></div>'
+      +'<a class="hv-more" href="#" onclick="event.preventDefault();navTo(\'vision\')">Vision in full →</a></div>'
+      +'<div class="hv-split">'
+      +'<div class="hv-col"><div class="hv-lbl">Core values</div><ul class="hv-vals">'+vals+'</ul></div>'
+      +'<div class="hv-col"><div class="hv-lbl">The climb</div><ol class="hv-climb">'+climb+'</ol></div>'
+      +'</div>'+foot;
+  }
+
+  /* ---- your metrics, week / month / quarter ---- */
+  function renderHomeMetrics(){
+    const box=document.getElementById('homeMetrics'); if(!box) return;
+    const mine=metricsStore.filter(metricVisible).filter(m=>sameEmail(m.owner,myEmail));
+    mine.forEach(normalizeMetric);
+    const mon=new Date().toLocaleDateString(undefined,{month:'short'});
+    let body;
+    if(!mine.length){ body='<div class="mtg-empty">No metrics are assigned to you yet.</div>'; }
+    else {
+      const cell=(m,p,cls)=>{ let a=null,t=null,ok=null,signed=false;
+        try{ const r=mxRangeFor(p,''); t=cgTarget(m,r); a=r.future?null:cgActual(m,r); ok=cgHit(m,t,a); signed=cgClimbs(m); }catch(e){}
+        return '<div class="pair'+(cls?' '+cls:'')+'"><div class="v '+(ok===null?'na':(ok?'hit':'miss'))+'">'
+          + esc(a===null?'—':cgFmt(m,a,signed))+'</div><div class="t">of '+esc(t===null?'—':cgFmt(m,t,signed))+'</div></div>'; };
+      body='<div class="mg-hd"><span class="sp">Week of '+esc(wkLabel(weekStarts(1,weekStartDay)[0]))+'</span>'
+        +'<span class="c">Week</span><span class="c">'+esc(mon)+'</span><span class="c">Quarter</span></div>'
+        + mine.map(m=>'<div class="mg" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
+            +'<div class="nm">'+esc(m.name||'Untitled')+'<small>'+esc(m.dept||'No function yet')+'</small></div>'
+            + cell(m,'wk') + cell(m,'mtd','q') + cell(m,'q','q') + '</div>').join('');
+    }
+    box.innerHTML='<div class="panel"><div class="panel-hd">'+avatarHtml(resolvePerson(myEmail))
+      +'<h2>Your metrics</h2><a class="plink" href="#" onclick="event.preventDefault();navTo(\'metrics\')">Metrics →</a></div>'
+      +'<div class="panel-bd">'+body+'</div></div>';
+  }
+
+  /* ---- the switchable panel ---- */
+  function renderHomePanel(){
+    const box=document.getElementById('homePanel'); if(!box) return;
+    let body='', link='', target='todos';
+    if(homePanelView==='meetings'){ body=homeMeetingsHtml(); link='Meetings →'; target='meetings'; }
+    else if(homePanelView==='priorities'){ body=homePrioritiesHtml(); link='Priorities →'; target='dash'; }
+    else { body=homeTodosHtml(); link='To-dos →'; target='todos'; }
+    const opt=(v,l)=>'<option value="'+v+'"'+(homePanelView===v?' selected':'')+'>'+l+'</option>';
+    box.innerHTML='<div class="panel"><div class="panel-hd">'
+      +'<select class="psel" onchange="setHomePanel(this.value)" aria-label="What to show">'
+      + opt('todos','✅ To-dos')+opt('meetings','🤝 Meetings')+opt('priorities','🎯 Priorities')+'</select>'
+      +'<span style="flex:1"></span>'
+      +'<a class="plink" href="#" onclick="event.preventDefault();'+(target==='dash'?'gotoDash()':'navTo(\''+target+'\')')+'">'+link+'</a>'
+      +'</div><div class="panel-bd">'+body+'</div></div>';
+  }
+
+  function homeTodosHtml(){
+    const mine=mtgItems.filter(isTodoItem).filter(it=>sameEmail(todoOwner(it),myEmail));
+    const open=mine.filter(it=>!it.data.done);
+    open.sort((a,b)=>{ const da=todoDue(a),db=todoDue(b); return (da?da.getTime():8.64e15)-(db?db.getTime():8.64e15); });
+    const now=new Date();
+    const rows=open.slice(0,7).map(it=>{
+      const due=todoDue(it); const over=due&&endOfDay(due)<now;
+      const lbl=due?fmtDue(due):'';
+      return '<label class="td"><input type="checkbox" onchange="homeToggleTodo(\''+it.id+'\',this.checked)">'
+        +'<span class="tx">'+esc(it.data.text||'')+'</span>'
+        +(lbl?'<span class="due'+(over?' over':'')+'">'+esc(lbl)+'</span>':'')+'</label>';
+    }).join('');
+    const more=open.length>7?'<div class="home-more">+ '+(open.length-7)+' more</div>':'';
+    return (rows||'<div class="mtg-empty">Nothing open. Nice.</div>')+more
+      +'<div class="addrow"><input id="home-td" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')homeAddTodo()">'
+      +'<button class="btn sm" onclick="homeAddTodo()">Add</button></div>';
+  }
+  function homeToggleTodo(id,checked){
+    const it=mtgItems.find(x=>x.id===id); if(!it) return;
+    it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null;
+    saveItem(it); if(checked) popConfetti(); renderHomePanel();
+  }
+  function homeAddTodo(){
+    const el=document.getElementById('home-td'); const text=(el&&el.value||'').trim(); if(!text) return;
+    const d=new Date(); d.setDate(d.getDate()+7); const due=wkKey(d);
+    const it={id:uid(),meeting_id:'standalone',section:'todos',inst:due,
+      data:{type:'pri',text,done:false,author:myEmail,due,assignedBy:myEmail,standalone:true,t:Date.now()}};
+    mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it);
+    el.value=''; renderHomePanel(); showToast('✅ To-do added');
+    const again=document.getElementById('home-td'); if(again) again.focus();
+  }
+
+  /* which of a meeting's sections you can actually put something into */
+  const HOME_ADDABLE={notes:'note', priorities:'pri'};
+  function homeMeetingsHtml(){
+    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    if(!mine.length) return '<div class="mtg-empty">You are not on any meetings yet.</div>';
+    const withNext=mine.map(m=>{ let d=null; try{ d=occurrenceOnOrAfter(m,new Date()); }catch(e){}
+      return {m, d:(d&&!isNaN(d.getTime()))?d:null}; });
+    withNext.sort((a,b)=>(a.d?a.d.getTime():8.64e15)-(b.d?b.d.getTime():8.64e15));
+    return withNext.slice(0,5).map((x,i)=>{
+      const m=x.m, id='hm-'+m.id;
+      const when=(x.d?fmtDue(x.d)+' · ':'')+esc(m.time||'')+(m.type&&m.type!=='once'?' · '+esc(m.type):'');
+      const avs=(m.attendees||[]).slice(0,4).map(e=>avatarHtml(e)).join('');
+      const secs=(m.sections||[]);
+      const open=secs.filter(s=>HOME_ADDABLE[s.type]);
+      const picker = open.length
+        ? '<div class="addrow" style="margin-top:0;"><input id="'+id+'-in" placeholder="What are you adding?" onkeydown="if(event.key===\'Enter\')homeAddToMeeting(\''+m.id+'\',\''+id+'\')">'
+          +'<select class="psel" id="'+id+'-sec" aria-label="Which section">'
+          + open.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.title||s.type)+'</option>').join('')
+          +'</select><button class="btn sm" onclick="homeAddToMeeting(\''+m.id+'\',\''+id+'\')">Add</button></div>'
+        : '<div class="mtg-empty">Nothing in this meeting takes a typed entry.</div>';
+      const chips='<div class="secnote">Sections: '+secs.map(s=>'<span class="sec'+(HOME_ADDABLE[s.type]?'':' ro')+'">'+esc(s.title||s.type)+'</span>').join('')+'</div>';
+      return '<div class="mtgrow"><button class="hd" type="button" onclick="homeToggleMtg(this,\''+id+'\')" aria-expanded="false">'
+        +'<span class="caret">▶</span><span class="ti">'+esc(m.title||'Meeting')+'<small>'+when+'</small></span>'
+        +'<span class="avs">'+avs+'</span></button>'
+        +'<div class="mtgbody" id="'+id+'"><div class="lb">Add to this meeting</div>'+picker+chips
+        +'<a class="plink" style="display:inline-block;margin-top:9px;" href="#" onclick="event.preventDefault();navTo(\'meetings\');openMeeting(\''+m.id+'\')">Open '+esc(m.title||'meeting')+' →</a>'
+        +'</div></div>';
+    }).join('');
+  }
+  function homeToggleMtg(btn,id){
+    const b=document.getElementById(id); if(!b) return;
+    const open=b.classList.toggle('open');
+    btn.classList.toggle('open',open); btn.setAttribute('aria-expanded',open?'true':'false');
+  }
+  function homeAddToMeeting(mid,id){
+    const m=mtgsStore.find(x=>x.id===mid); if(!m) return;
+    const el=document.getElementById(id+'-in'); const text=(el&&el.value||'').trim(); if(!text) return;
+    const secId=(document.getElementById(id+'-sec')||{}).value;
+    const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
+    const kind=HOME_ADDABLE[sec.type]||'note';
+    let inst; try{ inst=wkKey(occurrenceOnOrAfter(m,new Date())); }catch(e){ inst=wkKey(new Date()); }
+    const data = (kind==='pri')
+      ? {type:'pri',text,done:false,author:myEmail,t:Date.now()}
+      : {type:'note',text,author:myEmail,t:Date.now()};
+    const it={id:uid(),meeting_id:mid,section:secId,inst,data};
+    mtgItems.push(it); saveMtgLocal(); dbUpsertItem(it);
+    el.value=''; showToast('Added to '+(sec.title||'the meeting'));
+    renderHomePanel();
+    const b=document.getElementById(id); if(b){ b.classList.add('open');
+      const hd=b.previousElementSibling; if(hd) hd.classList.add('open');
+      const again=document.getElementById(id+'-in'); if(again) again.focus(); }
+  }
+
+  function homePrioritiesHtml(){
+    let q=null; try{ q=(typeof cur==='function')?cur():null; }catch(e){}
+    if(!q) return '<div class="mtg-empty">No quarter loaded.</div>';
+    const mine=(q.entries||[]).filter(e=>e.type==='priority')
+      .filter(e=>sameEmail(e.pm,myEmail) || (e.plan||[]).some(p=>p&&sameEmail(p.owner,myEmail)));
+    if(!mine.length) return '<div class="mtg-empty">Nothing assigned to you this quarter.</div>';
+    const rows=sortRocks(mine.slice()).slice(0,7).map(e=>{
+      const pct=priProgress(e), done=isComplete(e);
+      let trk='<span class="trk none">Not scheduled</span>', cls='';
+      if(done){ trk='<span class="trk on">✓ Complete</span>'; }
+      else if(isAtRisk(e)){ trk='<span class="trk off">⚠ Off track</span>'; cls='bad'; }
+      else if(isPrioBehind(e)){ trk='<span class="trk behind">⏰ Behind</span>'; cls='warn'; }
+      else if(prioRange(e)){ trk='<span class="trk on">✓ On track</span>'; }
+      const role=sameEmail(e.pm,myEmail) ? 'You PM this'
+        : ((e.plan||[]).filter(p=>p&&sameEmail(p.owner,myEmail)).length+' task(s), '+(pmName(resolvePerson(e.pm))||'no PM')+' PMs');
+      return '<div class="prow" onclick="openPrio(\''+e.id+'\')" title="Open this priority">'
+        +'<span class="ti">'+esc(e.title||'Untitled')+'<small>'+esc(role)+'</small></span>'
+        + trk + '<span class="bar"><i class="'+cls+'" style="width:'+pct+'%"></i></span>'
+        +'<span class="pct">'+pct+'%</span></div>';
+    }).join('');
+    const more=mine.length>7?'<div class="home-more">+ '+(mine.length-7)+' more</div>':'';
+    return rows+more+(canCreate()?'<div class="addrow"><button class="btn sm" onclick="openNewPrioModal()">➕ New priority</button></div>':'');
+  }
+
+  /* below the fold: the bonus placeholder, and the superadmin preview of everyone's home */
+  function renderHomeExtras(){
     const wrap=document.getElementById('homeWrap'); if(!wrap) return;
-    if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB){ dbLoadMetrics().then(renderHome); } wrap.innerHTML='<div class="mtg-empty">Loading your targets…</div>'; if(!USE_DB) wrap.innerHTML=''; return; }
-    let html='<div class="home-h">🎯 Your targets this quarter</div>'+homeTargetsHtml(myEmail)+HOME_BONUS_NOTE;
-    // preview mode — only the super admin sees how everyone else's Home will look (nothing shows on theirs yet)
+    let html=HOME_BONUS_NOTE;
     if(isSuperAdmin()){
       const owners=[]; const seen={};
-      metricsStore.forEach(m=>{ const o=m.owner||''; if(!o) return; if(sameEmail(o,myEmail)) return; const k=String(resolvePerson(o)).toLowerCase(); if(seen[k]) return; seen[k]=1; owners.push(o); });
+      metricsStore.forEach(m=>{ const o=m.owner||''; if(!o) return; if(sameEmail(o,myEmail)) return;
+        const k=String(resolvePerson(o)).toLowerCase(); if(seen[k]) return; seen[k]=1; owners.push(o); });
       owners.sort((a,b)=>String(pmName(resolvePerson(a))).toLowerCase().localeCompare(String(pmName(resolvePerson(b))).toLowerCase()));
       if(owners.length){
         html+='<div class="home-h" style="margin-top:28px;">👀 Preview — how each person’s Home will look <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--purple);">· only you can see this</span></div>';
         html+=owners.map(o=>{ const p=resolvePerson(o);
-          return '<div class="home-person"><div class="hp-hd">'+avatarHtml(p)+'<span>'+esc(pmName(p)||o)+'</span></div>'+homeTargetsHtml(o)+HOME_BONUS_NOTE+'</div>'; }).join('');
+          return '<div class="home-person"><div class="hp-hd">'+avatarHtml(p)+'<span>'+esc(pmName(p)||o)+'</span></div>'+homeTargetsHtml(o)+'</div>'; }).join('');
       }
     }
     wrap.innerHTML=html;
