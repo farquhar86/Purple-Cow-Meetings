@@ -403,6 +403,9 @@
   .mx-wkbar{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:.82rem;color:var(--muted);}
   /* ---- avatars ---- */
   .mx-qgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:6px;}
+  .mx-qgrid .qstart{display:none;}
+  .mx-qgrid.show-starts .qstart{display:block;margin-top:5px;}
+  .mx-qgrid .qstart small{display:block;font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px;}
   .mx-qcell label{font-size:11px;color:var(--muted);display:block;margin-bottom:3px;font-weight:700;}
   .mx-qcell input{width:100%;}
   .mx-qcell.is-now label{color:var(--purple-dark);}
@@ -1420,7 +1423,7 @@
     </div>
     <div id="mx-levelmode-row" style="margin-top:10px;display:none;">
       <label>What kind of level is it?</label>
-      <select id="mx-levelmode" onchange="mxRenderLegend()" style="width:100%;">
+      <select id="mx-levelmode" onchange="mxRenderLegend();mxToggleStarts()" style="width:100%;">
         <option value="hold">A rate that has to hold — every week is measured against the full target (NPS, uptime %, breakage %)</option>
         <option value="climb">A count that grows toward the target — each week is measured on how much it moved (active herd members)</option>
       </select>
@@ -2695,9 +2698,18 @@
     Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; const n=Number(V[k]); if(isNaN(n)) return;
       if(!bd||d>bd){ bd=d; val=n; } });
     return val; }
-  /* the level a climbing metric entered the quarter on */
+  /* What a metric was sitting at when the quarter began. An entered starting
+     balance wins: without one, a metric whose history starts mid-quarter reads as
+     if it climbed from nothing. */
+  function metricStart(m,qk){
+    const qs=(m&&m.quarterStarts)||{}; const v=qs[qk];
+    if(v===undefined||v===null||v===''||isNaN(Number(v))) return null;
+    return Number(v);
+  }
   function cgBaseline(m,r){
-    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return null;
+    const qk=r.qk||quarterKeyOf(r.end);
+    const explicit=metricStart(m,qk); if(explicit!==null) return explicit;
+    const q=mxQuarterRange(qk); if(!q) return null;
     let v=cgLatestAt(m,new Date(q.start.getTime()-86400000));
     if(v===null){ let bd=null; const V=metricValues(m);   /* metric younger than the quarter — use its earliest number */
       Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return;
@@ -2710,7 +2722,11 @@
                           from the reading before the first week in it */
       const fw=cgFirstWeek(r);
       const cut=new Date((fw?fw.getTime():r.start.getTime())-86400000);
-      const before=cgLatestAt(m,cut), now=cgLatestAt(m,r.end);
+      /* over a whole quarter the start line IS the baseline, so the number and the
+         target it is judged against are measured from the same point */
+      let before = (r.period==='q') ? cgBaseline(m,r) : cgLatestAt(m,cut);
+      if(before===null) before=cgBaseline(m,r);
+      const now=cgLatestAt(m,r.end);
       if(now===null||before===null) return null;
       return now-before;
     }
@@ -2811,9 +2827,11 @@
       const qr=mxQuarterRange(qk);
       const runStart=qr.start, runEnd=(qr.end<today)?qr.end:today, runGoalDate=new Date(qr.start.getTime()+45*86400000);
       const paceFrac=Math.min(1,((runEnd-qr.start)/86400000+1)/(((qr.end-qr.start)/86400000)+1));
-      let startVal=cgLatestAt(herd,runStart);
+      let startVal=metricStart(herd,qk);
+      if(startVal===null) startVal=cgLatestAt(herd,runStart);
       if(startVal===null){ /* metric younger than the period — use its earliest number instead */
-        let bd=null; Object.keys(herd.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>runEnd) return; const n=Number(herd.values[k]); if(isNaN(n)) return;
+        let bd=null; const HV=metricValues(herd);
+        Object.keys(HV).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>runEnd) return; const n=Number(HV[k]); if(isNaN(n)) return;
           if(!bd||d<bd){ bd=d; startVal=n; } });
       }
       const goal=goalForDate(herd,runGoalDate);
@@ -2941,12 +2959,29 @@
   /* ----- quarterly target inputs inside the metric modal ----- */
   function mxRenderQuarters(m){
     const box=document.getElementById('mxQuarters'); if(!box) return;
-    const nowQ=quarterKeyOf(new Date()); const qg=(m&&m.quarterGoals)||{};
+    const nowQ=quarterKeyOf(new Date()); const qg=(m&&m.quarterGoals)||{}; const qs=(m&&m.quarterStarts)||{};
     box.innerHTML=quarterList(2,3).map(k=>{
       const v=(qg[k]===undefined||qg[k]===null)?'':qg[k];
+      const sv=(qs[k]===undefined||qs[k]===null)?'':qs[k];
       return '<div class="mx-qcell'+(k===nowQ?' is-now':'')+'"><label>'+esc(quarterLabel(k))+(k===nowQ?' • now':'')+'</label>'
-           + '<input type="number" step="any" id="mxq-'+esc(k)+'" value="'+esc(String(v))+'" placeholder="default"></div>';
+           + '<input type="number" step="any" id="mxq-'+esc(k)+'" value="'+esc(String(v))+'" placeholder="target">'
+           + '<span class="qstart"><small>started at</small>'
+           + '<input type="number" step="any" id="mxqs-'+esc(k)+'" value="'+esc(String(sv))+'" placeholder="auto"></span></div>';
     }).join('');
+    mxToggleStarts();
+  }
+  /* the starting line only means something for a count that grows toward a target */
+  function mxToggleStarts(){
+    const box=document.getElementById('mxQuarters'); if(!box) return;
+    const kind=(document.getElementById('mx-goalkind')||{}).value;
+    const mode=(document.getElementById('mx-levelmode')||{}).value;
+    box.classList.toggle('show-starts', kind==='level' && mode==='climb');
+  }
+  function mxReadQuarterStarts(){
+    const out={};
+    quarterList(2,3).forEach(k=>{ const el=document.getElementById('mxqs-'+k); if(!el) return;
+      const v=el.value.trim(); if(v!=='') out[k]=Number(v); });
+    return out;
   }
   function mxReadQuarters(){
     const out={};
@@ -3392,7 +3427,8 @@
   }
   function mxToggleCumEntry(){ const k=(document.getElementById('mx-goalkind')||{}).value;
     const row=document.getElementById('mx-cumentry-row'); if(row) row.style.display=(k==='cumulative')?'block':'none';
-    const lm=document.getElementById('mx-levelmode-row'); if(lm) lm.style.display=(k==='level')?'block':'none'; }
+    const lm=document.getElementById('mx-levelmode-row'); if(lm) lm.style.display=(k==='level')?'block':'none';
+    mxToggleStarts(); }
   function mxToggleSource(){
     const s=document.getElementById('mx-source').value;
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
@@ -3430,6 +3466,7 @@
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
       quarterGoals: mxReadQuarters(),
+      quarterStarts: mxReadQuarterStarts(),
       source, sourceRef, sourceName,
       calc: (source==='calc') ? { a:(document.getElementById('mx-calc-a')||{}).value||'',
                                   op:(document.getElementById('mx-calc-op')||{}).value||'div',
@@ -4238,8 +4275,7 @@ Herd Life`;
     if(scope!==null && custom) list = list.filter(m=>m.company || mtgInScope(scope,m.owner));
     const chooseBtn = (canCreate() && sec) ? '<button class="btn ghost sm" onclick="event.stopPropagation();openMetricPicker(\''+sec.id+'\')">⚙ Choose metrics</button>' : '';
     const topBar = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
-      + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':(scope!==null?'Company goals plus the metrics owned by the people here.':'Company metrics — latest week vs goal.'))+' Click a metric for its graph.</span>'+chooseBtn+'</div>'
-      + mtgScopeNote(mtg);
+      + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':(scope!==null?'Company goals plus the metrics owned by the people here.':'Company metrics — latest week vs goal.'))+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
     if(!list.length){
       const msg = custom ? 'The metrics chosen here aren’t visible to you or were removed.'
         : 'No company metrics yet — press the <b>🐄 Company goal</b> button on a metric, or use <b>⚙ Choose metrics</b> to pick exactly which ones show in this meeting (great for 1-1s).';
@@ -4283,7 +4319,10 @@ Herd Life`;
     const chosen=new Set(sec.metricIds||[]);
     // only metrics owned by someone attending this meeting (plus any already picked, so they can be unticked)
     const attendeeSet=new Set((m.attendees||[]).map(e=>String(e).toLowerCase()));
-    const list=metricsStore.filter(metricVisible).filter(mm=>{ const oe=String(resolvePerson(mm.owner||'')).toLowerCase(); return (oe && attendeeSet.has(oe)) || chosen.has(mm.id); }).slice().sort((a,b)=>
+    /* anyone here owns it, OR it sits in a function you own (Mark owns TPIA NPS,
+       but it's in your function, so you can put it on this meeting) */
+    const list=metricsStore.filter(metricVisible).filter(mm=>{ const oe=String(resolvePerson(mm.owner||'')).toLowerCase();
+      return (oe && attendeeSet.has(oe)) || sameEmail(fnOwner(mm.dept),myEmail) || chosen.has(mm.id); }).slice().sort((a,b)=>
       String(pmName(resolvePerson(a.owner))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.owner))).toLowerCase())
       || String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
     const groups=new Map(); list.forEach(mm=>{ const o=mm.owner||''; if(!groups.has(o)) groups.set(o,[]); groups.get(o).push(mm); });
@@ -4292,7 +4331,7 @@ Herd Life`;
       html+='<div class="mxpick-group"><div class="mxpick-owner">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')+'<span>'+esc(o?pmName(person):'Unassigned')+'</span></div>';
       groups.get(o).forEach(mm=>{ html+='<label class="mxpick-row" data-name="'+esc((mm.name||'').toLowerCase())+'"><input type="checkbox" value="'+mm.id+'"'+(chosen.has(mm.id)?' checked':'')+'>'+(mm.company?'🐄 ':'')+esc(mm.name||'Untitled')+'</label>'; });
       html+='</div>'; });
-    document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">No metrics are assigned to the people in this meeting yet. Add the meeting’s attendees as metric owners in the Metrics tab, and they’ll show up here.</div>';
+    document.getElementById('mxPickList').innerHTML=html||'<div class="mtg-empty">Nothing to pick yet. You can choose any metric owned by someone in this meeting, or any metric in a function you own. Set metric owners and function owners in the Metrics tab.</div>';
     const s=document.getElementById('mxPickSearch'); if(s) s.value='';
     document.getElementById('mxPickModal').classList.add('show');
   }
@@ -4325,7 +4364,7 @@ Herd Life`;
     const scope=mtgScopeEmails(mtg);
     if(scope!==null) rocks=rocks.filter(e=>
       mtgInScope(scope,e.pm) || (e.plan||[]).some(pp=>pp && mtgInScope(scope,pp.owner)));
-    if(!rocks.length) return mtgScopeNote(mtg)+'<div class="mtg-empty">'
+    if(!rocks.length) return '<div class="mtg-empty">'
       +(scope!==null?'Nobody in this meeting is PMing a priority or holding a task on one this quarter.'
                     :'No scheduled or completed priorities this quarter yet. Add them in the Priorities section.')+'</div>';
     rocks=sortRocks(rocks);
@@ -4334,7 +4373,7 @@ Herd Life`;
       + '<span style="font-size:.82rem;color:var(--muted);">'+esc(q.name||'This quarter')+' — '+rocks.length+' priorit'+(rocks.length===1?'y':'ies')+(scope!==null?' for the people here':'')+'. Click a name to open it, or the row for its timeline.</span>'
       + '<span style="font-size:.82rem;color:var(--muted);">Sort: <select onchange="setRockSort(this.value)">'
       + opt('progDesc','Most done first')+opt('progAsc','Least done first')+opt('complete','Complete first')+opt('pm','By owner')+'</select></span></div>';
-    return mtgScopeNote(mtg)+bar+rocks.map((e,i)=>{
+    return bar+rocks.map((e,i)=>{
       const done=isComplete(e); const st=done?'complete':'scheduled';
       const pct=priProgress(e); const rid='rk-'+secId+'-'+e.id;
       const person=resolvePerson(e.pm);
