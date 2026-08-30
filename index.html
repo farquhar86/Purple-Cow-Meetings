@@ -2538,13 +2538,27 @@
   function tierOf(m,v){ return tierOfGoal(m,v,m.goal); }
   function goalLabel(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return '—';
     const op=(m.direction==='lower'?'≤ ':'≥ ');
-    if(m.goalKind==='cumulative') return fmtVal(m,g)+'<span class="mx-per"> by qtr-end</span><div class="mx-pace">pace '+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+'/wk</div>';
+    if(m.goalKind==='cumulative'){
+      /* only an ENTERED start counts here: a running total legitimately starts at
+         zero, so guessing one from the first reading would misprice the pace */
+      const S=metricStart(m,quarterKeyOf(new Date()));
+      const climb=(S===null)?Number(g):(Number(g)-S);
+      return fmtVal(m,g)+'<span class="mx-per"> by qtr-end</span><div class="mx-pace">'
+        + (S===null ? 'pace '+fmtTgt(m,climb/WEEKS_PER_QUARTER)+'/wk'
+                    : 'from '+fmtVal(m,S)+' · '+fmtTgt(m,climb/WEEKS_PER_QUARTER)+'/wk')+'</div>';
+    }
     let out=op+fmtVal(m,g)+'<span class="mx-per"> /qtr</span>';
     if(cgClimbs(m)){ const wk=effectiveGoal(m,new Date());
       out+='<div class="mx-pace">week '+weekIndexInQuarter(new Date())+' milestone '+fmtTgt(m,wk)+'</div>'; }
     else if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+' a week</div>';
     return out; }
   const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
+  /* the starting number typed into the current quarter's box, for the live preview */
+  function mxLegendStart(){
+    const el=document.getElementById('mxqs-'+quarterKeyOf(new Date()));
+    if(!el) return null; const v=(el.value||'').trim();
+    if(v===''||isNaN(Number(v))) return null; return Number(v);
+  }
   function mxRenderLegend(){
     const box=document.getElementById('mxLegend'); if(!box) return;
     const gEl=document.getElementById('mx-goal'); if(!gEl) return;
@@ -2554,11 +2568,15 @@
               cumEntry:(document.getElementById('mx-cumentry')||{}).value||'weekly' };
     if(m.goalKind==='cumulative'){
       if(m.goal===''||isNaN(Number(m.goal))){ box.innerHTML='<p class="lg-tt">Enter the quarter-end total to preview the pace.</p>'; return; }
-      const per=Number(m.goal)/WEEKS_PER_QUARTER;
+      const S0=mxLegendStart();
+      const climb=(S0===null)?Number(m.goal):(Number(m.goal)-S0);
+      const per=climb/WEEKS_PER_QUARTER;
+      const from=(S0===null)?'0':fmtVal(m,S0);
       const how = (m.cumEntry==='absolute')
-        ? 'You enter the running total to date each week. We compare it against the straight-line pace ('+fmtTgt(m,per)+' by week 1, climbing to '+fmtVal(m,m.goal)+' by the end) and show if you\'re ahead or behind — no weekly pass/fail.'
-        : 'Each week adds to the total. We compare where you are against the straight-line pace ('+fmtTgt(m,per)+' a week) and show if you\'re ahead or behind — no weekly pass/fail.';
-      box.innerHTML='<p class="lg-tt">RUNNING TOTAL — GOAL IS <b>'+fmtVal(m,m.goal)+' BY QUARTER-END</b></p>'
+        ? 'You enter the running total to date each week. It climbs from '+from+' to '+fmtVal(m,m.goal)+' across the quarter, about '+fmtTgt(m,per)+' a week, and we show whether you\'re ahead or behind that line — no weekly pass/fail.'
+        : 'Each week adds to the total. It climbs from '+from+' to '+fmtVal(m,m.goal)+' across the quarter, about '+fmtTgt(m,per)+' a week, and we show whether you\'re ahead or behind that line — no weekly pass/fail.';
+      box.innerHTML='<p class="lg-tt">RUNNING TOTAL — GOAL IS <b>'+fmtVal(m,m.goal)+' BY QUARTER-END</b>'
+        +(S0===null?' <span style="font-weight:400;">(no starting number set — pace runs from zero)</span>':'')+'</p>'
         +'<p class="lg-tt">'+how+'</p>'
         +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.great+'"></span><span class="lg-lab">At or ahead of pace</span></div>'
         +'<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-lab">Behind pace</span></div>';
@@ -2993,7 +3011,7 @@
       return '<div class="mx-qcell'+(k===nowQ?' is-now':'')+'"><label>'+esc(quarterLabel(k))+(k===nowQ?' • now':'')+'</label>'
            + '<input type="number" step="any" id="mxq-'+esc(k)+'" value="'+esc(String(v))+'" placeholder="target">'
            + '<span class="qstart"><small>started at</small>'
-           + '<input type="number" step="any" id="mxqs-'+esc(k)+'" value="'+esc(String(sv))+'" placeholder="auto"></span></div>';
+           + '<input type="number" step="any" id="mxqs-'+esc(k)+'" value="'+esc(String(sv))+'" placeholder="auto" oninput="mxRenderLegend()"></span></div>';
     }).join('');
     mxToggleStarts();
   }
