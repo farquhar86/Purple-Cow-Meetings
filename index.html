@@ -224,6 +224,10 @@
   .cg-row .a{font-size:1.02rem;font-weight:800;}
   .cg-row .a.hit{color:var(--green);} .cg-row .a.miss{color:var(--red);} .cg-row .a.na{color:var(--muted);font-weight:700;}
   .cg-row .t{font-size:.7rem;color:var(--muted);text-align:right;line-height:1.3;}
+  .cg-row .t b{color:var(--ink);font-size:.86rem;}
+  .cg-lvl{margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-size:.68rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .cg-lvl b{color:var(--ink);}
+  .cg-wk{font-size:.63rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--purple-dark);background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:3px 9px;white-space:nowrap;}
   .cg-empty{border:1.5px dashed #eadfc2;border-radius:14px;padding:16px 18px;color:var(--muted);font-size:.88rem;margin-bottom:8px;background:#fffdf6;}
   .cg-unowned{background:#fdeece !important;color:#8a6100 !important;border:1.5px dashed #d9a940;}
   /* purple cow press in the metric modal */
@@ -340,6 +344,11 @@
   .mx-src{display:inline-block;font-size:9.5px;font-weight:800;padding:1px 6px;border-radius:999px;margin-left:6px;vertical-align:middle;letter-spacing:.03em;}
   .mx-src.sf{background:#e0edff;color:#1a63c4;}
   .mx-src.connect{background:#ffe9d6;color:#b8641a;}
+  .mx-src.calc{background:#e2f3e8;color:#1d7a4c;}
+  .mx-calcfoot{color:#1d7a4c;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .mx-calcrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--purple-light);background:#fdfaff;border-radius:10px;padding:9px 11px;}
+  .mx-calcrow select{flex:1;min-width:120px;}
+  .mx-calcrow .op{width:74px;flex:0 0 auto;}
   .mx-empty{max-width:560px;margin:50px auto;text-align:center;color:var(--muted);}
   /* scorecard cards (this-week focused) */
   .sc-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;padding:6px 0;}
@@ -494,6 +503,14 @@
   .day-btn.on{background:var(--purple);border-color:var(--purple);color:#fff;}
   /* gantt inside a meeting rock */
   .rock-row{border-bottom:1px solid var(--line);}
+  /* week / month / quarter blocks on a meeting scorecard row */
+  .mx-brk{display:flex;gap:7px;flex-wrap:wrap;font-weight:400;}
+  .mx-brk .b{min-width:88px;border:1px solid var(--line);border-radius:9px;padding:4px 9px;background:#fdfcff;font-variant-numeric:tabular-nums;}
+  .mx-brk .lb{display:block;font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+  .mx-brk .v{display:block;font-size:.92rem;font-weight:800;line-height:1.25;}
+  .mx-brk .v.hit{color:var(--green);} .mx-brk .v.miss{color:var(--red);} .mx-brk .v.na{color:var(--muted);}
+  .mx-brk .t{display:block;font-size:.66rem;color:var(--muted);font-weight:600;}
+  @media(max-width:640px){ .mx-brk .b{min-width:76px;} }
   .rock-hd{display:flex;align-items:center;gap:10px;padding:9px 4px;cursor:pointer;}
   .rock-hd .caret{color:var(--muted);transition:.15s;font-size:.8rem;}
   .rock-hd.open .caret{transform:rotate(90deg);}
@@ -1297,6 +1314,14 @@
         <option value="absolute">I enter the RUNNING TOTAL to date each week (e.g. the report's quarter total, 1,161)</option>
       </select>
     </div>
+    <div id="mx-levelmode-row" style="margin-top:10px;display:none;">
+      <label>What kind of level is it?</label>
+      <select id="mx-levelmode" onchange="mxRenderLegend()" style="width:100%;">
+        <option value="hold">A rate that has to hold — every week is measured against the full target (NPS, uptime %, breakage %)</option>
+        <option value="climb">A count that grows toward the target — each week is measured on how much it moved (active herd members)</option>
+      </select>
+      <p class="block-desc" style="margin-top:6px;font-size:.78rem;">Only changes the Company Targets tile and the meeting scorecard: a growing count is shown as the week&rsquo;s gain against the gain the week owes, instead of the running total against the quarter goal.</p>
+    </div>
     <input type="checkbox" id="mx-company" style="display:none;">
     <button type="button" class="cg-cowbtn" id="mxCowBtn" onclick="mxToggleCompany()" aria-pressed="false">
       <span class="big">🐄</span>
@@ -1321,7 +1346,23 @@
       <option value="manual">Manual entry — someone types it in weekly</option>
       <option value="salesforce">Salesforce report</option>
       <option value="connect">AWS Connect</option>
+      <option value="calc">Calculated from other metrics</option>
     </select>
+    <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
+      <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
+      <div class="mx-calcrow">
+        <select id="mx-calc-a" onchange="mxCalcPreview()"></select>
+        <select id="mx-calc-op" class="op" onchange="mxCalcPreview()">
+          <option value="div">&divide;</option><option value="mul">&times;</option>
+          <option value="add">+</option><option value="sub">&minus;</option>
+        </select>
+        <select id="mx-calc-b" onchange="mxCalcPreview()"></select>
+      </div>
+      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:400;">
+        <input type="checkbox" id="mx-calc-x100" onchange="mxCalcPreview()" style="width:auto;margin:0;"> Multiply by 100 (turns a ratio into a percentage)
+      </label>
+      <p class="block-desc" id="mx-calc-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
     <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
       <label id="mx-srcref-label">Source</label>
       <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
@@ -2210,7 +2251,12 @@
   }
   async function ensureMetrics(){ await dbLoadMetrics(); renderMetrics(); }
   function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
-  function canEditMetric(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
+  function canEditMetric(m){ return (myRole!=='team' || (m.owner||'')===myEmail); }
+  /* a calculated number is worked out, not typed — the cell shows the result */
+  function canTypeMetric(m){ return canEditMetric(m) && !isCalc(m); }
+  function metricSrcBadge(m){ return m.source==='salesforce'?'<span class="mx-src sf">SF</span>'
+    :(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>'
+    :(isCalc(m)?'<span class="mx-src calc" title="'+esc(calcLabel(m))+'">CALC</span>':'')); }
   /* week columns — start day is configurable, defaults to Sunday */
   let weekStartDay=0;
   function loadWeekStart(){ try{ const v=localStorage.getItem(KEY+'_weekstart'); weekStartDay = (v===null)?0:(Number(v)||0); }catch(e){ weekStartDay=0; }
@@ -2265,13 +2311,59 @@
     });
     return cols;
   }
-  /* a cell's value: what was typed in directly, or rolled up from the weekly numbers */
-  function cellValue(m,col){
+  /* ---- calculated metrics: a number worked out from two others ---------------
+     Breakage % = Broken orders / Sales x 100. Nobody types it in; it lands as soon
+     as both inputs have a number for that week. Typing over it still wins. */
+  const CALC_OPS={ div:'\u00f7', mul:'\u00d7', add:'+', sub:'\u2212' };
+  function isCalc(m){ return !!(m && m.source==='calc' && m.calc && m.calc.a && m.calc.b); }
+  function calcValue(m,col,depth){
+    if(!isCalc(m) || (depth||0)>4) return null;
+    const c=m.calc;
+    const A=metricsStore.find(x=>x.id===c.a), B=metricsStore.find(x=>x.id===c.b);
+    if(!A||!B||A.id===m.id||B.id===m.id) return null;
+    const av=cellValue(A,col,(depth||0)+1).eff, bv=cellValue(B,col,(depth||0)+1).eff;
+    if(av===null||bv===null||isNaN(av)||isNaN(bv)) return null;
+    let v;
+    if(c.op==='add') v=av+bv;
+    else if(c.op==='sub') v=av-bv;
+    else if(c.op==='mul') v=av*bv;
+    else { if(!bv) return null; v=av/bv; }
+    if(c.x100) v=v*100;
+    return isFinite(v)?v:null;
+  }
+  /* the weekly numbers to read for a metric — computed on the fly for a calculated one */
+  function metricValues(m,depth){
+    if(!m) return {};
+    if(!isCalc(m) || (depth||0)>4) return m.values||{};
+    const c=m.calc, out=Object.assign({},m.values||{});
+    const A=metricsStore.find(x=>x.id===c.a), B=metricsStore.find(x=>x.id===c.b);
+    if(!A||!B) return out;
+    const keys={};
+    Object.keys(metricValues(A,(depth||0)+1)).forEach(k=>{ keys[k]=1; });
+    Object.keys(metricValues(B,(depth||0)+1)).forEach(k=>{ keys[k]=1; });
+    Object.keys(keys).forEach(k=>{
+      const typed=out[k];
+      if(!(typed===undefined||typed===null||typed==='')) return;   /* an override wins */
+      const d=parseAnyDate(k); if(!d) return;
+      const v=calcValue(m,{key:k,start:d,end:new Date(d.getTime()+6*86400000)},(depth||0)+1);
+      if(v!==null) out[k]=v;
+    });
+    return out;
+  }
+  function calcLabel(m){
+    if(!isCalc(m)) return '';
+    const nm=id=>{ const x=metricsStore.find(y=>y.id===id); return x?(x.name||'Untitled'):'(missing metric)'; };
+    return nm(m.calc.a)+' '+(CALC_OPS[m.calc.op]||'\u00f7')+' '+nm(m.calc.b)+(m.calc.x100?' \u00d7 100':'');
+  }
+
+  /* a cell's value: typed in directly, calculated, or rolled up from the weekly numbers */
+  function cellValue(m,col,depth){
     const vals=m.values||{};
     const direct=vals[col.key];
     const hasDirect=!(direct===undefined||direct===null||direct===''||isNaN(Number(direct)));
     let derived=null;
-    if((m.period||'weekly')!=='weekly'){
+    if(isCalc(m)) derived=calcValue(m,col,depth);
+    else if((m.period||'weekly')!=='weekly'){
       const inside=[];
       Object.keys(vals).forEach(k=>{ if(k===col.key) return; const d=parseAnyDate(k); if(!d) return;
         if(d>=col.start && d<=col.end){ const n=Number(vals[k]); if(!isNaN(n)) inside.push(n); } });
@@ -2382,11 +2474,11 @@
   function cumTier(m,qi){ if(!qi) return ''; if(qi.onTrack) return 'great';
     const tol=Math.abs(qi.expected)*(Number(m.tierPct)||0)/100; return (Math.abs(qi.diff)<=tol)?'warn':'bad'; }
   function cumCardHtml(m,lastW,thisW){
-    const editable=canEditMetric(m);
+    const editable=canTypeMetric(m);
     const cvT=cellValue(m,colFor(thisW));
     const qi=metricQuarterInfo(m,thisW);
     const tier=qi?cumTier(m,qi):''; const color=TIER_COLORS[tier]||'#c9bcd9';
-    const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+    const badge=metricSrcBadge(m);
     const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
     const big = editable
       ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
@@ -2415,21 +2507,22 @@
     const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
     const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
     const color=TIER_COLORS[tier]||'#c9bcd9';
-    const editable=canEditMetric(m);
+    const editable=canTypeMetric(m);
     let trend='<span style="color:var(--muted)">No prior week</span>';
     if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
       else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
     const big = editable
       ? '<input class="sc-big" value="'+esc(cvT.direct)+'" onclick="event.stopPropagation()" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(thisW)+'\',this.value)" placeholder="—">'
       : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
-    const badge=m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+    const badge=metricSrcBadge(m);
     const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
+    const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>' : '';
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
-      +'<div class="sc-foot">'+trend+'<span class="sc-open">History &amp; graph →</span></div>'
+      +'<div class="sc-foot">'+(calcFoot||trend)+'<span class="sc-open">History &amp; graph →</span></div>'
       +'</div>';
   }
   let mxGroupMode='func';   // 'func' | 'owner' | 'all'
@@ -2443,68 +2536,151 @@
   function setMxQuarter(k){ mxPeriod='q'; mxQuarterSel=(k===quarterKeyOf(new Date()))?'':k;
     try{ localStorage.setItem(KEY+'_mxperiod','q'); }catch(e){} renderCompanyTargets(); }
   loadMxPeriod();
-  function cgRange(){
+  function cgRange(){ return mxRangeFor(mxPeriod, mxQuarterSel); }
+  /* A period's window. period is 'wk' | 'mtd' | 'q'; qsel picks a quarter for 'q'. */
+  function mxRangeFor(period,qsel){
     const t=new Date(); t.setHours(0,0,0,0);
-    if(mxPeriod==='wk'){ const s=weekStarts(2,weekStartDay)[1]; const days=Math.min(7,(t-s)/86400000+1);
-      return { start:s, end:t, frac:Math.min(1,days/7), partial:true, future:false, label:'This week' }; }
-    if(mxPeriod==='mtd'){ const s=new Date(t.getFullYear(),t.getMonth(),1); const dim=new Date(t.getFullYear(),t.getMonth()+1,0).getDate();
-      return { start:s, end:t, frac:Math.min(1,t.getDate()/dim), partial:true, future:false, label:t.toLocaleDateString(undefined,{month:'long'})+' so far' }; }
-    const qk=mxQuarterSel||quarterKeyOf(t);
+    if(period==='wk'){ const s=weekStarts(2,weekStartDay)[1];
+      return { period:'wk', start:s, end:t, partial:true, future:false, label:'Week of '+wkLabel(s) }; }
+    if(period==='mtd'){ const s=new Date(t.getFullYear(),t.getMonth(),1);
+      return { period:'mtd', start:s, end:t, partial:true, future:false, label:t.toLocaleDateString(undefined,{month:'long'}) }; }
+    const qk=qsel||quarterKeyOf(t);
     const r=mxQuarterRange(qk);
-    if(r.end<t)  return { start:r.start, end:r.end, frac:1, partial:false, future:false, qk, label:quarterLabel(qk) };
-    if(r.start>t) return { start:r.start, end:r.end, frac:0, partial:false, future:true, qk, label:quarterLabel(qk)+' · upcoming' };
-    const total=(r.end-r.start)/86400000+1, done=(t-r.start)/86400000+1;
-    return { start:r.start, end:t, frac:Math.min(1,done/total), partial:true, future:false, qk, label:quarterLabel(qk)+' so far' };
+    if(r.end<t)   return { period:'q', start:r.start, end:r.end, partial:false, future:false, qk, label:quarterLabel(qk) };
+    if(r.start>t) return { period:'q', start:r.start, end:r.end, partial:false, future:true,  qk, label:quarterLabel(qk)+' · upcoming' };
+    return { period:'q', start:r.start, end:t, partial:true, future:false, qk, label:quarterLabel(qk) };
+  }
+  /* These numbers move in whole weeks, so a window is worth however many weeks
+     STARTED inside it. That keeps the target covering exactly the same ground as
+     the number it is judging — five weeks of sales get read against five weeks of
+     target, not against a 30-day slice of the quarter. */
+  function cgFirstWeek(r){
+    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return null;
+    let d=alignWeekStart(new Date(q.start));
+    while(d<r.start) d=new Date(d.getTime()+7*86400000);
+    return (d<=r.end)?d:null;
+  }
+  function cgWeeksIn(r){
+    let d=cgFirstWeek(r); if(!d) return 0;
+    let n=0; while(d<=r.end){ n++; d=new Date(d.getTime()+7*86400000); }
+    return n;
+  }
+  /* How much of the quarterly target should be in the bank by the end of this window. */
+  function cgShare(r){
+    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return 1;
+    const qDays=(q.end-q.start)/86400000+1;
+    const n=cgWeeksIn(r);
+    if(n>0) return Math.min(1,7*n/qDays);
+    return Math.min(1,((r.end-r.start)/86400000+1)/qDays);
   }
   function cgIsLevel(m){ return (m.goalKind||'total')==='level'; }
-  function cgLatestAt(m,date){ let bd=null,val=null;
-    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; const n=Number(m.values[k]); if(isNaN(n)) return;
+  /* Two kinds of "level": a count that climbs toward the target (herd members),
+     and a rate that has to hold (NPS, uptime %). 'hold' is the default, so an
+     existing metric behaves exactly as it did until someone says otherwise. */
+  function cgLevelMode(m){ return (m.levelMode==='climb') ? 'climb' : 'hold'; }
+  function cgClimbs(m){ return cgIsLevel(m) && cgLevelMode(m)==='climb'; }
+  function cgLatestAt(m,date){ let bd=null,val=null; const V=metricValues(m);
+    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; const n=Number(V[k]); if(isNaN(n)) return;
       if(!bd||d>bd){ bd=d; val=n; } });
     return val; }
+  /* the level a climbing metric entered the quarter on */
+  function cgBaseline(m,r){
+    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return null;
+    let v=cgLatestAt(m,new Date(q.start.getTime()-86400000));
+    if(v===null){ let bd=null; const V=metricValues(m);   /* metric younger than the quarter — use its earliest number */
+      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return;
+        if(!bd||d<bd){ bd=d; v=n; } }); }
+    return v;
+  }
   function cgActual(m,r){
     normalizeMetric(m);
-    if(cgIsLevel(m)) return cgLatestAt(m,r.end);
-    if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null;
-      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(m.values[k]); if(isNaN(n)) return;
+    if(cgClimbs(m)){   /* the net change across this window, measured week to week
+                          from the reading before the first week in it */
+      const fw=cgFirstWeek(r);
+      const cut=new Date((fw?fw.getTime():r.start.getTime())-86400000);
+      const before=cgLatestAt(m,cut), now=cgLatestAt(m,r.end);
+      if(now===null||before===null) return null;
+      return now-before;
+    }
+    if(cgIsLevel(m)){
+      /* a rate read over more than one week is the average of those weeks; a plain
+         level keeps its latest reading, exactly as before */
+      if(m.unit==='percent'){
+        const V=metricValues(m); let sum=0,cnt=0;
+        Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return;
+          const n=Number(V[k]); if(isNaN(n)) return; sum+=n; cnt++; });
+        if(cnt) return sum/cnt;
+      }
+      return cgLatestAt(m,r.end);
+    }
+    if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null; const V=metricValues(m);
+      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return;
         if(!bd||d>bd){ bd=d; val=n; } });
       return val; }
-    let sum=0, any=false;
-    Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(m.values[k]); if(isNaN(n)) return; sum+=n; any=true; });
+    let sum=0, any=false; const V=metricValues(m);
+    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return; sum+=n; any=true; });
     return any?sum:null;
   }
+  /* The number to beat over this window, already pro-rated — so the target on
+     screen and the one deciding red or green are the same figure. */
   function cgTarget(m,r){
     const base=goalForDate(m,r.end);
     if(base===''||base===null||base===undefined||isNaN(Number(base))) return null;
-    if(cgIsLevel(m)) return Number(base);
-    if(mxPeriod==='wk') return Number(base)/WEEKS_PER_QUARTER;
-    if(mxPeriod==='mtd') return Number(base)/3;
-    return Number(base);
+    const G=Number(base);
+    if(cgClimbs(m)){ const b=cgBaseline(m,r); if(b===null) return null; return (G-b)*cgShare(r); }
+    if(cgIsLevel(m)) return G;
+    return G*cgShare(r);
   }
-  function cgHit(m,t,a,frac){
+  function cgHit(m,t,a){
     if(t===null||a===null) return null;
-    const goal=cgIsLevel(m)?t:t*frac;
-    return (m.direction==='lower') ? (a<=goal) : (a>=goal);
+    return (m.direction==='lower') ? (a<=t) : (a>=t);
+  }
+  /* climbing metrics read as "+385 of +423", so those get a sign; everything is
+     rounded for display so a pro-rated target doesn't arrive with four decimals */
+  function cgRound(m,v){
+    if(v===null||v===undefined||isNaN(Number(v))) return null;
+    const n=Number(v);
+    return (m&&m.unit==='percent') ? Math.round(n*10)/10 : Math.round(n);
+  }
+  function cgFmt(m,v,signed){
+    const n=cgRound(m,v);
+    if(n===null) return '—';
+    if(!signed) return fmtVal(m,n);
+    return (n<0?'−':'+')+fmtVal(m,Math.abs(n));
   }
   function cgHerdMetric(list){
     const co=list.filter(m=>m.company);
     let h=co.find(m=>/herd/i.test(m.name||''));
+    if(!h){ const lv=co.filter(m=>cgClimbs(m)&&m.goal!==''&&!isNaN(Number(m.goal)));
+      lv.sort((a,b)=>Number(b.goal||0)-Number(a.goal||0)); h=lv[0]; }
     if(!h){ const lv=co.filter(m=>cgIsLevel(m)&&m.direction!=='lower'&&m.goal!==''&&!isNaN(Number(m.goal)));
       lv.sort((a,b)=>Number(b.goal||0)-Number(a.goal||0)); h=lv[0]; }
     return h||null;
   }
   function cgRowHtml(m,r){
-    const t=cgTarget(m,r), a=r.future?null:cgActual(m,r), hit=r.future?null:cgHit(m,t,a,r.frac);
-    const soFar=r.partial?' so far':'';
+    const t=cgTarget(m,r), a=r.future?null:cgActual(m,r), hit=r.future?null:cgHit(m,t,a);
+    const signed=cgClimbs(m);
     const owner = (m.owner||'')
       ? '<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span>'
       : '<span class="tm-initials cg-unowned" title="Needs an owner">?</span>';
     const aHtml = r.future ? '<span class="a na">upcoming</span>'
       : (a===null) ? '<span class="a na">no data</span>'
-      : '<span class="a '+(hit===null?'na':(hit?'hit':'miss'))+'">'+esc(fmtVal(m,a))+(cgIsLevel(m)?'':soFar)+'</span>';
+      : '<span class="a '+(hit===null?'na':(hit?'hit':'miss'))+'">'+esc(cgFmt(m,a,signed))+'</span>';
+    /* a climbing count keeps its actual level on a second line — that's the number people ask for */
+    let sub='';
+    if(signed && !r.future){
+      const now=cgLatestAt(m,r.end), b=cgBaseline(m,r), G=goalForDate(m,r.end);
+      if(now!==null){
+        const qr=mxRangeFor('q', r.qk||'');
+        const pace=(b!==null && G!==''&&G!==null&&!isNaN(Number(G))) ? b+(Number(G)-b)*cgShare(qr) : null;
+        sub='<div class="cg-lvl"><b>'+esc(fmtVal(m,now))+'</b> now'
+          + (pace!==null ? ' · '+esc(fmtVal(m,Math.round(pace)))+' to be on pace' : '')+'</div>';
+      }
+    }
     return '<div class="cg-row" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
       +'<div class="hd">'+owner+'<span class="nm">'+esc(m.name||'Untitled')+'</span></div>'
-      +'<div class="vals">'+aHtml+'<span class="t">target<br><b>'+(t===null?'—':esc(fmtVal(m,cgIsLevel(m)?t:Math.round(t))))+'</b></span></div>'
-      +'</div>';
+      +'<div class="vals">'+aHtml+'<span class="t">target<br><b>'+(t===null?'—':esc(cgFmt(m,t,signed)))+'</b></span></div>'
+      +sub+'</div>';
   }
   function renderCompanyTargets(){
     const box=document.getElementById('companyTargets'); if(!box) return;
@@ -2513,7 +2689,7 @@
     if(!co.length){ box.innerHTML = canCreate()
       ? '<div class="cg-empty">🐄 No company goals yet. Open a metric and press the purple cow to put it on the Company Targets tile.</div>' : ''; return; }
     const r=cgRange();
-    /* cow track: the selected quarter's run (this week / MTD show the current quarter's run), driven by the herd metric */
+    /* cow track: the selected quarter's run, driven by the herd metric */
     let trackHtml='';
     const herd=cgHerdMetric(list);
     let behind=null;
@@ -2550,9 +2726,19 @@
     const qsel='<select class="cg-qsel" onchange="setMxQuarter(this.value)" title="See any quarter, past or future">'
       + quarterList(4,4).map(k=>'<option value="'+esc(k)+'"'+(k===curQk?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('')
       + '</select>';
+    /* week N of 13 — carries what the old "so far" wording was telling you,
+       without gluing it onto a number */
+    let wkChip='';
+    const tNow=new Date(); tNow.setHours(0,0,0,0);
+    const qrNow=mxQuarterRange(curQk);
+    if(qrNow && !r.future){
+      const endD=(qrNow.end<tNow)?qrNow.end:tNow;
+      const wkEl=Math.max(1,Math.min(WEEKS_PER_QUARTER,Math.ceil(((endD-qrNow.start)/86400000+1)/7)));
+      wkChip='<span class="cg-wk">Week '+wkEl+' of '+WEEKS_PER_QUARTER+'</span>';
+    }
     box.innerHTML='<div class="cg-tile">'
       +'<div class="cg-top"><div class="cg-title"><span style="font-size:1.35rem;">🐄</span><span>Company Targets<span class="cg-sub">'+esc(r.label)+'</span></span></div>'
-      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'+stateHtml
+      +'<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">'+wkChip+stateHtml
       +'<div class="cg-ptoggle">'+btn('wk')+btn('mtd')+btn('q')+'</div>'+(mxPeriod==='q'?qsel:'')+'</div></div>'
       +trackHtml
       +'<div class="cg-rows">'+co.map(m=>cgRowHtml(m,r)).join('')+'</div>'
@@ -2613,7 +2799,7 @@
     head+='<th class="mx-r1">Trend</th></tr>';
     let rows='';
     items.forEach(m=>{
-      const editable=canEditMetric(m); let cells='';
+      const editable=canTypeMetric(m); let cells='';
       cols.forEach(c=>{
         const cv=cellValue(m,c); const has=cv.eff!==null && !isNaN(cv.eff);
         const wt=effectiveGoal(m,c.start);
@@ -2624,7 +2810,7 @@
           : (has?esc(fmtVal(m,cv.eff))+tgt:'—');
         cells+='<td class="mx-cell pc '+cls+(c.isNow?' is-now':'')+(c.qNew?' q-start':'')+'">'+inner+'</td>';
       });
-      const badge = m.source==='salesforce'?'<span class="mx-src sf">SF</span>':(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>':'');
+      const badge = metricSrcBadge(m);
       rows+='<tr><td class="lft mx-name mx-c1" onclick="openMetricModal(\''+m.id+'\')">'+esc(m.name)+badge+'</td>'
           + '<td class="lft mx-owner mx-c2">'+esc(pmName(m.owner)||'—')+'</td>'
           + '<td class="lft mx-goal mx-c3">'+goalLabel(m)+'</td>'+cells
@@ -2685,7 +2871,7 @@
   function alignWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const back=(x.getDay()-weekStartDay+7)%7; x.setDate(x.getDate()-back); return x; }
   function metricChartPoints(m){
     normalizeMetric(m);
-    const qg=m.quarterGoals||{}, vals=m.values||{};
+    const qg=m.quarterGoals||{}, vals=metricValues(m);
     const dates=[];
     Object.keys(vals).forEach(k=>{ const d=new Date(k+'T00:00:00'); if(!isNaN(d)) dates.push(d); });
     Object.keys(qg).forEach(k=>{ const r=mxQuarterRange(k); if(r){ dates.push(r.start); dates.push(r.end); } });
@@ -2799,7 +2985,7 @@
     const absolute = m.cumEntry==='absolute';
     let running=0, sawAny=false, lastAbs=null;
     const rows=weeks.map((w,i)=>{
-      const key=wkKey(w); const raw=(m.values||{})[key];
+      const key=wkKey(w); const raw=metricValues(m)[key];
       const has=!(raw===undefined||raw===null||raw===''||isNaN(Number(raw)));
       const isFuture=w.getTime()>nowWk.getTime();
       let cumVal;
@@ -2890,7 +3076,7 @@
     let pos=Math.round((alignWeekStart(w).getTime()-firstWk.getTime())/(7*86400000))+1; pos=Math.max(1,Math.min(WEEKS_PER_QUARTER,pos));
     return Number(g)*pos/WEEKS_PER_QUARTER; }
   function editableHistoryTable(m){
-    const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canEditMetric(m);
+    const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canTypeMetric(m);
     const cum=isCumulative(m); const absolute=m.cumEntry==='absolute';
     const rows=weeks.map(w=>{ const cv=cellValue(m,colFor(w)); const has=cv.eff!==null&&!isNaN(cv.eff);
       const now=(wkKey(w)===wkKey(weekStarts(1,weekStartDay)[0]));
@@ -2922,6 +3108,11 @@
     set('mx-unit', editing?(m.unit||'number'):'number');
     set('mx-goalkind', editing?(m.goalKind||'total'):'total');
     set('mx-cumentry', editing?(m.cumEntry||'weekly'):'weekly');
+    set('mx-levelmode', editing?(m.levelMode||'hold'):'hold');
+    const mc=(editing&&m.calc)?m.calc:{};
+    mxFillCalcPickers();
+    set('mx-calc-a', mc.a||''); set('mx-calc-op', mc.op||'div'); set('mx-calc-b', mc.b||'');
+    const x1=document.getElementById('mx-calc-x100'); if(x1) x1.checked=!!mc.x100;
     document.getElementById('mx-company').checked = editing ? !!m.company : false;
     mxSyncCowBtn();
     mxFillDeptSelect(editing?(m.dept||''):'');
@@ -3044,11 +3235,46 @@
     if(hit){ inp.value=hit.name; note.innerHTML='✅ Linked to report <b>'+esc(hit.id)+'</b>. The scheduled sync will pull this report’s total each week.'; }
     else if(inp.value.trim()){ note.textContent='Not recognised yet — pick a report from the list, or paste the report link from Salesforce and it will be matched automatically.'; }
   }
-  function mxToggleCumEntry(){ const row=document.getElementById('mx-cumentry-row'); if(!row) return; row.style.display=(document.getElementById('mx-goalkind').value==='cumulative')?'block':'none'; }
+  /* the two metric pickers for a formula — anything but this metric itself */
+  function mxFillCalcPickers(){
+    const meId=(document.getElementById('mx-id')||{}).value||'';
+    const opts=metricsStore.filter(x=>x.id!==meId && x.id!=='fnconfig' && metricVisible(x))
+      .slice().sort((a,b)=>String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
+    ['mx-calc-a','mx-calc-b'].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      const keep=el.value;
+      el.innerHTML='<option value="">Pick a metric…</option>'
+        + opts.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name||'Untitled')+'</option>').join('');
+      if(keep) el.value=keep;
+    });
+  }
+  /* show this week's answer while they build it, so a wrong pick is obvious */
+  function mxCalcPreview(){
+    const note=document.getElementById('mx-calc-note'); if(!note) return;
+    const a=(document.getElementById('mx-calc-a')||{}).value, b=(document.getElementById('mx-calc-b')||{}).value;
+    const op=(document.getElementById('mx-calc-op')||{}).value||'div';
+    const x100=!!(document.getElementById('mx-calc-x100')||{}).checked;
+    if(!a||!b){ note.textContent='Pick the two metrics this one is worked out from. Nobody types this number in again — it lands as soon as both inputs have a number for the week.'; return; }
+    const A=metricsStore.find(x=>x.id===a), B=metricsStore.find(x=>x.id===b);
+    const w=weekStarts(2,weekStartDay)[1], col={key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)};
+    const probe={ id:'__preview__', source:'calc', calc:{a,op,b,x100}, unit:(document.getElementById('mx-unit')||{}).value||'number' };
+    const v=calcValue(probe,col,0);
+    const av=A?cellValue(A,col).eff:null, bv=B?cellValue(B,col).eff:null;
+    if(v===null){ note.innerHTML='Waiting on this week&rsquo;s numbers for '
+      + (av===null?'<b>'+esc((A&&A.name)||'?')+'</b>':'') + (av===null&&bv===null?' and ':'')
+      + (bv===null?'<b>'+esc((B&&B.name)||'?')+'</b>':'') + '. The answer fills in on its own once they are there.'; return; }
+    note.innerHTML='This week: <b>'+esc(fmtVal(probe,av))+' '+(CALC_OPS[op]||'\u00f7')+' '+esc(fmtVal(probe,bv))
+      + (x100?' \u00d7 100':'') + ' = ' + esc(fmtVal(probe,v))+'</b>';
+  }
+  function mxToggleCumEntry(){ const k=(document.getElementById('mx-goalkind')||{}).value;
+    const row=document.getElementById('mx-cumentry-row'); if(row) row.style.display=(k==='cumulative')?'block':'none';
+    const lm=document.getElementById('mx-levelmode-row'); if(lm) lm.style.display=(k==='level')?'block':'none'; }
   function mxToggleSource(){
     const s=document.getElementById('mx-source').value;
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
     const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
+    const cw=document.getElementById('mx-calc-wrap'); if(cw) cw.style.display=(s==='calc')?'block':'none';
+    if(s==='calc'){ wrap.style.display='none'; mxFillCalcPickers(); mxCalcPreview(); return; }
     if(s==='manual'){ wrap.style.display='none'; return; }
     wrap.style.display='block';
     if(s==='salesforce'){ populateReportList();
@@ -3072,6 +3298,7 @@
       period:'weekly',
       goalKind:document.getElementById('mx-goalkind').value||'total',
       cumEntry:document.getElementById('mx-cumentry').value||'weekly',
+      levelMode:(document.getElementById('mx-levelmode')||{}).value||'hold',
       company:document.getElementById('mx-company').checked,
       dept:document.getElementById('mx-dept').value||'',
       sub:document.getElementById('mx-sub').value||'',
@@ -3079,7 +3306,11 @@
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
       quarterGoals: mxReadQuarters(),
-      source, sourceRef, sourceName };
+      source, sourceRef, sourceName,
+      calc: (source==='calc') ? { a:(document.getElementById('mx-calc-a')||{}).value||'',
+                                  op:(document.getElementById('mx-calc-op')||{}).value||'div',
+                                  b:(document.getElementById('mx-calc-b')||{}).value||'',
+                                  x100:!!(document.getElementById('mx-calc-x100')||{}).checked } : null };
     let m;
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
@@ -3820,6 +4051,24 @@ Herd Life`;
       +'<span class="who">'+esc(pmName(it.data.author))+'</span>'
       +((it.data.author===myEmail||canManageUsers())?'<button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
       +'</div>'; }
+  /* Week / month / quarter on one row — the same three readings as the Metrics
+     tab, so a meeting doesn't have to leave the page to see how a metric is doing.
+     Running-total metrics keep their own on-pace line; they already answer this. */
+  function mtgBreakdown(m){
+    const mon=new Date().toLocaleDateString(undefined,{month:'short'});
+    const cols=[['Week','wk'],[mon,'mtd'],['Quarter','q']];
+    return '<span class="mx-brk">'+cols.map(function(c){
+      let a=null,t=null,ok=null,signed=false;
+      try{
+        const r=mxRangeFor(c[1],'');
+        t=cgTarget(m,r); a=r.future?null:cgActual(m,r); ok=cgHit(m,t,a); signed=cgClimbs(m);
+      }catch(e){ console.warn('breakdown failed', m&&m.id, e); }
+      const cls=(ok===null)?'na':(ok?'hit':'miss');
+      return '<span class="b"><span class="lb">'+esc(c[0])+'</span>'
+        +'<span class="v '+cls+'">'+esc(a===null?'—':cgFmt(m,a,signed))+'</span>'
+        +'<span class="t">of '+esc(t===null?'—':cgFmt(m,t,signed))+'</span></span>';
+    }).join('')+'</span>';
+  }
   function renderMetricSnapshot(sec){
     const ids = sec && Array.isArray(sec.metricIds) ? sec.metricIds : null;
     const custom = ids && ids.length;
@@ -3851,7 +4100,7 @@ Herd Life`;
         const cv=cellValue(m,{key:wkKey(wk),start:wk,end:new Date(wk.getTime()+6*86400000)});
         const has=cv.eff!==null&&!isNaN(cv.eff); const t=has?tierOfGoal(m,cv.eff,effectiveGoal(m,wk)):'';
         dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
-        valHtml=(has?esc(fmtVal(m,cv.eff)):'—')+' <span style="color:var(--muted);font-weight:400;font-size:.85em;">'+esc(goalLabel(m).replace(/<[^>]+>/g,' '))+'</span>';
+        valHtml=mtgBreakdown(m);
       }
       return '<div class="rock-row">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
