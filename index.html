@@ -1407,12 +1407,17 @@
         <select id="mx-sub" style="width:100%;"></select></div>
     </div>
     <div style="margin-top:10px;">
-      <label>What kind of quarterly goal is this?</label>
-      <select id="mx-goalkind" onchange="mxRenderLegend();mxToggleCumEntry()" style="width:100%;">
-        <option value="total">Weekly target — hit the same number every week, target ÷ 13 (churn, weekly sales)</option>
-        <option value="level">A balance or a rate — a customer base that grows to a target, or a % that has to hold</option>
-        <option value="cumulative">A running total by quarter-end — just track if we're on or off pace (e.g. 1,500 by end of Q)</option>
+      <label>What kind of metric is this?</label>
+      <select id="mx-kind" onchange="mxKindChange()" style="width:100%;">
+        <option value="total">Weekly target — hit the same number every week, target ÷ 13 (weekly sales, churn count)</option>
+        <option value="rate">A rate that has to hold — measured against the full target every week (NPS, uptime %, breakage %)</option>
+        <option value="balance">A balance that grows — starts at a number and climbs to the target, so every week has its own milestone (active subs, herd members)</option>
+        <option value="cumulative">A running total by quarter-end — just track on or off pace, no weekly pass/fail (e.g. 1,500 units signed)</option>
       </select>
+      <p class="block-desc" id="mxKindNote" style="margin-top:6px;font-size:.78rem;"></p>
+      <!-- the two fields the choice above actually sets -->
+      <input type="hidden" id="mx-goalkind" value="total">
+      <input type="hidden" id="mx-levelmode" value="hold">
     </div>
     <div id="mx-cumentry-row" style="margin-top:10px;display:none;">
       <label>How do you record this running total?</label>
@@ -1420,14 +1425,6 @@
         <option value="weekly">I enter each week's NEW amount — they add up (e.g. 120 signed this week)</option>
         <option value="absolute">I enter the RUNNING TOTAL to date each week (e.g. the report's quarter total, 1,161)</option>
       </select>
-    </div>
-    <div id="mx-levelmode-row" style="margin-top:10px;display:none;">
-      <label>What kind of level is it?</label>
-      <select id="mx-levelmode" onchange="mxRenderLegend();mxToggleStarts()" style="width:100%;">
-        <option value="hold">A rate that has to hold — every week is measured against the full target (NPS, uptime %, breakage %)</option>
-        <option value="climb">A balance that grows to the target — starts at a number and climbs, so each week gets its own milestone (active subs, herd members)</option>
-      </select>
-      <p class="block-desc" style="margin-top:6px;font-size:.78rem;">Only changes the Company Targets tile and the meeting scorecard: a growing count is shown as the week&rsquo;s gain against the gain the week owes, instead of the running total against the quarter goal.</p>
     </div>
     <input type="checkbox" id="mx-company" style="display:none;">
     <button type="button" class="cg-cowbtn" id="mxCowBtn" onclick="mxToggleCompany()" aria-pressed="false">
@@ -3313,9 +3310,11 @@
     document.getElementById('mx-owner').innerHTML = ownerOptions(editing?(m.owner||''):myEmail);
     if(editing) normalizeMetric(m);
     set('mx-unit', editing?(m.unit||'number'):'number');
+    set('mx-kind', mxKindOf(editing?m:null));
     set('mx-goalkind', editing?(m.goalKind||'total'):'total');
     set('mx-cumentry', editing?(m.cumEntry||'weekly'):'weekly');
     set('mx-levelmode', editing?(m.levelMode||'hold'):'hold');
+    mxKindChange();
     const mc=(editing&&m.calc)?m.calc:{};
     mxFillCalcPickers();
     set('mx-calc-a', mc.a||''); set('mx-calc-op', mc.op||'div'); set('mx-calc-b', mc.b||'');
@@ -3477,9 +3476,34 @@
     note.innerHTML='This week: <b>'+esc(fmtVal(probe,av))+' '+(CALC_OPS[op]||'\u00f7')+' '+esc(fmtVal(probe,bv))
       + (x100?' \u00d7 100':'') + ' = ' + esc(fmtVal(probe,v))+'</b>';
   }
+  /* One question, four answers. goalKind + levelMode are what get stored; this is
+     just the single choice that sets them, because they were never independent. */
+  const MX_KINDS={
+    total:     {goalKind:'total',      levelMode:'hold',
+                note:'Each week is judged on its own: the quarterly target split across 13 weeks.'},
+    rate:      {goalKind:'level',      levelMode:'hold',
+                note:'The full target applies every week, so This week, MTD and Quarter all read the same number. Right for a rate, wrong for a customer count.'},
+    balance:   {goalKind:'level',      levelMode:'climb',
+                note:'Set where the quarter started below and each week gets its own milestone between that number and the target.'},
+    cumulative:{goalKind:'cumulative', levelMode:'hold',
+                note:'Climbs toward the quarter-end total. No weekly pass or fail, just ahead or behind the line.'}
+  };
+  function mxKindOf(m){
+    const gk=(m&&m.goalKind)||'total';
+    if(gk==='cumulative') return 'cumulative';
+    if(gk==='level') return (m&&m.levelMode==='climb')?'balance':'rate';
+    return 'total';
+  }
+  function mxKindChange(){
+    const k=(document.getElementById('mx-kind')||{}).value||'total';
+    const spec=MX_KINDS[k]||MX_KINDS.total;
+    const gk=document.getElementById('mx-goalkind'); if(gk) gk.value=spec.goalKind;
+    const lm=document.getElementById('mx-levelmode'); if(lm) lm.value=spec.levelMode;
+    const note=document.getElementById('mxKindNote'); if(note) note.textContent=spec.note;
+    mxToggleCumEntry(); mxRenderLegend();
+  }
   function mxToggleCumEntry(){ const k=(document.getElementById('mx-goalkind')||{}).value;
     const row=document.getElementById('mx-cumentry-row'); if(row) row.style.display=(k==='cumulative')?'block':'none';
-    const lm=document.getElementById('mx-levelmode-row'); if(lm) lm.style.display=(k==='level')?'block':'none';
     mxToggleStarts(); }
   function mxToggleSource(){
     const s=document.getElementById('mx-source').value;
