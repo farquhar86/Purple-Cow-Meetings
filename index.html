@@ -1410,7 +1410,7 @@
       <label>What kind of quarterly goal is this?</label>
       <select id="mx-goalkind" onchange="mxRenderLegend();mxToggleCumEntry()" style="width:100%;">
         <option value="total">Weekly target — hit the same number every week, target ÷ 13 (churn, weekly sales)</option>
-        <option value="level">A level to reach — every week is measured against the full target (active members, %)</option>
+        <option value="level">A balance or a rate — a customer base that grows to a target, or a % that has to hold</option>
         <option value="cumulative">A running total by quarter-end — just track if we're on or off pace (e.g. 1,500 by end of Q)</option>
       </select>
     </div>
@@ -1425,7 +1425,7 @@
       <label>What kind of level is it?</label>
       <select id="mx-levelmode" onchange="mxRenderLegend();mxToggleStarts()" style="width:100%;">
         <option value="hold">A rate that has to hold — every week is measured against the full target (NPS, uptime %, breakage %)</option>
-        <option value="climb">A count that grows toward the target — each week is measured on how much it moved (active herd members)</option>
+        <option value="climb">A balance that grows to the target — starts at a number and climbs, so each week gets its own milestone (active subs, herd members)</option>
       </select>
       <p class="block-desc" style="margin-top:6px;font-size:.78rem;">Only changes the Company Targets tile and the meeting scorecard: a growing count is shown as the week&rsquo;s gain against the gain the week owes, instead of the running total against the quarter goal.</p>
     </div>
@@ -2505,11 +2505,26 @@
      recording periods (1,826 a quarter = 140.5 a week). For rates and levels
      (rollup = average) the target applies as-is to every period. */
   function goalScale(m){ return (m.goalKind==='level') ? 1 : 1/WEEKS_PER_QUARTER; }
-  /* the weekly number to beat, from that week's quarterly target */
+  /* which week of the quarter a date falls in, 1..13 */
+  function weekIndexInQuarter(date){
+    const r=mxQuarterRange(quarterKeyOf(date)); if(!r) return 1;
+    const we=Math.round((alignWeekStart(date).getTime()-alignWeekStart(r.start).getTime())/(7*86400000))+1;
+    return Math.max(1,Math.min(WEEKS_PER_QUARTER,we));
+  }
+  /* The number to beat this week.
+     A balance that climbs (customers, subscribers) gets a MILESTONE: start at 2,000,
+     aim for 2,500 by quarter-end, so week 1 owes 2,038 and week 13 owes 2,500.
+     Dividing the target by 13 is only right for something you rack up weekly. */
   function effectiveGoal(m,date){
     const base=goalForDate(m,date);
     if(base===''||base===null||base===undefined||isNaN(Number(base))) return '';
-    return Number(base)*goalScale(m);
+    const G=Number(base);
+    if(cgClimbs(m)){
+      const S=metricBaseline(m,quarterKeyOf(date));
+      if(S!==null) return S+(G-S)*weekIndexInQuarter(date)/WEEKS_PER_QUARTER;
+      return G;
+    }
+    return G*goalScale(m);
   }
   function fmtTgt(m,v){ if(v===''||v===null||isNaN(Number(v))) return '';
     return (m.unit==='percent') ? fmtVal(m,Math.round(Number(v)*10)/10) : fmtVal(m,Math.round(Number(v))); }
@@ -2525,7 +2540,9 @@
     const op=(m.direction==='lower'?'≤ ':'≥ ');
     if(m.goalKind==='cumulative') return fmtVal(m,g)+'<span class="mx-per"> by qtr-end</span><div class="mx-pace">pace '+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+'/wk</div>';
     let out=op+fmtVal(m,g)+'<span class="mx-per"> /qtr</span>';
-    if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+' a week</div>';
+    if(cgClimbs(m)){ const wk=effectiveGoal(m,new Date());
+      out+='<div class="mx-pace">week '+weekIndexInQuarter(new Date())+' milestone '+fmtTgt(m,wk)+'</div>'; }
+    else if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+' a week</div>';
     return out; }
   const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
   function mxRenderLegend(){
@@ -2562,7 +2579,10 @@
       + '<div class="lg-row"><span class="lg-sw" style="background:'+TIER_COLORS.bad+'"></span><span class="lg-op">'+(low?'>':'<')+'</span><span class="lg-num">'+fmtVal(m,b.warn)+'</span><span class="lg-lab">Missed</span></div>';
   }
   const TIER_LABEL={great:'Smashed it',good:'On target',warn:'Just off',bad:'Missed'};
-  function goalLabelShort(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return 'No goal set'; const wk=effectiveGoal(m,new Date()); return (m.direction==='lower'?'≤ ':'≥ ')+fmtTgt(m,wk)+' / week'; }
+  function goalLabelShort(m){ const g=goalForDate(m,new Date()); if(g===''||g===undefined||g===null) return 'No goal set';
+    const wk=effectiveGoal(m,new Date());
+    if(cgClimbs(m)) return '≥ '+fmtTgt(m,wk)+' by week '+weekIndexInQuarter(new Date());
+    return (m.direction==='lower'?'≤ ':'≥ ')+fmtTgt(m,wk)+' / week'; }
   function colFor(w){ return {key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)}; }
   /* ---- cumulative ("running total to a quarter-end goal") helpers ---- */
   function isCumulative(m){ return m && m.goalKind==='cumulative'; }
@@ -2713,16 +2733,16 @@
     if(v===undefined||v===null||v===''||isNaN(Number(v))) return null;
     return Number(v);
   }
-  function cgBaseline(m,r){
-    const qk=r.qk||quarterKeyOf(r.end);
+  function metricBaseline(m,qk){
     const explicit=metricStart(m,qk); if(explicit!==null) return explicit;
     const q=mxQuarterRange(qk); if(!q) return null;
     let v=cgLatestAt(m,new Date(q.start.getTime()-86400000));
     if(v===null){ let bd=null; const V=metricValues(m);   /* metric younger than the quarter — use its earliest number */
-      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return;
+      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>q.end) return; const n=Number(V[k]); if(isNaN(n)) return;
         if(!bd||d<bd){ bd=d; v=n; } }); }
     return v;
   }
+  function cgBaseline(m,r){ return metricBaseline(m, r.qk||quarterKeyOf(r.end)); }
   function cgActual(m,r){
     normalizeMetric(m);
     if(cgClimbs(m)){   /* the net change across this window, measured week to week
