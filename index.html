@@ -260,6 +260,12 @@
   .fn-chip button{border:none;background:transparent;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 3px;}
   .fn-chip button:hover{color:#c9302c;}
   .fn-subs input{border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:.76rem;width:130px;}
+  .fn-row .fn-ownlab{font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .fn-row .fn-owner{border:1px solid var(--line);border-radius:8px;padding:3px 8px;font-size:.78rem;font-weight:700;color:var(--purple-dark);background:#fff;max-width:150px;}
+  .fn-row .fn-owner.none{border-style:dashed;border-color:#d9a940;background:#fffdf6;color:#8a6100;}
+  .mx-fnowner{font-size:.72rem;font-weight:700;color:var(--muted);background:var(--lilac);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  button.mx-fnowner{cursor:pointer;font-family:inherit;border-style:dashed;border-color:#d9a940;background:#fffdf6;color:#8a6100;}
+  button.mx-fnowner:hover{background:#fdf3dc;}
   /* ---- scorecard / metrics ---- */
   .mx-toolbar{display:flex;align-items:center;gap:12px;padding:16px 34px 10px;flex-wrap:wrap;}
   .mx-hint{margin:0;font-size:.82rem;color:var(--muted);}
@@ -2214,7 +2220,10 @@
     {name:'Customer Care',subs:[]}, {name:'Marketing',subs:[]}, {name:'Product',subs:[]}, {name:'Dev',subs:[]}, {name:'TELUS',subs:[]} ];
   function normalizeFn(o){ const list=(o&&Array.isArray(o.list))?o.list:[];
     return { id:'fnconfig', kind:'fnconfig', name:'fnconfig',
-      list:list.filter(f=>f&&f.name).map(f=>({name:String(f.name), subs:(f.subs||[]).map(String)})) }; }
+      list:list.filter(f=>f&&f.name).map(f=>({name:String(f.name), subs:(f.subs||[]).map(String), owner:String(f.owner||'')})) }; }
+  /* who owns the function itself. Separate from who owns each metric inside it:
+     Joe owns Growth, Ian still owns Event sales underneath him. */
+  function fnOwner(name){ const f=name?fnByName(name):null; return (f&&f.owner)||''; }
   function loadFnLocal(){ try{ const o=JSON.parse(localStorage.getItem(KEY+'_fnconfig')||'null'); if(o) fnConfig=normalizeFn(o); }catch(e){} }
   function saveFnLocal(){ try{ localStorage.setItem(KEY+'_fnconfig', JSON.stringify(fnConfig)); }catch(e){} }
   function ensureFnConfig(){ if(!fnConfig) loadFnLocal();
@@ -2764,17 +2773,25 @@
       if(groups.has('')) order.push('');
       const coFirst=(a,b)=>(b.company?1:0)-(a.company?1:0);
       const html=order.map(d=>{ const items=groups.get(d);
-        const owners=[]; items.forEach(m=>{ const o=m.owner||''; if(o && owners.indexOf(o)<0) owners.push(o); });
-        const avs=owners.slice(0,3).map(o=>'<span title="'+esc(pmName(o))+'">'+avatarHtml(resolvePerson(o))+'</span>').join('');
         const f=d?fnByName(d):null;
+        const fo=(f&&f.owner)||'';
+        /* the face on a section is the FUNCTION's owner. Each metric keeps its own
+           owner on its card — Joe owns Growth, Ian owns Event sales inside it. */
+        const avs = fo
+          ? '<span title="'+esc(pmName(fo))+' owns this function">'+avatarHtml(resolvePerson(fo))+'</span>'
+          : (d ? '<span class="tm-initials cg-unowned" title="This function needs an owner">?</span>' : '<span class="tm-initials">?</span>');
+        const foLab = d
+          ? (fo ? '<span class="mx-fnowner">'+esc(pmName(resolvePerson(fo)))+'</span>'
+                : (canCreate()?'<button class="mx-fnowner none" title="Set an owner for this function" onclick="event.stopPropagation();openFnModal()">Needs an owner</button>':''))
+          : '';
         const subOrder=[]; (f?f.subs:[]).forEach(s=>{ if(subOrder.indexOf(s)<0) subOrder.push(s); });
         items.forEach(m=>{ const s=m.sub||''; if(s && subOrder.indexOf(s)<0) subOrder.push(s); });
         const noSub=items.filter(m=>!(m.sub||'')).slice().sort(coFirst);
         let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
         subOrder.forEach(s=>{ const su=items.filter(m=>(m.sub||'')===s).slice().sort(coFirst); if(!su.length) return;
           body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; });
-        return '<div class="mx-owner-group mx-fn-group" data-fn="'+esc(d)+'"><div class="mx-owner-hd" draggable="true" title="Drag to reorder the sections"><span class="grip">⠿</span>'+(avs||'<span class="tm-initials">?</span>')
-          +'<span class="nm">'+(d?esc(d):'No function yet')+'</span><span class="cnt">'+items.length+'</span></div>'
+        return '<div class="mx-owner-group mx-fn-group" data-fn="'+esc(d)+'"><div class="mx-owner-hd" draggable="true" title="Drag to reorder the sections"><span class="grip">⠿</span>'+avs
+          +'<span class="nm">'+(d?esc(d):'No function yet')+'</span>'+foLab+'<span class="cnt">'+items.length+'</span></div>'
           + body + '</div>';
       }).join('');
       wrap.innerHTML=toggle+html;
@@ -3154,14 +3171,18 @@
   function closeFnModal(){ document.getElementById('fnModal').classList.remove('show'); renderMetrics(); }
   function renderFnModal(){ const cfg=ensureFnConfig(); const box=document.getElementById('fnList');
     box.innerHTML=cfg.list.map((f,i)=>'<div class="fn-row"><div class="fn-hd"><b>'+esc(f.name)+'</b>'
+      +'<span class="fn-ownlab">Owner</span>'
+      +'<select class="fn-owner'+(f.owner?'':' none')+'" title="Who owns this function — not the same as who owns each metric in it" onchange="setFnOwner('+i+',this.value)">'+ownerOptions(f.owner||'')+'</select>'
       +'<button class="fn-x" title="Remove this function" onclick="delFn('+i+')">✕</button></div>'
       +'<div class="fn-subs">'+f.subs.map((s,j)=>'<span class="fn-chip">'+esc(s)+'<button title="Remove" onclick="delSub('+i+','+j+')">✕</button></span>').join('')
       +'<input type="text" placeholder="Add sub-function" id="fnsub-'+i+'" onkeydown="if(event.key===\'Enter\')addSub('+i+')">'
       +'<button class="btn ghost sm" onclick="addSub('+i+')">＋</button></div></div>').join('')
       || '<p class="block-desc">No functions yet, add one below.</p>'; }
   function addFn(){ const el=document.getElementById('fn-new'); const n=el.value.trim(); if(!n) return;
-    const cfg=ensureFnConfig(); if(!fnByName(n)) cfg.list.push({name:n,subs:[]});
+    const cfg=ensureFnConfig(); if(!fnByName(n)) cfg.list.push({name:n,subs:[],owner:''});
     el.value=''; persistFnConfig(); renderFnModal(); }
+  function setFnOwner(i,v){ const cfg=ensureFnConfig(); const f=cfg.list[i]; if(!f) return;
+    f.owner=v||''; persistFnConfig(); renderFnModal(); renderMetrics(); }
   function delFn(i){ const cfg=ensureFnConfig(); const f=cfg.list[i]; if(!f) return;
     confirmModal('Remove the function “'+f.name+'”? Its metrics keep their tag and show as their own section until you re-file them.', ()=>{ cfg.list.splice(i,1); persistFnConfig(); renderFnModal(); renderMetrics(); }, 'Remove function'); }
   function addSub(i){ const el=document.getElementById('fnsub-'+i); const n=(el&&el.value||'').trim(); if(!n) return;
@@ -3188,7 +3209,7 @@
         const to=doms.indexOf(target); doms.splice(to<0?doms.length:to,0,fnDrag);
         const cfg=ensureFnConfig();
         const newList=[];
-        doms.forEach(d=>{ if(d==='') return; const ex=fnByName(d); newList.push(ex||{name:d,subs:[]}); });
+        doms.forEach(d=>{ if(d==='') return; const ex=fnByName(d); newList.push(ex||{name:d,subs:[],owner:''}); });
         cfg.list.forEach(f=>{ if(!newList.some(x=>x.name.toLowerCase()===f.name.toLowerCase())) newList.push(f); });
         cfg.list=newList; fnDrag=null; persistFnConfig(); renderMetrics();
       });
