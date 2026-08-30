@@ -2342,7 +2342,21 @@
   function saveMetricsLocal(){ try{ localStorage.setItem(KEY+'_metrics', JSON.stringify(metricsStore)); }catch(e){} }
   function persistMetric(m){ saveMetricsLocal(); dbUpsertMetric(m); }
   function dbUpsertMetric(m){ if(!USE_DB) return; sb.from('metrics').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('metric save failed', r.error); }); }
-  function dbDeleteMetric(id){ if(!USE_DB) return; sb.from('metrics').delete().eq('id',id).then(r=>{ if(r.error) console.warn('metric delete failed', r.error); }); sb.from('metric_values').delete().eq('metric_id',id).then(()=>{}); }
+  /* Deleting leaves a tombstone row (data.deleted) rather than removing the row.
+     A hard delete used to get undone: dbLoadMetrics re-uploads anything still sitting
+     in a teammate's browser cache, so the next person to open the app put the metric
+     straight back. The tombstone tells every browser it was deleted on purpose.
+     Returns {ok} so the caller can tell the user when the database refused. */
+  async function dbDeleteMetric(id, m){
+    if(!USE_DB) return {ok:true};
+    const stone={ id:id, name:(m&&m.name)||'', deleted:true, deletedBy:myEmail, deletedAt:new Date().toISOString() };
+    const r=await sb.from('metrics').upsert({id:id,data:stone}).select();
+    if(r.error){ console.warn('metric delete failed', r.error); return {ok:false, msg:r.error.message}; }
+    if(!r.data || !r.data.length) return {ok:false, msg:'the database did not accept it — try signing out and back in'};
+    const rv=await sb.from('metric_values').delete().eq('metric_id',id);
+    if(rv.error) console.warn('metric history delete failed', rv.error);
+    return {ok:true};
+  }
   /* each weekly number is its own row so two people never overwrite each other */
   function dbUpsertMetricValue(mid,wk,value){ if(!USE_DB) return; sb.from('metric_values').upsert({id:mid+'|'+wk, metric_id:mid, wk:wk, value:value}).then(r=>{ if(r.error) console.warn('metric value save failed', r.error); }); }
   function dbDeleteMetricValue(mid,wk){ if(!USE_DB) return; sb.from('metric_values').delete().eq('id',mid+'|'+wk).then(()=>{}); }
@@ -2350,11 +2364,14 @@
     if(!USE_DB){ metricsLoaded=true; return; }
     try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error;
       const remote=(r.data||[]).map(x=>x.data).filter(Boolean);
-      const byId={}; remote.forEach(m=>{ if(m&&m.id) byId[m.id]=m; });
+      // tombstoned metrics stay out of the scorecard AND out of the recovery step below
+      const byId={}, tombstoned={};
+      remote.forEach(m=>{ if(!m||!m.id) return; if(m.deleted){ tombstoned[m.id]=true; return; } byId[m.id]=m; });
       // weekly numbers come from their own table
       const vals={}; try{ const rv=await sb.from('metric_values').select('metric_id,wk,value'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
       // recover any browser-only metrics or values (e.g. entered before the tables existed) — never overwrite what's already shared
       (metricsStore||[]).forEach(lm=>{ if(!lm||!lm.id) return;
+        if(tombstoned[lm.id]) return;   // deleted on purpose — a stale cache must not bring it back
         if(!byId[lm.id]){ byId[lm.id]=lm; dbUpsertMetric(lm); }
         const rvals=vals[lm.id]=vals[lm.id]||{};
         Object.keys(lm.values||{}).forEach(wk=>{ if(rvals[wk]===undefined && lm.values[wk]!=='' && lm.values[wk]!=null){ rvals[wk]=lm.values[wk]; dbUpsertMetricValue(lm.id,wk,lm.values[wk]); } });
@@ -3560,8 +3577,15 @@
   }
   function deleteMetric(){
     const id=document.getElementById('mx-id').value; const m=metricsStore.find(x=>x.id===id); if(!m) return;
-    confirmModal('Delete the metric “'+m.name+'”? Its weekly history will be removed too.', ()=>{
-      metricsStore=metricsStore.filter(x=>x.id!==id); saveMetricsLocal(); dbDeleteMetric(id); closeMetricModal(); renderMetrics();
+    confirmModal('Delete the metric “'+m.name+'”? Its weekly history will be removed too.', async ()=>{
+      const btn=document.getElementById('mxDeleteBtn'); const err=document.getElementById('mxErr');
+      if(btn){ btn.disabled=true; btn.textContent='Deleting…'; }
+      if(err) err.textContent='';
+      const res=await dbDeleteMetric(id, m);
+      if(btn){ btn.disabled=false; btn.textContent='Delete'; }
+      // only drop it locally once the database has taken it, so a silent failure can't look like success
+      if(!res.ok){ if(err) err.textContent='Could not delete “'+m.name+'”: '+res.msg; return; }
+      metricsStore=metricsStore.filter(x=>x.id!==id); saveMetricsLocal(); closeMetricModal(); renderMetrics();
     }, 'Delete metric');
   }
   function setMetricValue(id,key,val){
