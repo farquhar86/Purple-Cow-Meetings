@@ -783,6 +783,10 @@
   .done-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--purple);margin:0 0 4px;}
   ul.done{margin:0 0 10px;padding-left:18px;}
   ul.done li{font-size:13.5px;margin-bottom:3px;}
+  ul.done.tasklist{list-style:none;padding-left:0;}
+  ul.done.tasklist li{display:flex;align-items:center;gap:9px;margin-bottom:6px;font-size:13.5px;}
+  ul.done.tasklist li.is-done .tl-name{color:var(--muted);text-decoration:line-through;}
+  ul.done.tasklist .tl-pct{font-size:11.5px;color:var(--muted);font-weight:700;}
   .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px;}
   .b-high{background:#e4f4ec;color:var(--green);} .b-med{background:#fdeede;color:var(--amber);} .b-low{background:#eee;color:#666;}
   .prio-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;}
@@ -958,6 +962,11 @@
   .sched-tbl tr.g-hd td{background:var(--lilac);color:var(--purple-dark);font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:800;padding:5px 8px;border-top:none;}
   .tick{display:inline-flex;width:19px;height:19px;border-radius:50%;border:2px solid var(--line);align-items:center;justify-content:center;font-size:11px;color:#fff;flex:none;}
   .tick.done{background:var(--green);border-color:var(--green);}
+  .tick.tap{cursor:pointer;transition:border-color .12s,background .12s,transform .12s;}
+  .tick.tap:hover{border-color:var(--green);background:#e8f6ef;transform:scale(1.12);}
+  .tick.tap.done:hover{background:#248257;border-color:#248257;}
+  .tick.tap:focus-visible{outline:2px solid var(--purple);outline-offset:2px;}
+
   .edit-hint{opacity:0;font-size:12px;color:var(--purple);transition:opacity .15s;white-space:nowrap;}
   .trow:hover .edit-hint{opacity:1;}
   .b-bump{background:#fbf1dc;color:#9a6d14;}
@@ -5491,7 +5500,10 @@ Herd Life`;
 
   function dashPrioCard(e){
     const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
-    const done=(e.done&&e.done.length)?'<ul class="done">'+e.done.map(d=>`<li>${esc(d)}</li>`).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+    const done=(e.done&&e.done.length)?'<ul class="done tasklist">'+e.done.map((d,i)=>{
+      const tp=Number(((e.plan||[])[i]||{}).pct)||0;
+      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
+    }).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
     const plan=e.plan||[]; const totalT=(e.done||[]).length;
@@ -5561,7 +5573,7 @@ Herd Life`;
   function pvAllTasks(list){
     const out=[];
     list.forEach(e=>{ (e.done||[]).forEach((d,i)=>{ const p=(e.plan&&e.plan[i])||{};
-      out.push({label:d||'Untitled task', p, pct:Number(p.pct)||0, owner:p.owner||'', dept:taskDept(e,i)||'Unassigned', note:p.note||'', start:p.start||'', end:p.end||'', e}); }); });
+      out.push({label:d||'Untitled task', p, i, pct:Number(p.pct)||0, owner:p.owner||'', dept:taskDept(e,i)||'Unassigned', note:p.note||'', start:p.start||'', end:p.end||'', e}); }); });
     return out;
   }
   function pvStatus(t){
@@ -5586,9 +5598,10 @@ Herd Life`;
   function pvTaskTable(tasks,showPrio){
     if(!tasks.length) return '<p class="empty" style="padding:14px 16px;">No tasks here yet.</p>';
     return `<div class="pv-tblwrap"><table class="pv-tbl">
-      <tr><th style="min-width:200px;">Task</th>${showPrio?'<th style="min-width:160px;">Priority</th>':''}<th>Dept</th><th>Owner</th><th>Status</th><th>Start</th><th>End</th><th>%</th><th>Notes</th></tr>
+      <tr><th style="width:34px;text-align:center;">✓</th><th style="min-width:200px;">Task</th>${showPrio?'<th style="min-width:160px;">Priority</th>':''}<th>Dept</th><th>Owner</th><th>Status</th><th>Start</th><th>End</th><th>%</th><th>Notes</th></tr>
       ${tasks.map(t=>{ const st=pvStatus(t); const homeD=(t.e.dept||'Unassigned');
         return `<tr>
+        <td style="text-align:center;">${tickHTML(t.e.id,t.i,t.pct)}</td>
         <td style="font-weight:600;">${esc(t.label)}</td>
         ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="openPrio('${t.e.id}')">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
         <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
@@ -5926,7 +5939,7 @@ Herd Life`;
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0}); });
     e.plan=np;
   }
   /* a task counts as "bumped" once its end date has been pushed later than the original plan */
@@ -5947,6 +5960,23 @@ Herd Life`;
     if(!done.length) return 0;
     let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
     return Math.round(sum/done.length);
+  }
+  /* the clickable completion circle, used on every task list */
+  function tickHTML(id,i,pct){
+    const on=Number(pct)===100;
+    return `<span class="tick tap ${on?'done':''}" role="button" tabindex="0" title="${on?'Mark this task not complete':'Mark this task complete'}"`
+      + ` onclick="toggleTaskDone('${id}',${i},event)"`
+      + ` onkeydown="if(event.key==='Enter'||event.key===' '){toggleTaskDone('${id}',${i},event);}">${on?'✓':''}</span>`;
+  }
+  /* click the circle on a task row: complete it, or un-complete it back to where it was */
+  function toggleTaskDone(id,i,ev){
+    if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    syncPlan(e); const p=e.plan[i]; if(!p) return;
+    const now=Number(p.pct)||0;
+    if(now===100){ p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
+    else { p.pctBefore=now; p.pct=100; }
+    autoStage(e); persist(e); refreshPrio();
   }
   function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); persist(e); refreshPrio(); }
   function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); autoStage(e); persist(e); refreshPrio(); }
@@ -5969,7 +5999,7 @@ Herd Life`;
       const od=isOverduePlan(p); const b=bumpInfo(p);
       return `
       <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
-        <td style="text-align:center;"><span class="tick ${tpct===100?'done':''}">${tpct===100?'✓':''}</span></td>
+        <td style="text-align:center;">${tickHTML(e.id,i,tpct)}</td>
         <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
         <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
         <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
