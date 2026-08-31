@@ -4199,7 +4199,12 @@ Herd Life`;
           +'<input type="date" id="due-'+sec.id+'" class="mtg-duein" style="display:none;" value="'+nextDue+'">'
           +'<button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>'; }
     } else if(sec.type==='prioritiesPrev'){
-      const src=sec.sourceSection||'today';
+      // sourceSection is only stamped on the seeded meetings; sections added through the UI get a
+      // generated id, so fall back to whichever priorities section this meeting actually has.
+      const secs=m.sections||[];
+      const src=(secs.some(s=>s.id===sec.sourceSection) && sec.sourceSection)
+        || ((secs.find(s=>s.type==='priorities')||{}).id)
+        || 'today';
       // pull from the LAST meeting that actually recorded to-dos (the most recent prior date), not literally yesterday
       const curKey=instKey();
       const priorKeys=mtgItems.filter(it=>it.meeting_id===m.id && it.section===src && it.inst && it.inst<curKey).map(it=>it.inst);
