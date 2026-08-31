@@ -1399,7 +1399,7 @@
 <!-- Copy an answer you already gave in another meeting -->
 <div class="modal-ov no-print" id="copyAnsModal" onclick="if(event.target===this)closeCopyAnswers()">
   <div class="modal modal-scroll" style="text-align:left;max-width:640px;">
-    <h3 style="text-align:center;">⧉ Copy from another meeting</h3>
+    <h3 style="text-align:center;">🗂️ Copy from another meeting</h3>
     <p class="block-desc" style="text-align:center;margin:2px 0 14px;" id="copyAnsSub"></p>
     <div id="copyAnsBody"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
@@ -4195,10 +4195,10 @@ Herd Life`;
   function saveItem(it){ saveMtgLocal(); dbUpsertItem(it); }
   function delItem(id){ mtgItems=mtgItems.filter(x=>x.id!==id); saveMtgLocal(); dbDeleteItem(id); }
 
-  /* the ⧉ button only shows when you actually have an answer elsewhere to copy */
+  /* the 🗂️ button only shows when you actually have an answer elsewhere to copy */
   function cpaBtn(m,sec){
     if(!CPA_TYPES[sec.type] || !copyAnswerCandidates(m,sec).length) return '';
-    return '<button class="btn ghost sm" title="Copy an answer you gave in another meeting" onclick="openCopyAnswers(\''+sec.id+'\')">⧉</button>';
+    return '<button class="btn ghost sm" title="Copy an answer you gave in another meeting" onclick="openCopyAnswers(\''+sec.id+'\')">🗂️</button>';
   }
   function renderSection(m,sec,canEdit){
     const bodyId='secbody-'+sec.id;
