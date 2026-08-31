@@ -558,6 +558,14 @@
   .mtg-addrow textarea{flex:1;min-height:40px;max-height:160px;resize:vertical;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.45;}
   .mtg-addrow{display:flex;gap:8px;margin-top:10px;}
   .mtg-addrow input{flex:1;}
+  /* "copy an answer you already gave in another meeting" picker */
+  .cpa-row{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);}
+  .cpa-row:last-child{border-bottom:none;}
+  .cpa-row input[type=checkbox]{width:17px;height:17px;flex:0 0 auto;margin-top:2px;cursor:pointer;}
+  .cpa-row label{flex:1;cursor:pointer;font-size:.92rem;line-height:1.4;}
+  .cpa-meta{display:block;margin-top:3px;font-size:.74rem;color:var(--muted);}
+  .cpa-grp{margin:14px 0 2px;font-size:.78rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .cpa-grp:first-child{margin-top:0;}
   .mtg-pri{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--line);}
   .mtg-pri:last-child{border-bottom:none;}
   .mtg-pri input[type=checkbox]{width:18px;height:18px;flex:0 0 auto;cursor:pointer;}
@@ -1384,6 +1392,19 @@
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
       <button class="btn ghost" onclick="closeAddSection()">Cancel</button>
       <button class="btn" onclick="saveAddSection()"><span id="secSaveLabel">Add section</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- Copy an answer you already gave in another meeting -->
+<div class="modal-ov no-print" id="copyAnsModal" onclick="if(event.target===this)closeCopyAnswers()">
+  <div class="modal modal-scroll" style="text-align:left;max-width:640px;">
+    <h3 style="text-align:center;">⧉ Copy from another meeting</h3>
+    <p class="block-desc" style="text-align:center;margin:2px 0 14px;" id="copyAnsSub"></p>
+    <div id="copyAnsBody"></div>
+    <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
+      <button class="btn ghost" onclick="closeCopyAnswers()">Cancel</button>
+      <button class="btn" id="copyAnsGo" onclick="doCopyAnswers()">Copy selected</button>
     </div>
   </div>
 </div>
@@ -4174,6 +4195,11 @@ Herd Life`;
   function saveItem(it){ saveMtgLocal(); dbUpsertItem(it); }
   function delItem(id){ mtgItems=mtgItems.filter(x=>x.id!==id); saveMtgLocal(); dbDeleteItem(id); }
 
+  /* the ⧉ button only shows when you actually have an answer elsewhere to copy */
+  function cpaBtn(m,sec){
+    if(!CPA_TYPES[sec.type] || !copyAnswerCandidates(m,sec).length) return '';
+    return '<button class="btn ghost sm" title="Copy an answer you gave in another meeting" onclick="openCopyAnswers(\''+sec.id+'\')">⧉</button>';
+  }
   function renderSection(m,sec,canEdit){
     const bodyId='secbody-'+sec.id;
     let body='';
@@ -4189,6 +4215,7 @@ Herd Life`;
       if(canEdit) body+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add your note…  (Enter to add · Shift+Enter for a new line · paste an image)" onkeydown="mtgNoteKey(event,\''+sec.id+'\')" onpaste="mtgNotePaste(event,\''+sec.id+'\')"></textarea>'
         +'<input type="file" accept="image/*" id="imgin-'+sec.id+'" style="display:none" onchange="if(this.files[0])uploadNoteImage(\''+sec.id+'\',this.files[0]);this.value=\'\';">'
         +'<button class="btn ghost sm" title="Attach an image" onclick="document.getElementById(\'imgin-'+sec.id+'\').click()">📎</button>'
+        +cpaBtn(m,sec)
         +'<button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
@@ -4197,6 +4224,7 @@ Herd Life`;
         body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')">'
           +'<button type="button" class="mtg-datebtn" title="Set a due date — defaults to the next meeting" onclick="toggleDueInput(\''+sec.id+'\')">📅</button>'
           +'<input type="date" id="due-'+sec.id+'" class="mtg-duein" style="display:none;" value="'+nextDue+'">'
+          +cpaBtn(m,sec)
           +'<button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>'; }
     } else if(sec.type==='prioritiesPrev'){
       // sourceSection is only stamped on the seeded meetings; sections added through the UI get a
@@ -4307,6 +4335,99 @@ Herd Life`;
     if(dupe){ showToast('Already on this week’s list'); return; }
     addItem(section, instKey(), {type:'pri', text:text, done:false, author:author, carriedFrom:id});
     showToast('↪ Added for today'); renderMeetingView(); }
+
+  /* ── Copy an answer you already gave in another meeting ────────────────────
+     Someone in a daily standup AND a weekly L10 gets asked the same thing twice
+     (Good News, this week's to-dos). Rather than retype it, pull your own entry
+     across from any same-type section in another meeting you're part of. */
+  const CPA_TYPES={notes:1,priorities:1};      // which "questions" this applies to
+  const CPA_MAX_INSTS=3;                       // newest N meeting dates per section
+  const CPA_MAX_ROWS=40;                       // and a hard cap on the whole list
+  function copyAnswerCandidates(m,sec){
+    if(!m||!sec||!CPA_TYPES[sec.type]) return [];
+    const curTitle=String(sec.title||'').trim().toLowerCase();
+    const out=[];
+    mtgsStore.forEach(mm=>{
+      if(!mm || mm.id===m.id) return;
+      if((mm.attendees||[]).indexOf(myEmail)<0) return;
+      (mm.sections||[]).forEach(s=>{
+        if(s.type!==sec.type) return;
+        const mine=mtgItems.filter(it=>it.meeting_id===mm.id && it.section===s.id && it.inst && it.inst!=='static'
+          && sameEmail(it.data&&it.data.author, myEmail) && String((it.data&&it.data.text)||'').trim());
+        if(!mine.length) return;
+        // only the most recent few dates — a year-old standup shouldn't flood the list
+        const insts=Array.from(new Set(mine.map(it=>it.inst))).sort().reverse().slice(0,CPA_MAX_INSTS);
+        const keep=new Set(insts);
+        const sameQ=String(s.title||'').trim().toLowerCase()===curTitle;
+        mine.filter(it=>keep.has(it.inst)).forEach(it=>{
+          out.push({it:it, mtgTitle:mm.title||'Untitled meeting', secTitle:s.title||s.type, inst:it.inst, sameQ:sameQ});
+        });
+      });
+    });
+    // the same question by name first, then most recent, then by meeting
+    out.sort((a,b)=> (b.sameQ?1:0)-(a.sameQ?1:0)
+      || String(b.inst).localeCompare(String(a.inst))
+      || String(a.mtgTitle).localeCompare(String(b.mtgTitle)));
+    return out.slice(0,CPA_MAX_ROWS);
+  }
+  let copyAnsSecId=null;
+  function openCopyAnswers(secId){
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
+    copyAnsSecId=secId;
+    const rows=copyAnswerCandidates(m,sec);
+    document.getElementById('copyAnsSub').textContent='Your answers from other meetings, into “'+(sec.title||'this section')+'”.';
+    const body=document.getElementById('copyAnsBody');
+    const go=document.getElementById('copyAnsGo');
+    if(!rows.length){
+      body.innerHTML='<div class="mtg-empty">Nothing to copy yet — your other meetings don’t have answers from you in a matching section.</div>';
+      go.style.display='none';
+    } else {
+      go.style.display='';
+      let html='', lastQ=null;
+      rows.forEach((c,i)=>{
+        if(c.sameQ!==lastQ){ lastQ=c.sameQ; html+='<div class="cpa-grp">'+(c.sameQ?'Same question':'Other '+(sec.type==='notes'?'notes':'to-do')+' sections')+'</div>'; }
+        const d=parseYMD(c.inst); const when=d?fmtDue(d):c.inst;
+        html+='<div class="cpa-row"><input type="checkbox" id="cpa-'+i+'" data-itemid="'+esc(c.it.id)+'">'
+          +'<label for="cpa-'+i+'">'+esc((c.it.data&&c.it.data.text)||'')
+          +'<span class="cpa-meta">'+esc(c.mtgTitle)+' · '+esc(c.secTitle)+' · '+esc(when)+'</span></label></div>';
+      });
+      body.innerHTML=html;
+    }
+    document.getElementById('copyAnsModal').classList.add('show');
+  }
+  function closeCopyAnswers(){ document.getElementById('copyAnsModal').classList.remove('show'); copyAnsSecId=null; }
+  function doCopyAnswers(){
+    const m=mtgsStore.find(x=>x.id===curMtgId); const secId=copyAnsSecId;
+    const sec=m&&(m.sections||[]).find(s=>s.id===secId);
+    if(!sec){ closeCopyAnswers(); return; }
+    const picked=Array.from(document.querySelectorAll('#copyAnsBody input[type=checkbox]:checked'))
+      .map(cb=>mtgItems.find(x=>x.id===cb.getAttribute('data-itemid'))).filter(Boolean);
+    if(!picked.length){ showToast('Pick at least one answer to copy'); return; }
+    const inst=instKey(); let added=0, skipped=0;
+    const todayKey=wkKey(new Date());
+    picked.forEach(src=>{
+      const text=String((src.data&&src.data.text)||'').trim(); if(!text) return;
+      const dupe=mtgItems.some(x=>x.meeting_id===curMtgId && x.section===secId && x.inst===inst
+        && String((x.data&&x.data.text)||'').trim()===text && sameEmail(x.data&&x.data.author, myEmail));
+      if(dupe){ skipped++; return; }
+      let data;
+      if(sec.type==='notes'){
+        data={type:'note', text:text, copiedFrom:src.id};
+        if(src.data.img){ data.img=src.data.img; if(src.data.imgW) data.imgW=src.data.imgW; }
+      } else {
+        data={type:'pri', text:text, done:false, copiedFrom:src.id};
+        // a due date that's already passed shouldn't ride along into this meeting
+        if(src.data.due && String(src.data.due)>=todayKey) data.due=src.data.due;
+      }
+      addItem(secId, inst, data); added++;
+    });
+    closeCopyAnswers();
+    showToast(added
+      ? 'Copied '+added+' answer'+(added===1?'':'s')+(skipped?' · '+skipped+' already here':'')
+      : 'Already on this list');
+    renderMeetingView();
+  }
   /* everyone's entries in the same order everywhere — alphabetical by first name */
   function byContributor(a,b){ const na=String(pmName((a.data&&a.data.author)||'')).toLowerCase(), nb=String(pmName((b.data&&b.data.author)||'')).toLowerCase();
     return na.localeCompare(nb) || (((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0)); }
