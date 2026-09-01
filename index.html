@@ -2006,26 +2006,6 @@
   const INITIAL_HASH = (typeof location!=='undefined' && location.hash) || ''; // captured before Supabase consumes it (invite / password-reset links)
   const sb = USE_DB ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-  /* Supabase caps a plain select at the project's "Max rows" setting (1000 by
-     default) and tells you nothing — you just silently get the first page. Once
-     a table passes that, freshly-added rows fall off the end and look like they
-     were never saved. Always read a whole table through this. */
-  const SB_PAGE=1000;
-  async function sbSelectAll(table, cols, orderCol){
-    const out=[];
-    for(let from=0; ; from+=SB_PAGE){
-      let q=sb.from(table).select(cols).range(from, from+SB_PAGE-1);
-      if(orderCol) q=q.order(orderCol,{ascending:true});   // stable paging — without it pages can overlap or skip
-      const r=await q;
-      if(r.error) return {data:null, error:r.error};
-      const rows=r.data||[];
-      out.push.apply(out, rows);
-      if(rows.length<SB_PAGE) break;
-      if(from>200000) break;                               // guard against a runaway loop
-    }
-    return {data:out, error:null};
-  }
-
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function defaultQuarterName(){ const d=new Date(); return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -2059,7 +2039,7 @@
   let _noteT={};
   function persistNote(e){ save(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertEntry(cur().id, e), 600); }
   async function dbLoad(){
-    const [mr,er]=await Promise.all([ sbSelectAll('meetings','id,data','id'), sbSelectAll('entries','id,meeting_id,data','id') ]);
+    const [mr,er]=await Promise.all([ sb.from('meetings').select('id,data'), sb.from('entries').select('id,meeting_id,data') ]);
     if(mr.error) throw mr.error; if(er.error) throw er.error;
     const ms=mr.data||[];
     if(ms.length===0){
@@ -2277,9 +2257,11 @@
   function resolvePerson(p){ if(!p) return ''; if(String(p).indexOf('@')>=0) return p;
     const hit=(teamUsers||[]).find(u=>pmName(u.email).toLowerCase()===String(p).toLowerCase());
     return hit?hit.email:p; }
-  function avatarHtml(email,cls){ const src=avatarFor(email);
-    return src ? '<img class="'+(cls||'tm-avatar')+'" src="'+esc(src)+'" alt="" onerror="this.style.display=\'none\'">'
-               : '<span class="tm-initials">'+esc(initialsOf(email))+'</span>'; }
+  function avatarHtml(email,cls){ const src=avatarFor(email); const ini=initialsOf(email);
+    return src ? '<img class="'+(cls||'tm-avatar')+'" src="'+esc(src)+'" alt="" onerror="avatarFallback(this,\''+esc(ini)+'\')">'
+               : '<span class="tm-initials">'+esc(ini)+'</span>'; }
+  /* if a photo URL is broken/expired (e.g. an old Slack link), show initials instead of a blank */
+  function avatarFallback(img,ini){ try{ const s=document.createElement('span'); s.className='tm-initials'; s.textContent=ini||'?'; if(img&&img.parentNode) img.parentNode.replaceChild(s,img); }catch(e){ if(img) img.style.display='none'; } }
   function ownerOptions(selected){
     const emails=(teamUsers||[]).map(u=>u.email||'');
     let out='<option value="">— unassigned —</option>';
@@ -2414,13 +2396,13 @@
   function dbDeleteMetricValue(mid,wk){ if(!USE_DB) return; sb.from('metric_values').delete().eq('id',mid+'|'+wk).then(()=>{}); }
   async function dbLoadMetrics(){
     if(!USE_DB){ metricsLoaded=true; return; }
-    try{ const r=await sbSelectAll('metrics','id,data','id'); if(r.error) throw r.error;
+    try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error;
       const remote=(r.data||[]).map(x=>x.data).filter(Boolean);
       // tombstoned metrics stay out of the scorecard AND out of the recovery step below
       const byId={}, tombstoned={};
       remote.forEach(m=>{ if(!m||!m.id) return; if(m.deleted){ tombstoned[m.id]=true; return; } byId[m.id]=m; });
       // weekly numbers come from their own table
-      const vals={}; try{ const rv=await sbSelectAll('metric_values','metric_id,wk,value','metric_id'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
+      const vals={}; try{ const rv=await sb.from('metric_values').select('metric_id,wk,value'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
       // recover any browser-only metrics or values (e.g. entered before the tables existed) — never overwrite what's already shared
       (metricsStore||[]).forEach(lm=>{ if(!lm||!lm.id) return;
         if(tombstoned[lm.id]) return;   // deleted on purpose — a stale cache must not bring it back
@@ -3782,7 +3764,7 @@
   function dbUpsertSwim(row){ if(!USE_DB) return; sb.from('swimlanes').upsert({id:row.id,kind:row.kind,data:row.data}).then(r=>{ if(r.error) console.warn('swim save',r.error); }); }
   function dbDeleteSwim(id){ if(!USE_DB) return; sb.from('swimlanes').delete().eq('id',id).then(()=>{}); }
   async function dbLoadSwim(){ if(!USE_DB){ swLoaded=true; return; }
-    try{ const r=await sbSelectAll('swimlanes','id,kind,data','id'); if(r.error) throw r.error; const rows=r.data||[];
+    try{ const r=await sb.from('swimlanes').select('id,kind,data'); if(r.error) throw r.error; const rows=r.data||[];
       swLanes=rows.filter(x=>x.kind==='lane').map(x=>({id:x.id,kind:'lane',data:x.data||{}}));
       swCards=rows.filter(x=>x.kind==='card').map(x=>({id:x.id,kind:'card',data:x.data||{}}));
       const cfg=rows.find(x=>x.kind==='config'); if(cfg&&cfg.data) swConfig=Object.assign({startYear:2026,startQ:1,count:12},cfg.data);
@@ -4043,33 +4025,15 @@ Herd Life`;
   function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
   function dbUpsertMtg(m){ if(!USE_DB) return; sb.from('mtgs').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('mtg save',r.error); }); }
   function dbDeleteMtg(id){ if(!USE_DB) return; sb.from('mtgs').delete().eq('id',id).then(()=>{}); sb.from('mtg_items').delete().eq('meeting_id',id).then(()=>{}); }
-  /* Ids whose write to Supabase hasn't been confirmed yet. A reload or the 10s
-     poll replaces mtgItems with whatever the server returned, so anything still
-     in flight — or that failed to save — has to be merged back in or the person
-     watches their entry vanish a few seconds after typing it. */
-  const pendingItems=new Set();
-  function dbUpsertItem(it){ if(!USE_DB) return;
-    pendingItems.add(it.id);
-    sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{
-      if(r.error){ console.warn('item save',r.error);
-        showToast('⚠️ Couldn’t save that — check your connection, or log out and back in.'); }
-      else pendingItems.delete(it.id);
-    }, e=>{ console.warn('item save',e); showToast('⚠️ Couldn’t save that — check your connection.'); });
-  }
-  /* keep any local item the server hasn't acknowledged yet */
-  function mergePending(fresh){
-    const have=new Set(fresh.map(x=>x.id));
-    mtgItems.forEach(it=>{ if(pendingItems.has(it.id) && !have.has(it.id)) fresh.push(it); });
-    return fresh;
-  }
+  function dbUpsertItem(it){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error) console.warn('item save',r.error); }); }
   function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
   async function dbLoadMeetings(){
     if(!USE_DB){ mtgLoaded=true; return; }
-    try{ const a=await sbSelectAll('mtgs','id,data','id'); if(a.error) throw a.error;
+    try{ const a=await sb.from('mtgs').select('id,data'); if(a.error) throw a.error;
       const rows=(a.data||[]); const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data){ visionData=vrow.data; saveVisionLocal(); }
       mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean);
-      const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(b.error) throw b.error;
-      mtgItems=mergePending((b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})));
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) throw b.error;
+      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
       saveMtgLocal();
     }catch(e){ console.warn('meetings load failed — using local cache',e); }
     finally{ mtgLoaded=true; }
@@ -4197,8 +4161,8 @@ Herd Life`;
     const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const secEl=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
     if(secEl) secEl.style.opacity='0.5';
-    if(USE_DB){ try{ const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(!b.error){
-      mtgItems=mergePending((b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}))); saveMtgLocal(); } }catch(_){} }
+    if(USE_DB){ try{ const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(!b.error){
+      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); saveMtgLocal(); } }catch(_){} }
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
     const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
     const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
@@ -4218,10 +4182,10 @@ Herd Life`;
     if(document.getElementById('issueModal').classList.contains('show')) return;
     if(document.getElementById('mtgModal').classList.contains('show')) return;
     try{
-      const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(b.error) return;
-      const fresh=mergePending((b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})));
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) return;
+      const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
       const changed = mtgSig(fresh)!==mtgSig(mtgItems);
-      const a=await sbSelectAll('mtgs','id,data','id'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
+      const a=await sb.from('mtgs').select('id,data'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
       mtgItems=fresh; saveMtgLocal();
       if(changed && screen==='meetings' && curMtgId && !document.getElementById('issueModal').classList.contains('show')) renderMeetingView();
     }catch(e){}
@@ -6462,7 +6426,7 @@ Herd Life`;
   window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
 
   async function dbLoadMeetingsOnly(){
-    const mr=await sbSelectAll('meetings','id,data','id'); if(mr.error) throw mr.error;
+    const mr=await sb.from('meetings').select('id,data'); if(mr.error) throw mr.error;
     const ms=mr.data||[]; if(!ms.length) return;
     const meetings=ms.map(r=>({id:r.id,name:r.data&&r.data.name,theme:r.data&&r.data.theme,goal:r.data&&r.data.goal,entries:[]}));
     const byId={}; meetings.forEach(m=>byId[m.id]=m);
