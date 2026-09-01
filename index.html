@@ -1379,7 +1379,7 @@
     <label>Section title</label>
     <input type="text" id="sec-title" placeholder="e.g. Wins this week" style="width:100%;">
     <label style="margin-top:10px;display:block;">Type</label>
-    <select id="sec-type" style="width:100%;">
+    <select id="sec-type" style="width:100%;" onchange="secTypeChanged()">
       <option value="vision">Core Values &amp; Vision (from the Core Values tab)</option>
       <option value="text">Editable text (shared across every meeting)</option>
       <option value="notes">Notes everyone adds (like Good News)</option>
@@ -1388,7 +1388,12 @@
       <option value="issues">Issues list</option>
       <option value="metrics">Metrics snapshot</option>
       <option value="qpriorities">This quarter's priorities (with Gantt)</option>
+      <option value="qpriOwners">Quarterly Priority Items — grouped by owner</option>
     </select>
+    <div id="secQuarterRow" style="display:none;margin-top:10px;">
+      <label style="display:block;">Quarter</label>
+      <select id="sec-quarter" style="width:100%;"></select>
+    </div>
     <p class="block-desc" id="secTypeNote" style="margin-top:6px;font-size:.78rem;"></p>
     <div class="lock-err" id="secErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
@@ -4285,6 +4290,8 @@ Herd Life`;
       body = renderMetricSnapshot(sec);
     } else if(sec.type==='qpriorities'){
       body = renderQuarterRocks(sec.id);
+    } else if(sec.type==='qpriOwners'){
+      body = renderQuarterOwnerItems(m,sec);
     } else if(sec.type==='vision'){
       body = visionDisplayHtml();
     }
@@ -4675,6 +4682,69 @@ Herd Life`;
     }).join('');
   }
   function toggleRock(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+  /* ===== Quarterly Priority Items — the quarter's rocks and their tasks, grouped by owner,
+     showing only the people who are actually in this meeting. The quarter is picked when the
+     section is added (blank = whichever quarter is currently active). Read-only: a section can
+     be pinned to a quarter that isn't the active one, and the tick handlers only ever write to
+     the active quarter. ===== */
+  function openPrioInQuarter(qid,id){ if(qid && qid!==store.activeId) switchMeeting(qid); openPrio(id); }
+  function renderQuarterOwnerItems(m,sec){
+    const q = sec.quarterId ? (store.meetings||[]).find(x=>x.id===sec.quarterId) : (typeof cur==='function'?cur():null);
+    if(!q) return '<div class="mtg-empty">'+(sec.quarterId
+      ? 'The quarter this section was set to no longer exists. Use ✎ to pick another one.'
+      : 'No quarter loaded.')+'</div>';
+    const attendees=(m.attendees||[]).filter(Boolean);
+    if(!attendees.length) return '<div class="mtg-empty">Nobody is on this meeting yet — add attendees and their priorities will show up here.</div>';
+
+    /* same set of rocks the Quarterly Priorities section shows: things actually committed to */
+    const prios=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e))).filter(teamVisible);
+    const tasksAll=pvAllTasks(prios);
+
+    /* owners = the people in this meeting, deduped through resolvePerson so a name and an
+       email for the same person don't show up as two cards */
+    const keys=new Map();
+    attendees.forEach(a=>{ const r=resolvePerson(a)||a; if(r) keys.set(String(r).toLowerCase(), r); });
+    const owners=[...keys.values()].sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
+    const ownerTasks=o=>tasksAll.filter(t=>t.owner && sameEmail(t.owner,o));
+    const ownerPms=o=>prios.filter(e=>e.pm && sameEmail(e.pm,o));
+
+    const cards=owners.map(o=>{
+      const mine=ownerTasks(o), pms=ownerPms(o);
+      if(!mine.length && !pms.length) return '';
+      const done=mine.filter(t=>t.pct===100).length;
+      const prog=mine.filter(t=>t.pct>0&&t.pct<100).length;
+      const late=mine.filter(t=>isOverduePlan(t.p)).length;
+      const nP=new Set(mine.map(t=>t.e.id)).size;
+      const pmRows=pms.map(e=>{ const pct=prioPct(e);
+        return `<div class="pv-pmrow" onclick="openPrioInQuarter('${esc(q.id)}','${e.id}')" title="Open this priority">
+          <span class="prio-link" style="font-weight:700;">🎯 ${esc(e.title||'Untitled')} ↗</span>
+          <span class="pv-tag">${esc(e.dept||'Unassigned')}</span>
+          ${isAtRisk(e)?'<span class="pv-pill late">⚠ at risk</span>':''}
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600;"><span class="pctbar" style="display:inline-block;width:110px;margin:0;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%</span>
+        </div>`;}).join('');
+      return `<div class="pv-owcard">
+        <div class="pv-owhd">${avatarHtml(o)}
+          <div><h3>${esc(pmName(o))}</h3><div class="pv-owsub">${pms.length?`PM of ${pms.length} priorit${pms.length===1?'y':'ies'} · `:''}${mine.length} task${mine.length===1?'':'s'} on ${nP} priorit${nP===1?'y':'ies'}</div></div>
+          <div class="pv-owbadges">
+            ${pms.length?`<span class="pv-pill pm">📋 PM × ${pms.length}</span>`:''}
+            <span class="pv-pill done">✔ ${done} done</span>
+            <span class="pv-pill prog">${prog} in progress</span>
+            ${late?`<span class="pv-pill late">⚠ ${late} overdue</span>`:''}
+          </div>
+        </div>
+        ${pms.length?`<div class="pv-pmblock"><div class="pv-pmhd">📋 Priorities ${esc(pmName(o))} is PMing</div>${pmRows}</div>`:''}
+        ${mine.length?pvTaskTable(mine,true,true,q.id):'<p class="empty" style="padding:14px 16px;">No tasks assigned — PM only.</p>'}
+      </div>`;
+    }).join('');
+
+    if(!cards) return '<div class="mtg-empty">Nobody in this meeting is PMing a priority or holding a task on one in '+esc(q.name||'this quarter')+'.</div>';
+    const shownTasks=owners.reduce((n,o)=>n+ownerTasks(o).length,0);
+    const bar='<div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">'
+      + esc(q.name||'This quarter')+(sec.quarterId?'':' (follows whichever quarter is active)')
+      + ' — '+shownTasks+' task'+(shownTasks===1?'':'s')+' for the people in this meeting. Click a priority to open it.</div>';
+    return bar+cards;
+  }
 
   /* ===== Issues kanban board (Notion-style) ===== */
   const ISSUE_STATUSES=[{k:'notstarted',label:'Not started',c:'#9b8fae'},{k:'inprogress',label:'In progress',c:'#4a6cf7'},{k:'hasupdate',label:'Has update',c:'#8e4fb8'},{k:'done',label:'Done',c:'#2e9e6b'}];
@@ -5157,20 +5227,44 @@ Herd Life`;
     confirmModal('Delete the meeting "'+m.title+'" and everything in it?', ()=>{ mtgsStore=mtgsStore.filter(x=>x.id!==id); mtgItems=mtgItems.filter(x=>x.meeting_id!==id); saveMtgLocal(); dbDeleteMtg(id); closeMeetingCreate(); backToMeetings(); }, 'Delete meeting'); }
 
   /* sections */
+  /* quarters, newest first — the store keeps them in the order they were created */
+  function quartersNewestFirst(){
+    return (store.meetings||[]).slice().sort((a,b)=>{
+      const ra=quarterRange(a.name), rb=quarterRange(b.name);
+      const ta=ra?ra.start.getTime():0, tb=rb?rb.start.getTime():0;
+      return tb-ta || String(b.name||'').localeCompare(String(a.name||''));
+    });
+  }
+  /* the quarter picker only makes sense for the by-owner section, so show it only there */
+  /* want = the quarter to select once the list is built; leave it out to keep what's selected now */
+  function secTypeChanged(want){
+    const row=document.getElementById('secQuarterRow'); if(!row) return;
+    const on=document.getElementById('sec-type').value==='qpriOwners';
+    row.style.display=on?'block':'none';
+    if(!on) return;
+    const sel=document.getElementById('sec-quarter');
+    const keep=(want===undefined)?sel.value:(want||'');
+    sel.innerHTML='<option value="">Always the current quarter</option>'
+      + quartersNewestFirst().map(q=>'<option value="'+esc(q.id)+'">'+esc(q.name||'Untitled quarter')+'</option>').join('');
+    sel.value=keep; if(sel.selectedIndex<0) sel.value='';
+  }
   function openAddSection(){ document.getElementById('sec-id').value=''; document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes';
     document.getElementById('secModalTitle').textContent='➕ Add a section'; document.getElementById('secSaveLabel').textContent='Add section';
-    document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
+    document.getElementById('secErr').textContent=''; secTypeChanged(''); document.getElementById('mtgSecModal').classList.add('show'); }
   function openEditSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; const sec=(m.sections||[]).find(s=>s.id===sid); if(!sec) return;
     document.getElementById('sec-id').value=sid; document.getElementById('sec-title').value=sec.title||''; document.getElementById('sec-type').value=sec.type||'notes';
     document.getElementById('secModalTitle').textContent='✎ Edit section'; document.getElementById('secSaveLabel').textContent='Save changes';
-    document.getElementById('secErr').textContent=''; document.getElementById('mtgSecModal').classList.add('show'); }
+    document.getElementById('secErr').textContent=''; secTypeChanged(sec.quarterId||''); document.getElementById('mtgSecModal').classList.add('show'); }
   function closeAddSection(){ document.getElementById('mtgSecModal').classList.remove('show'); }
   function saveAddSection(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const title=document.getElementById('sec-title').value.trim(); if(!title){ document.getElementById('secErr').textContent='Give the section a title.'; return; }
     const type=document.getElementById('sec-type').value; const sid=document.getElementById('sec-id').value;
+    const quarterId=(type==='qpriOwners') ? (document.getElementById('sec-quarter').value||'') : null;
     if(!m.sections) m.sections=[];
-    if(sid){ const sec=m.sections.find(s=>s.id===sid); if(sec){ sec.title=title; sec.type=type; } }
-    else { m.sections.push({id:'s'+Date.now().toString(36), type, title}); }
+    if(sid){ const sec=m.sections.find(s=>s.id===sid); if(sec){ sec.title=title; sec.type=type;
+      if(quarterId===null) delete sec.quarterId; else sec.quarterId=quarterId; } }
+    else { const sec={id:'s'+Date.now().toString(36), type, title};
+      if(quarterId!==null) sec.quarterId=quarterId; m.sections.push(sec); }
     saveMtgLocal(); dbUpsertMtg(m); closeAddSection(); renderMeetingView(); }
   function deleteSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     confirmModal('Remove this section from the meeting?', ()=>{ m.sections=(m.sections||[]).filter(s=>s.id!==sid); saveMtgLocal(); dbUpsertMtg(m);
@@ -5761,15 +5855,19 @@ Herd Life`;
       <div class="pv-stat bad"><div class="lbl">Overdue</div><div class="num">${late}</div><div class="sub">needs attention</div></div>
     </div>`;
   }
-  function pvTaskTable(tasks,showPrio){
+  /* readOnly drops the tick control (used where the table shows a quarter that isn't the active
+     one — toggleTaskDone only ever writes to cur()); qid routes the priority link through that
+     quarter so it opens correctly from there. */
+  function pvTaskTable(tasks,showPrio,readOnly,qid){
     if(!tasks.length) return '<p class="empty" style="padding:14px 16px;">No tasks here yet.</p>';
+    const openCall = t => qid ? `openPrioInQuarter('${esc(qid)}','${t.e.id}')` : `openPrio('${t.e.id}')`;
     return `<div class="pv-tblwrap"><table class="pv-tbl">
       <tr><th style="width:34px;text-align:center;">✓</th><th style="min-width:200px;">Task</th>${showPrio?'<th style="min-width:160px;">Priority</th>':''}<th>Dept</th><th>Owner</th><th>Status</th><th>Start</th><th>End</th><th>%</th><th>Notes</th></tr>
       ${tasks.map(t=>{ const st=pvStatus(t); const homeD=(t.e.dept||'Unassigned');
         return `<tr>
-        <td style="text-align:center;">${tickHTML(t.e.id,t.i,t.pct)}</td>
+        <td style="text-align:center;">${readOnly?`<span class="tick ${t.pct===100?'done':''}" title="${t.pct}% complete">${t.pct===100?'✓':''}</span>`:tickHTML(t.e.id,t.i,t.pct)}</td>
         <td style="font-weight:600;">${esc(t.label)}</td>
-        ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="openPrio('${t.e.id}')">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
+        ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
         <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
         <td>${t.owner?esc(pmName(t.owner)):'<span class="pv-note">Unassigned</span>'}</td>
         <td><span class="pv-pill ${st[0]}">${st[1]}</span></td>
