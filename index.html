@@ -4030,7 +4030,15 @@ Herd Life`;
   function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
   function dbUpsertMtg(m){ if(!USE_DB) return; sb.from('mtgs').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('mtg save',r.error); }); }
   function dbDeleteMtg(id){ if(!USE_DB) return; sb.from('mtgs').delete().eq('id',id).then(()=>{}); sb.from('mtg_items').delete().eq('meeting_id',id).then(()=>{}); }
-  function dbUpsertItem(it){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error) console.warn('item save',r.error); }); }
+  function dbUpsertItem(it,retry){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error){ console.warn('item save',r.error); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); } }).catch(e=>{ console.warn('item save err',e); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); }); }
+  /* when we replace the item list from the server, keep anything just added here that the
+     server pull hasn't returned yet — otherwise a refresh right after adding wipes it off-screen */
+  function mergeFreshItems(fresh){
+    const ids=new Set(fresh.map(x=>x.id)); const now=Date.now();
+    const pending=(mtgItems||[]).filter(it=> it && !ids.has(it.id) && it.data && it.data.t && (now-it.data.t)<120000);
+    if(pending.length){ pending.forEach(it=>dbUpsertItem(it)); return fresh.concat(pending); }
+    return fresh;
+  }
   function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
   async function dbLoadMeetings(){
     if(!USE_DB){ mtgLoaded=true; return; }
@@ -4038,7 +4046,8 @@ Herd Life`;
       const rows=(a.data||[]); const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data){ visionData=vrow.data; saveVisionLocal(); }
       mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean);
       const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) throw b.error;
-      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
+      const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
+      mtgItems=mergeFreshItems(fresh);
       saveMtgLocal();
     }catch(e){ console.warn('meetings load failed — using local cache',e); }
     finally{ mtgLoaded=true; }
@@ -4167,7 +4176,7 @@ Herd Life`;
     const secEl=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
     if(secEl) secEl.style.opacity='0.5';
     if(USE_DB){ try{ const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(!b.error){
-      mtgItems=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); saveMtgLocal(); } }catch(_){} }
+      const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); mtgItems=mergeFreshItems(fresh); saveMtgLocal(); } }catch(_){} }
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
     const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
     const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
@@ -4189,9 +4198,10 @@ Herd Life`;
     try{
       const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) return;
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
-      const changed = mtgSig(fresh)!==mtgSig(mtgItems);
+      const merged=mergeFreshItems(fresh);
+      const changed = mtgSig(merged)!==mtgSig(mtgItems);
       const a=await sb.from('mtgs').select('id,data'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
-      mtgItems=fresh; saveMtgLocal();
+      mtgItems=merged; saveMtgLocal();
       if(changed && screen==='meetings' && curMtgId && !document.getElementById('issueModal').classList.contains('show')) renderMeetingView();
     }catch(e){}
   }
