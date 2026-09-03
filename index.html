@@ -799,6 +799,13 @@
   ul.done.tasklist .tl-pct{font-size:11.5px;color:var(--muted);font-weight:700;}
   .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px;}
   .b-high{background:#e4f4ec;color:var(--green);} .b-med{background:#fdeede;color:var(--amber);} .b-low{background:#eee;color:#666;}
+  /* live Jira ticket status beside a task that names one */
+  .jira-chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.3px;
+    text-decoration:none;white-space:nowrap;vertical-align:middle;border:1px solid transparent;}
+  .jira-chip:hover{filter:brightness(.96);text-decoration:none;}
+  .jira-chip.done{background:#e4f4ec;color:var(--green);border-color:#c4e6d4;}
+  .jira-chip.wip{background:#fdeede;color:var(--amber);border-color:#f2dcbc;}
+  .jira-chip.todo{background:#eef1f8;color:#4a6cf7;border-color:#d8def0;}
   .prio-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;}
 
   .note{font-size:13px;color:var(--muted);background:var(--lilac);border:1px solid var(--lilac-2);border-radius:10px;padding:12px 14px;margin-top:10px;}
@@ -1747,6 +1754,7 @@
       </div>
       <div class="mgroup admin-only" style="margin-left:auto;">
         <button class="btn sm" onclick="openNewPrioModal()">➕ New priority</button>
+        <button class="btn ghost sm" id="jiraSyncBtn" title="Check Jira now — ticks off any task whose ticket is done" onclick="jiraSyncClick()">↻ Sync Jira</button>
         <button class="btn danger sm" onclick="resetAll()">Clear quarter</button>
       </div>
     </div>
@@ -2230,6 +2238,110 @@
     setTimeout(()=>document.getElementById('np-title').focus(),60);
   }
   function closeNewPrioModal(){ document.getElementById('newPrioModal').classList.remove('show'); }
+
+  /* ---------- Jira ticket sync ----------
+     Put a ticket number in a task ("Fix the modem swap flow PCHT-1234") and the app shows
+     how that ticket is doing, then ticks the task off by itself once the ticket is done.
+     The lookup goes through the "jira-status" Edge Function — Jira won't answer a web page
+     directly, and the API token has to stay off the site. See JIRA-SYNC-SETUP.md.
+     If the function isn't deployed nothing breaks: no chips, no ticking. */
+  const JIRA_SITE = 'https://purplecowinternet.atlassian.net';
+  const JIRA_KEY_RE = /\b([A-Z][A-Z0-9]{1,9}-\d+)\b/g;
+  const JIRA_MIN_GAP = 5*60*1000;   // don't pester Jira more often than this
+  let jiraCache={}; try{ jiraCache=JSON.parse(localStorage.getItem(KEY+'_jira')||'{}')||{}; }catch(e){ jiraCache={}; }
+  let jiraLastRun=0, jiraRunning=false;
+  function jiraSaveCache(){ try{ localStorage.setItem(KEY+'_jira', JSON.stringify(jiraCache)); }catch(e){} }
+  /* every ticket number mentioned in a bit of text */
+  function jiraKeysIn(text){ const out=[]; String(text||'').replace(JIRA_KEY_RE,function(m,k){ if(out.indexOf(k)<0) out.push(k); return m; }); return out; }
+  function jiraFirstKey(text){ const k=jiraKeysIn(text); return k.length?k[0]:''; }
+  /* Only a ticket Jira has actually confirmed counts. Anything Jira didn't recognise is
+     remembered as unknown so wording like "Plan Q1-2026 offsite" never grows a dead chip. */
+  function jiraInfo(key){ const r=key?jiraCache[key]:null; return (r && !r.unknown) ? r : null; }
+  function jiraIsDone(key){ const i=jiraInfo(key); return !!(i && i.category==='done'); }
+  /* the little linked status pill shown beside a task that names a ticket */
+  function jiraChipHTML(text){
+    const i=jiraInfo(jiraFirstKey(text)); if(!i) return '';
+    const key=jiraFirstKey(text);
+    const cls = i.category==='done' ? 'done' : (i.category==='indeterminate' ? 'wip' : 'todo');
+    const label = i.status ? (key+' · '+i.status) : key;
+    return ' <a class="jira-chip '+cls+'" target="_blank" rel="noopener" href="'+esc(i.url||(JIRA_SITE+'/browse/'+key))+'"'
+      + ' title="'+esc((i.summary||key)+' — '+(i.status||''))+'" onclick="event.stopPropagation();">'+esc(label)+'</a>';
+  }
+  async function callJiraFn(keys){
+    if(!USE_DB) throw new Error('Not connected to the database.');
+    const {data}=await sb.auth.getSession();
+    const token=data && data.session && data.session.access_token;
+    if(!token) throw new Error('Please log in again.');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/jira-status',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'status',keys})});
+    let j; try{ j=await res.json(); }catch(e){ j=null; }
+    if(!res.ok || !j || j.error){
+      let msg = j && j.error;
+      if(msg && typeof msg==='object') msg = msg.message || JSON.stringify(msg);
+      if(!msg) msg = 'Jira lookup failed (status '+res.status+'). Is the jira-status function deployed?';
+      throw new Error(msg);
+    }
+    return j;
+  }
+  /* Look up every ticket mentioned on this quarter's tasks and the open meeting's to-dos,
+     then tick off the ones whose ticket is finished. Never un-ticks — if someone unticks a
+     task on purpose, jiraSkip keeps it that way. */
+  async function syncJiraTasks(opts){
+    opts=opts||{};
+    if(!USE_DB || jiraRunning) return;
+    if(!opts.force && Date.now()-jiraLastRun < JIRA_MIN_GAP) return;
+
+    const tasks=[];                       // {e,i,key} — tasks under this quarter's priorities
+    (cur().entries||[]).forEach(function(e){
+      if(e.type!=='priority' || !Array.isArray(e.done)) return;
+      e.done.forEach(function(label,i){ const k=jiraFirstKey(label); if(k) tasks.push({e:e,i:i,key:k}); });
+    });
+    const todos=[];                       // {it,key} — to-dos in the meeting that's open
+    if(curMtgId) mtgItems.forEach(function(it){
+      if(it.meeting_id!==curMtgId || !it.data || it.data.type!=='pri') return;
+      const k=jiraFirstKey(it.data.text); if(k) todos.push({it:it,key:k});
+    });
+    const keys=[...new Set(tasks.concat(todos).map(x=>x.key))].slice(0,100);
+    if(!keys.length){ jiraLastRun=Date.now(); if(opts.force) showToast('No Jira ticket numbers found on these tasks'); return; }
+
+    jiraRunning=true;
+    let j;
+    try{ j=await callJiraFn(keys); }
+    catch(err){ jiraRunning=false; console.warn('Jira sync', err); if(opts.force) showToast('Couldn’t reach Jira — '+err.message); return; }
+    jiraRunning=false; jiraLastRun=Date.now();
+
+    Object.keys(j.issues||{}).forEach(function(k){ jiraCache[k]=j.issues[k]; });
+    (j.unknown||[]).forEach(function(k){ jiraCache[k]={unknown:true,at:Date.now()}; });
+    jiraSaveCache();
+
+    const changed=new Set(); let n=0;
+    tasks.forEach(function(t){
+      if(!jiraIsDone(t.key)) return;
+      syncPlan(t.e); const p=t.e.plan[t.i]; if(!p) return;
+      if(Number(p.pct)===100 || p.jiraSkip) return;
+      p.pctBefore=Number(p.pct)||0; p.pct=100;
+      p.jiraDone={key:t.key,status:(jiraInfo(t.key)||{}).status||'Done',at:Date.now()};
+      changed.add(t.e); n++;
+    });
+    changed.forEach(function(e){ autoStage(e); persist(e); });
+    todos.forEach(function(t){
+      if(!jiraIsDone(t.key) || t.it.data.done || t.it.data.jiraSkip) return;
+      t.it.data.done=true; t.it.data.doneBy=''; t.it.data.doneAt=Date.now();
+      t.it.data.jiraDone={key:t.key,status:(jiraInfo(t.key)||{}).status||'Done'};
+      saveItem(t.it); n++;
+    });
+
+    if(screen==='dash'||screen==='prio') refreshPrio();
+    else if(screen==='meetings' && curMtgId) renderMeetingView();
+    if(n) showToast('Ticked '+n+' task'+(n===1?'':'s')+' off — the Jira ticket'+(n===1?' is':'s are')+' done');
+    else if(opts.force) showToast('Checked Jira — nothing new to tick off');
+  }
+  /* the ↻ Sync Jira button on the priorities screen */
+  async function jiraSyncClick(){
+    const b=document.getElementById('jiraSyncBtn'); const was=b?b.textContent:'';
+    if(b){ b.disabled=true; b.textContent='↻ Checking…'; }
+    try{ await syncJiraTasks({force:true}); }
+    finally{ const b2=document.getElementById('jiraSyncBtn'); if(b2){ b2.disabled=false; b2.textContent=was||'↻ Sync Jira'; } }
+  }
   /* ---------- team / user management (via secure Edge Function) ---------- */
   async function callUserFn(payload){
     if(!USE_DB) throw new Error('Not connected to the database.');
@@ -4135,7 +4247,7 @@ Herd Life`;
   function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
     try{ curMtgDate=occurrenceOnOrAfter(m,new Date()); }catch(e){ curMtgDate=new Date(); }
     if(!curMtgDate || isNaN(curMtgDate.getTime())) curMtgDate=new Date();
-    renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
+    renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
   function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=occStep(m,curMtgDate,dir); renderMeetingView(); }
   /* clear any stale local cache and pull everything fresh from the server (in-app version of "clear cache") */
@@ -4368,7 +4480,7 @@ Herd Life`;
     const carry = (carrySection && !done) ? '<button class="carry-btn" title="Add this to today’s to-dos" onclick="event.stopPropagation();carryToThisWeek(\''+it.id+'\',\''+carrySection+'\')">↪ Add for today</button>' : '';
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
-      +'<span class="ptxt">'+esc(it.data.text||'')+fromIss+dueChip+'</span>'
+      +'<span class="ptxt">'+esc(it.data.text||'')+jiraChipHTML(it.data.text)+fromIss+dueChip+'</span>'
       +carry
       +(hideWho?'':'<span class="who">'+esc(pmName(it.data.author))+'</span>')
       +(editable&&canE?'<button class="x" title="Edit" onclick="editItem(\''+it.id+'\')">✎</button><button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
@@ -5112,7 +5224,9 @@ Herd Life`;
     const data={type:'pri',text:v,done:false}; if(due) data.due=due;
     addItem(section,instKey(),data); renderMeetingView(); focusAdd(section); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
-  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
+  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null;
+    if(!checked && it.data.jiraDone) it.data.jiraSkip=true;   // un-ticked on purpose — the Jira sync backs off
+    saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
   /* 🎉 celebrate a completed task */
   let lastPointer={x:null,y:null};
   if(typeof document!=='undefined') document.addEventListener('pointerdown',function(e){ lastPointer={x:e.clientX,y:e.clientY}; }, true);
@@ -5628,7 +5742,7 @@ Herd Life`;
   function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }
   document.addEventListener('click', (e)=>{ const b=document.getElementById('sbAcct'), m=document.getElementById('sbAcctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target) && b && !b.contains(e.target)) m.classList.remove('show'); });
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
-  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
+  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); presenting=on; document.getElementById('presentBtn').textContent= on?'✕ Exit presentation (showing reviewed only)':'▶ Presentation mode'; if(screen==='dash') renderDashBody(); }
 
   /* ---------- render: master ---------- */
@@ -5760,7 +5874,7 @@ Herd Life`;
     const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
     const done=(e.done&&e.done.length)?'<ul class="done tasklist">'+e.done.map((d,i)=>{
       const tp=Number(((e.plan||[])[i]||{}).pct)||0;
-      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
+      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}${jiraChipHTML(d)}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
     }).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
@@ -5864,7 +5978,7 @@ Herd Life`;
       ${tasks.map(t=>{ const st=pvStatus(t); const homeD=(t.e.dept||'Unassigned');
         return `<tr>
         <td style="text-align:center;">${readOnly?`<span class="tick ${t.pct===100?'done':''}" title="${t.pct}% complete">${t.pct===100?'✓':''}</span>`:tickHTML(t.e.id,t.i,t.pct)}</td>
-        <td style="font-weight:600;">${esc(t.label)}</td>
+        <td style="font-weight:600;">${esc(t.label)}${jiraChipHTML(t.label)}</td>
         ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
         <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
         <td>${t.owner?esc(pmName(t.owner)):'<span class="pv-note">Unassigned</span>'}</td>
@@ -6236,7 +6350,9 @@ Herd Life`;
     const e=cur().entries.find(x=>x.id===id); if(!e) return;
     syncPlan(e); const p=e.plan[i]; if(!p) return;
     const now=Number(p.pct)||0;
-    if(now===100){ p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
+    // Un-ticking something the Jira sync ticked means "I don't agree" — remember that so
+    // the next sync leaves it alone.
+    if(now===100){ if(p.jiraDone) p.jiraSkip=true; p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
     else { p.pctBefore=now; p.pct=100; }
     autoStage(e); persist(e); refreshPrio();
   }
@@ -6262,7 +6378,7 @@ Herd Life`;
       return `
       <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
         <td style="text-align:center;">${tickHTML(e.id,i,tpct)}</td>
-        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
+        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${jiraChipHTML(d)}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
         <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
         <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
         <td class="tnum">${p.start?fmtShort(p.start):'—'}${(b&&p.origStart)?`<br><span class="was-dates">was ${fmtShort(p.origStart)}</span>`:''}</td>
@@ -6578,6 +6694,8 @@ Herd Life`;
       }
     }
     applyRoute();
+    // check Jira in the background — never hold up the page for it
+    if(USE_DB && reviewUnlocked) syncJiraTasks().catch(e=>console.warn('Jira sync', e));
   })();
 </script>
 </body>
