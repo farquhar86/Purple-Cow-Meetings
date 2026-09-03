@@ -29,16 +29,36 @@ else in the app works exactly as before.
 
 ## One-time setup
 
-### 1. Make a Jira API token
+### 1. Get a Jira API token
+
+**There's already one on hand.** The PCHT queue dashboard uses a Jira token kept in AWS
+Secrets Manager, dev-sandbox account (`528757786015`), `ca-central-1`:
+
+```
+aws secretsmanager get-secret-value --profile dev-sandbox --region ca-central-1 \
+  --secret-id pcht-queue-dashboard/jira --query SecretString --output text
+```
+
+It holds `{"email": "...", "token": "..."}` — those two values go straight into
+`JIRA_EMAIL` and `JIRA_API_TOKEN` below. It's been verified against PCHT, PCSYNC and DEV
+for this sync.
+
+**Worth knowing before you reuse it:** that token belongs to a *personal* account
+(rei.colina@), not a service account. Two consequences — the sync reads Jira as that
+person, and it dies the day that account is disabled or the token is rotated, taking the
+queue dashboard with it. Fine to start with; worth moving to a service account before many
+people depend on it.
+
+To make a fresh one instead:
 
 1. Go to <https://id.atlassian.com/manage-profile/security/api-tokens> signed in as the
-   account the sync should read as — **use a service/admin account, not a personal one**,
-   so the sync doesn't break when someone leaves.
+   account the sync should read as — a service/admin account ages better than a personal one.
 2. **Create API token**, name it `purple-cow-meetings`, copy the value.
    You can't view it again later — if it's lost, make a new one.
 
 The sync only ever *reads* Jira. The token still grants that account's full access, so
-treat it like a password.
+treat it like a password. Don't paste it into the repo or the app — only into Supabase's
+secrets.
 
 ### 2. Add the secrets in Supabase
 
