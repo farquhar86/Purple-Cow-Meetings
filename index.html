@@ -2313,6 +2313,16 @@
     (j.unknown||[]).forEach(function(k){ jiraCache[k]={unknown:true,at:Date.now()}; });
     jiraSaveCache();
 
+    /* Jira answered but couldn't tell us about anything — a wrong token or an account that
+       can't see these projects looks exactly like "nothing to do" otherwise. Say so instead. */
+    const jerrs=j.errors||[];
+    if(jerrs.length && !Object.keys(j.issues||{}).length){
+      console.warn('Jira sync — nothing came back:', jerrs);
+      if(opts.force) showToast('Jira couldn’t look these up — '+jerrs[0]);
+      return;
+    }
+    if(jerrs.length) console.warn('Jira sync — some tickets failed:', jerrs);
+
     const changed=new Set(); let n=0;
     tasks.forEach(function(t){
       if(!jiraIsDone(t.key)) return;
