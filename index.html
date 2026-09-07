@@ -4222,7 +4222,13 @@ Herd Life`;
     let d=new Date(base), guard=0; while(d<t && guard<600){ d=stepDate(d,m.type,1); guard++; } return d;
   }
   function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
-  function mtgVisible(m){ return isSuperAdmin() || (m.attendees||[]).indexOf(myEmail)>=0; }
+  /* A meeting is "mine" if I'm an attendee OR the organizer. Organizers who untick
+     "include me" (which only scopes metrics/priorities) must still see their own meeting. */
+  function mtgIsMine(m){ if(!m) return false;
+    if((m.attendees||[]).indexOf(myEmail)>=0) return true;
+    const me=String(myEmail||'').toLowerCase();
+    return !!me && [m.organizer,m.by].some(p=>p && String(resolvePerson(p)).toLowerCase()===me); }
+  function mtgVisible(m){ return isSuperAdmin() || mtgIsMine(m); }
   let mtgShowAll=true;   // super admin default to seeing every meeting
   function setMtgFilter(all){ mtgShowAll=all; renderMeetingsList(); }
   function renderMeetingsList(){
@@ -4230,7 +4236,7 @@ Herd Life`;
     document.getElementById('mtgDetailView').style.display='none';
     const box=document.getElementById('mtgListView');
     const seeAll=isSuperAdmin();
-    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    const mine=mtgsStore.filter(m=>mtgIsMine(m));
     let list = (seeAll && mtgShowAll) ? mtgsStore.slice() : mine;
     let toggle='';
     if(seeAll){ toggle='<div style="display:flex;gap:6px;margin-bottom:16px;">'
@@ -4284,7 +4290,7 @@ Herd Life`;
     document.getElementById('mtgListView').style.display='none';
     const box=document.getElementById('mtgDetailView'); box.style.display='';
     const recurring=!(m.type==='once'||!m.type);
-    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const canEdit = canManageUsers() || mtgIsMine(m);
     const nav = recurring
       ? '<div class="mtg-datenav"><button class="btn ghost" onclick="mtgNav(-1)">◀</button>'
         + '<span class="mtg-date">'+esc(fmtMtgDate(curMtgDate))+'</span>'
@@ -4325,7 +4331,7 @@ Herd Life`;
     if(USE_DB){ try{ const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(!b.error){
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); mtgItems=mergeFreshItems(fresh); saveMtgLocal(); } }catch(_){} }
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
-    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const canEdit = canManageUsers() || mtgIsMine(m);
     const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
     const node=fresh.firstElementChild;
     const cur=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
@@ -4517,7 +4523,7 @@ Herd Life`;
     const out=[];
     mtgsStore.forEach(mm=>{
       if(!mm || mm.id===m.id) return;
-      if((mm.attendees||[]).indexOf(myEmail)<0) return;
+      if(!mtgIsMine(mm)) return;
       (mm.sections||[]).forEach(s=>{
         if(s.type!==sec.type) return;
         const mine=mtgItems.filter(it=>it.meeting_id===mm.id && it.section===s.id && it.inst && it.inst!=='static'
@@ -5011,16 +5017,16 @@ Herd Life`;
     const links=(it.data.alsoIn||[]).map(id=>mtgsStore.find(x=>x.id===id)).filter(Boolean);
     let html='<span class="issm-lbl">Shown in:</span>';
     html+='<span class="issm-chip home" title="Home meeting — where this issue lives">🏠 '+esc(home?home.title:'this meeting')+'</span>';
-    html+=links.map(mm=>{ const mine=(mm.attendees||[]).indexOf(myEmail)>=0;
+    html+=links.map(mm=>{ const mine=mtgIsMine(mm);
       return '<span class="issm-chip">'+esc(mm.title)+(mine?'<button title="Remove from this meeting" onclick="removeIssueFromMeeting(\''+mm.id+'\')">×</button>':'')+'</span>'; }).join('');
     const linkedSet=new Set([it.meeting_id].concat(it.data.alsoIn||[]));
-    const opts=mtgsStore.filter(mm=>(mm.attendees||[]).indexOf(myEmail)>=0 && !linkedSet.has(mm.id) && (mm.sections||[]).some(s=>s.type==='issues'));
+    const opts=mtgsStore.filter(mm=>mtgIsMine(mm) && !linkedSet.has(mm.id) && (mm.sections||[]).some(s=>s.type==='issues'));
     if(opts.length){ html+='<select class="issm-add" onchange="addIssueToMeeting(this.value);this.value=\'\';"><option value="">＋ Also show in a meeting…</option>'
       + opts.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).map(mm=>'<option value="'+esc(mm.id)+'">'+esc(mm.title)+'</option>').join('')+'</select>'; }
     box.innerHTML=html; }
   function addIssueToMeeting(mid){ if(!mid) return; const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
     const mm=mtgsStore.find(x=>x.id===mid); if(!mm) return;
-    if((mm.attendees||[]).indexOf(myEmail)<0){ infoModal('You can only add this issue to meetings you’re a part of.'); return; }
+    if(!mtgIsMine(mm)){ infoModal('You can only add this issue to meetings you’re a part of.'); return; }
     if(!Array.isArray(it.data.alsoIn)) it.data.alsoIn=[];
     if(it.meeting_id!==mid && it.data.alsoIn.indexOf(mid)<0) it.data.alsoIn.push(mid);
     it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeetings(it); showToast('Added to '+mm.title); }
@@ -5617,7 +5623,7 @@ Herd Life`;
   /* which of a meeting's sections you can actually put something into */
   const HOME_ADDABLE={notes:'note', priorities:'pri'};
   function homeMeetingsHtml(){
-    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    const mine=mtgsStore.filter(m=>mtgIsMine(m));
     if(!mine.length) return '<div class="mtg-empty">You are not on any meetings yet.</div>';
     const withNext=mine.map(m=>{ let d=null; try{ d=occurrenceOnOrAfter(m,new Date()); }catch(e){}
       return {m, d:(d&&!isNaN(d.getTime()))?d:null}; });
