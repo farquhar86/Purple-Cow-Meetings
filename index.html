@@ -461,6 +461,41 @@
   .sc-cumtag{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--purple);background:#f0e6fa;border-radius:999px;padding:2px 7px;vertical-align:middle;}
   .sc-cum{font-size:.82rem;color:var(--ink);line-height:1.45;}
   .sc-cum2{font-size:.72rem;color:var(--muted);margin-top:3px;}
+  /* ---- roll-up metric: an overall number with its channels nested inside ---- */
+  .mx-src.roll{background:#efe7fb;color:var(--purple-dark);}
+  .sc-roll{grid-column:1/-1;padding:0;overflow:hidden;cursor:default;}
+  .sc-roll:hover{transform:none;box-shadow:var(--shadow);}
+  .sc-roll .sc-head{padding:16px 18px 14px;display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:10px 22px;align-items:center;cursor:pointer;}
+  .sc-roll .sc-head:hover{background:#fcfaff;}
+  .sc-roll .sc-name{font-size:1.05rem;}
+  .sc-roll .sc-top{margin:0;justify-content:flex-start;gap:12px;}
+  .sc-roll .sc-num-row{gap:14px;}
+  .sc-roll .sc-big{width:auto;}
+  .sc-roll .sc-side{display:flex;align-items:center;gap:14px;justify-content:flex-end;}
+  .sc-roll .sc-side .sc-meta{margin:0;flex-direction:column;align-items:flex-end;gap:2px;}
+  .sc-rollfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.78rem;padding:0 18px 12px;color:var(--muted);flex-wrap:wrap;}
+  .sc-rollfoot .rule{color:var(--purple-dark);font-weight:700;}
+  .sc-caret{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--lilac);color:var(--purple-dark);font-size:.9rem;font-weight:800;flex:0 0 auto;transition:transform .15s;}
+  .sc-roll.open .sc-caret{transform:rotate(90deg);}
+  .sc-kids{display:none;background:#fbf9fe;border-top:1px solid var(--line);padding:12px 18px 14px;}
+  .sc-roll.open .sc-kids{display:block;}
+  .sc-kids-hd{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;}
+  .sc-kids-hd::after{content:"";flex:1;height:1px;background:var(--line);}
+  .sc-kids .sc-cards{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));padding:0;}
+  .sc-kids .sc-card{border-left-width:4px;padding:13px 15px;}
+  .sc-kids .sc-name{font-size:.92rem;}
+  .sc-kids .sc-top{margin-bottom:8px;}
+  .sc-kids .sc-top img,.sc-kids .sc-top .tm-initials{width:26px;height:26px;font-size:.6rem;}
+  .sc-kids .sc-big{font-size:1.6rem;width:80px;}
+  .sc-kids .sc-meta{margin-top:8px;font-size:.76rem;}
+  .sc-kids .sc-foot{margin-top:8px;padding-top:8px;font-size:.74rem;}
+  .sc-share b{color:var(--ink);}
+  .sc-kids-empty{font-size:.82rem;color:var(--muted);}
+  @media(max-width:640px){.sc-roll .sc-head{grid-template-columns:1fr;}}
+  .mx-rollkids{border:1px solid var(--line);border-radius:10px;background:#fbf9fe;padding:4px 10px;margin-top:8px;}
+  .mx-rollkid{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.88rem;}
+  .mx-rollkid:last-child{border-bottom:none;}
+  .mx-rollkid .who{margin-left:auto;font-size:.76rem;color:var(--muted);}
   .ch-proj{background:#faf6ff;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:12px 16px;margin:4px 0 14px;font-size:.9rem;line-height:1.5;color:var(--ink);}
   .ch-proj.off{border-left-color:#d8533b;} .ch-proj.on{border-left-color:#2e9e6b;}
   .mx-owner-group{margin-bottom:22px;}
@@ -1453,6 +1488,11 @@
         <select id="mx-sub" style="width:100%;"></select></div>
     </div>
     <div style="margin-top:10px;">
+      <label>Rolls up into <span style="font-weight:400;color:var(--muted)">— optional</span></label>
+      <select id="mx-parent" style="width:100%;" onchange="mxParentNote()"></select>
+      <p class="block-desc" id="mxParentNote" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
+    <div style="margin-top:10px;">
       <label>What kind of metric is this?</label>
       <select id="mx-kind" onchange="mxKindChange()" style="width:100%;">
         <option value="total">Weekly target — hit the same number every week, target ÷ 13 (weekly sales, churn count)</option>
@@ -1500,7 +1540,18 @@
       <option value="salesforce">Salesforce report</option>
       <option value="connect">AWS Connect</option>
       <option value="calc">Calculated from other metrics</option>
+      <option value="rollup">Roll-up — combined from the metrics that roll up into this one</option>
     </select>
+    <div id="mx-roll-wrap" style="display:none;margin-top:10px;">
+      <label>How the channels combine</label>
+      <select id="mx-rollrule" style="width:100%;" onchange="mxRollPreview()">
+        <option value="sum">Add them up (sales, installs, counts)</option>
+        <option value="avg">Average of the channels (NPS, CSAT, scores)</option>
+      </select>
+      <label style="margin-top:10px;display:block;">Rolling up into this metric</label>
+      <div class="mx-rollkids" id="mxRollKids"></div>
+      <p class="block-desc" style="margin-top:6px;font-size:.78rem;">To add or remove a channel, open that metric and change its <b>Rolls up into</b>. Nobody types this number in — it lands as soon as its channels have a number for the week.</p>
+    </div>
     <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
       <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
       <div class="mx-calcrow">
@@ -2568,10 +2619,27 @@
   function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
   function canEditMetric(m){ return (myRole!=='team' || (m.owner||'')===myEmail); }
   /* a calculated number is worked out, not typed — the cell shows the result */
-  function canTypeMetric(m){ return canEditMetric(m) && !isCalc(m); }
+  function canTypeMetric(m){ return canEditMetric(m) && !isCalc(m) && !isRollup(m); }
+  /* ---- roll-ups: a parent metric worked out from the children that point at it ---- */
+  function isRollup(m){ return !!(m && m.source==='rollup'); }
+  function rollupKids(m){ if(!m) return []; return metricsStore.filter(x=>x && x.id!=='fnconfig' && x.parent===m.id && x.id!==m.id); }
+  /* the roll-up this metric sits under on the scorecard, if that roll-up exists */
+  function rollupParentOf(m){ if(!m||!m.parent) return null; const p=metricsStore.find(x=>x.id===m.parent); return (p && isRollup(p) && p.id!==m.id)?p:null; }
+  function rollupValue(m,col,depth){
+    if(!isRollup(m) || (depth||0)>4) return null;
+    const vals=[]; rollupKids(m).forEach(k=>{ const v=cellValue(k,col,(depth||0)+1).eff; if(v!==null && !isNaN(v)) vals.push(v); });
+    if(!vals.length) return null;
+    const sum=vals.reduce((a,b)=>a+b,0);
+    const v=(m.rollRule==='avg') ? Math.round(sum/vals.length*10)/10 : sum;
+    return isFinite(v)?Math.round(v*100)/100:null;
+  }
+  function rollupLabel(m){ const kids=rollupKids(m); if(!kids.length) return 'No channels yet';
+    if(m.rollRule==='avg') return 'Average of '+kids.length+' channel'+(kids.length===1?'':'s');
+    return kids.map(k=>k.name||'Untitled').join(' + '); }
   function metricSrcBadge(m){ return m.source==='salesforce'?'<span class="mx-src sf">SF</span>'
     :(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>'
-    :(isCalc(m)?'<span class="mx-src calc" title="'+esc(calcLabel(m))+'">CALC</span>':'')); }
+    :(isCalc(m)?'<span class="mx-src calc" title="'+esc(calcLabel(m))+'">CALC</span>'
+    :(isRollup(m)?'<span class="mx-src roll" title="'+esc(rollupLabel(m))+'">ROLL-UP · '+rollupKids(m).length+'</span>':''))); }
   /* week columns — start day is configurable, defaults to Sunday */
   let weekStartDay=0;
   function loadWeekStart(){ try{ const v=localStorage.getItem(KEY+'_weekstart'); weekStartDay = (v===null)?0:(Number(v)||0); }catch(e){ weekStartDay=0; }
@@ -2649,6 +2717,17 @@
   /* the weekly numbers to read for a metric — computed on the fly for a calculated one */
   function metricValues(m,depth){
     if(!m) return {};
+    if(isRollup(m) && (depth||0)<=4){
+      const out=Object.assign({},m.values||{}); const keys={};
+      rollupKids(m).forEach(k=>{ Object.keys(metricValues(k,(depth||0)+1)).forEach(kk=>{ keys[kk]=1; }); });
+      Object.keys(keys).forEach(k=>{
+        const typed=out[k]; if(!(typed===undefined||typed===null||typed==='')) return;
+        const d=parseAnyDate(k); if(!d) return;
+        const v=rollupValue(m,{key:k,start:d,end:new Date(d.getTime()+6*86400000)},(depth||0)+1);
+        if(v!==null) out[k]=v;
+      });
+      return out;
+    }
     if(!isCalc(m) || (depth||0)>4) return m.values||{};
     const c=m.calc, out=Object.assign({},m.values||{});
     const A=metricsStore.find(x=>x.id===c.a), B=metricsStore.find(x=>x.id===c.b);
@@ -2678,6 +2757,7 @@
     const hasDirect=!(direct===undefined||direct===null||direct===''||isNaN(Number(direct)));
     let derived=null;
     if(isCalc(m)) derived=calcValue(m,col,depth);
+    else if(isRollup(m)) derived=rollupValue(m,col,depth);
     else if((m.period||'weekly')!=='weekly'){
       const inside=[];
       Object.keys(vals).forEach(k=>{ if(k===col.key) return; const d=parseAnyDate(k); if(!d) return;
@@ -2873,13 +2953,63 @@
       : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
     const badge=metricSrcBadge(m);
     const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
-    const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>' : '';
+    const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>'
+      : (isRollup(m) ? '<span class="mx-calcfoot" title="Worked out automatically from its channels">\u0192 '+esc(rollupLabel(m))+'</span>' : '');
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
       +'<div class="sc-foot">'+(calcFoot||trend)+'<span class="sc-open">History &amp; graph →</span></div>'
+      +'</div>';
+  }
+  /* a child's share of a summed roll-up, shown in place of the goal label */
+  function rollShareHtml(m,parent,thisW){
+    if(!parent || parent.rollRule==='avg') return '';
+    const pv=cellValue(parent,colFor(thisW)).eff, cv=cellValue(m,colFor(thisW)).eff;
+    if(pv===null||cv===null||isNaN(pv)||isNaN(cv)||!pv) return '';
+    return '<span class="sc-share"><b>'+Math.round(cv/pv*100)+'%</b> of the total</span>';
+  }
+  /* which roll-ups the viewer has folded shut — remembered per browser */
+  let rollClosed={}; try{ rollClosed=JSON.parse(localStorage.getItem(KEY+'_rollclosed')||'{}')||{}; }catch(e){ rollClosed={}; }
+  function toggleRoll(id,ev){ if(ev) ev.stopPropagation(); const el=document.getElementById('roll-'+id); if(!el) return;
+    el.classList.toggle('open'); if(el.classList.contains('open')) delete rollClosed[id]; else rollClosed[id]=1;
+    try{ localStorage.setItem(KEY+'_rollclosed', JSON.stringify(rollClosed)); }catch(e){} }
+  function setAllRolls(open){ document.querySelectorAll('.sc-roll').forEach(el=>{ const id=el.id.replace(/^roll-/,'');
+    el.classList.toggle('open',open); if(open) delete rollClosed[id]; else rollClosed[id]=1; });
+    try{ localStorage.setItem(KEY+'_rollclosed', JSON.stringify(rollClosed)); }catch(e){} }
+  /* any card on the scorecard: a roll-up gets its channels nested inside it */
+  function scCardHtml(m,lastW,thisW,depth){
+    if(!isRollup(m) || (depth||0)>3) return metricCardHtml(m,lastW,thisW);
+    return rollCardHtml(m,lastW,thisW,depth||0);
+  }
+  function rollCardHtml(m,lastW,thisW,depth){
+    const kids=rollupKids(m).filter(metricVisible);
+    const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
+    const gT=effectiveGoal(m,thisW);
+    const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
+    const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
+    const color=TIER_COLORS[tier]||'#c9bcd9';
+    let trend='<span style="color:var(--muted)">No prior week</span>';
+    if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
+      else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
+    const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
+    const open=!rollClosed[m.id];
+    const kidCards = kids.length
+      ? '<div class="sc-cards">'+kids.map(k=>{ const h=scCardHtml(k,lastW,thisW,depth+1);
+          const share=rollShareHtml(k,m,thisW); return share ? h.replace('<div class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<div class="sc-meta">'+share) : h; }).join('')+'</div>'
+      : '<div class="sc-kids-empty">Nothing rolls up into this yet. Open a metric and set its <b>Rolls up into</b> to '+esc(m.name||'this metric')+'.</div>';
+    return '<div class="sc-card sc-roll'+(open?' open':'')+'" id="roll-'+esc(m.id)+'" style="border-left-color:'+color+'">'
+      +'<div class="sc-head" onclick="toggleRoll(\''+m.id+'\',event)">'
+      +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+'</span></div>'
+      +'<div class="sc-num-row"><span class="sc-big-wrap"><span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span><span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<div class="sc-side"><span class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></span>'
+      +'<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'</div>'
+      +'<div class="sc-rollfoot"><span class="rule" title="Worked out automatically from its channels">\u0192 '+esc(rollupLabel(m))+'</span>'+trend
+      +'<a class="sc-open" href="#" onclick="event.preventDefault();openMetricChart(\''+m.id+'\')">History &amp; graph →</a></div>'
+      +'<div class="sc-kids"><div class="sc-kids-hd">Channels that roll into '+esc(m.name||'this')+'</div>'+kidCards+'</div>'
       +'</div>';
   }
   let mxGroupMode='func';   // 'func' | 'owner' | 'all'
@@ -3120,13 +3250,18 @@
   function renderMetrics(){
     renderCompanyTargets();
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
-    const list=metricsStore.filter(metricVisible);
-    if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
-    list.forEach(normalizeMetric);
+    const all=metricsStore.filter(metricVisible);
+    if(!all.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
+    all.forEach(normalizeMetric);
+    /* a channel shows inside its roll-up, not as a loose card as well */
+    const visIds={}; all.forEach(m=>{ visIds[m.id]=1; });
+    const list=all.filter(m=>{ const p=rollupParentOf(m); return !(p && visIds[p.id]); });
     const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
     const gbtn=(mode,label)=>'<button class="btn '+(mxGroupMode===mode?'':'ghost')+' sm" onclick="setMxGroup(\''+mode+'\')">'+label+'</button>';
-    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+'</div>';
-    if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
+    const hasRolls=list.some(isRollup);
+    const rollBtns = hasRolls ? '<span style="flex:1"></span><button class="btn ghost sm" onclick="setAllRolls(true)">Expand roll-ups</button><button class="btn ghost sm" onclick="setAllRolls(false)">Collapse roll-ups</button>' : '';
+    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+rollBtns+'</div>';
+    if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
     if(mxGroupMode==='func'){
       const cfg=ensureFnConfig();
       const groups=new Map();
@@ -3150,9 +3285,9 @@
         const subOrder=[]; (f?f.subs:[]).forEach(s=>{ if(subOrder.indexOf(s)<0) subOrder.push(s); });
         items.forEach(m=>{ const s=m.sub||''; if(s && subOrder.indexOf(s)<0) subOrder.push(s); });
         const noSub=items.filter(m=>!(m.sub||'')).slice().sort(coFirst);
-        let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
+        let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
         subOrder.forEach(s=>{ const su=items.filter(m=>(m.sub||'')===s).slice().sort(coFirst); if(!su.length) return;
-          body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; });
+          body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>'; });
         return '<div class="mx-owner-group mx-fn-group" data-fn="'+esc(d)+'"><div class="mx-owner-hd" draggable="true" title="Drag to reorder the sections"><span class="grip">⠿</span>'+avs
           +'<span class="nm">'+(d?esc(d):'No function yet')+'</span>'+foLab+'<span class="cnt">'+items.length+'</span></div>'
           + body + '</div>';
@@ -3167,7 +3302,7 @@
     const html=keys.map(o=>{ const items=groups.get(o); const person=resolvePerson(o);
       return '<div class="mx-owner-group"><div class="mx-owner-hd">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')
         +'<span class="nm">'+esc(o?pmName(person):'Unassigned')+'</span><span class="cnt">'+items.length+'</span></div>'
-        +'<div class="sc-cards">'+items.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div></div>';
+        +'<div class="sc-cards">'+items.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div></div>';
     }).join('');
     wrap.innerHTML=toggle+html;
   }
@@ -3528,6 +3663,8 @@
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
     set('mx-source', editing?(m.source||'manual'):'manual');
     set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
+    mxFillParentPicker(editing?m:null); mxParentNote();
+    set('mx-rollrule', editing?(m.rollRule||'sum'):'sum');
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
     mxPendingBackfill=null;
@@ -3645,6 +3782,33 @@
     if(hit){ inp.value=hit.name; note.innerHTML='✅ Linked to report <b>'+esc(hit.id)+'</b>. The scheduled sync will pull this report’s total each week.'; }
     else if(inp.value.trim()){ note.textContent='Not recognised yet — pick a report from the list, or paste the report link from Salesforce and it will be matched automatically.'; }
   }
+  /* "Rolls up into" — every roll-up metric this one could sit under (not itself, not its own channels) */
+  function mxFillParentPicker(m){
+    const sel=document.getElementById('mx-parent'); if(!sel) return;
+    const meId=m?m.id:'';
+    const isKidOfMe=x=>{ let p=x, n=0; while(p && n++<6){ if(p.id===meId) return true; p=p.parent?metricsStore.find(y=>y.id===p.parent):null; } return false; };
+    const opts=metricsStore.filter(x=>x && x.id!=='fnconfig' && isRollup(x) && x.id!==meId && !isKidOfMe(x))
+      .slice().sort((a,b)=>String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
+    const cur=(m&&m.parent)||'';
+    sel.innerHTML='<option value="">Nothing — shows as its own card</option>'
+      + opts.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===cur?' selected':'')+'>'+esc(x.name||'Untitled')+(x.dept?' · '+esc(x.dept):'')+'</option>').join('');
+    if(cur && !opts.some(x=>x.id===cur)) sel.value='';
+  }
+  function mxParentNote(){
+    const note=document.getElementById('mxParentNote'); const sel=document.getElementById('mx-parent'); if(!note||!sel) return;
+    if(!sel.options.length || (sel.options.length===1 && !sel.value)){
+      note.innerHTML = (sel.options.length<=1) ? 'No roll-up metrics yet. To make one, create a metric whose source is <b>Roll-up</b>, then point channels at it here.' : 'Shows as its own card.'; return; }
+    if(!sel.value){ note.textContent='Shows as its own card.'; return; }
+    const p=metricsStore.find(x=>x.id===sel.value);
+    note.innerHTML='Nests under <b>'+esc(p?p.name:'?')+'</b> on the scorecard and feeds its number. Keeps its own owner, target and source.';
+  }
+  function mxRollPreview(){
+    const box=document.getElementById('mxRollKids'); if(!box) return;
+    const meId=(document.getElementById('mx-id')||{}).value||'';
+    const kids=meId ? metricsStore.filter(x=>x && x.id!=='fnconfig' && x.parent===meId) : [];
+    if(!kids.length){ box.innerHTML='<div class="mx-rollkid" style="color:var(--muted)">'+(meId?'Nothing yet.':'Save this metric first, then point channels at it from their own forms.')+'</div>'; return; }
+    box.innerHTML=kids.map(k=>'<div class="mx-rollkid">'+avatarHtml(resolvePerson(k.owner))+'<span>'+esc(k.name||'Untitled')+'</span><span class="who">'+esc(pmName(resolvePerson(k.owner))||'—')+(k.source&&k.source!=='manual'?' · '+esc(k.source):' · manual')+'</span></div>').join('');
+  }
   /* the two metric pickers for a formula — anything but this metric itself */
   function mxFillCalcPickers(){
     const meId=(document.getElementById('mx-id')||{}).value||'';
@@ -3710,6 +3874,8 @@
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
     const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
     const cw=document.getElementById('mx-calc-wrap'); if(cw) cw.style.display=(s==='calc')?'block':'none';
+    const rw=document.getElementById('mx-roll-wrap'); if(rw) rw.style.display=(s==='rollup')?'block':'none';
+    if(s==='rollup'){ wrap.style.display='none'; mxRollPreview(); return; }
     if(s==='calc'){ wrap.style.display='none'; mxFillCalcPickers(); mxCalcPreview(); return; }
     if(s==='manual'){ wrap.style.display='none'; return; }
     wrap.style.display='block';
@@ -3744,6 +3910,8 @@
       quarterGoals: mxReadQuarters(),
       quarterStarts: mxReadQuarterStarts(),
       source, sourceRef, sourceName,
+      parent: (function(){ const p=(document.getElementById('mx-parent')||{}).value||''; return (p && p!==id)?p:''; })(),
+      rollRule: (document.getElementById('mx-rollrule')||{}).value||'sum',
       calc: (source==='calc') ? { a:(document.getElementById('mx-calc-a')||{}).value||'',
                                   op:(document.getElementById('mx-calc-op')||{}).value||'div',
                                   b:(document.getElementById('mx-calc-b')||{}).value||'',
