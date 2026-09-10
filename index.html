@@ -496,6 +496,10 @@
   .mx-rollkid{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.88rem;}
   .mx-rollkid:last-child{border-bottom:none;}
   .mx-rollkid .who{margin-left:auto;font-size:.76rem;color:var(--muted);}
+  .modal label.mx-rollkid{display:flex;align-items:center;gap:8px;margin:0;padding:7px 0;font-size:.88rem;font-weight:500;color:var(--ink);cursor:pointer;}
+  .mx-rollkid input[type=checkbox]{width:16px;height:16px;margin:0;padding:0;flex:0 0 auto;}
+  .mx-rollkid .elsewhere{font-size:.7rem;color:#8a6100;background:#fffdf6;border:1px dashed #d9a940;border-radius:999px;padding:1px 7px;}
+  .mx-rollkids{max-height:230px;overflow:auto;}
   .ch-proj{background:#faf6ff;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:12px 16px;margin:4px 0 14px;font-size:.9rem;line-height:1.5;color:var(--ink);}
   .ch-proj.off{border-left-color:#d8533b;} .ch-proj.on{border-left-color:#2e9e6b;}
   .mx-owner-group{margin-bottom:22px;}
@@ -1487,6 +1491,46 @@
       <div style="flex:1;min-width:150px;"><label>Sub-function <span style="font-weight:400;color:var(--muted)">— optional</span></label>
         <select id="mx-sub" style="width:100%;"></select></div>
     </div>
+    <label style="margin-top:10px;display:block;">Where does this number come from?</label>
+    <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
+      <option value="manual">Manual entry — someone types it in weekly</option>
+      <option value="salesforce">Salesforce report</option>
+      <option value="connect">AWS Connect</option>
+      <option value="calc">Calculated from other metrics</option>
+      <option value="rollup">Roll-up — combined from the metrics that roll up into this one</option>
+    </select>
+    <div id="mx-roll-wrap" style="display:none;margin-top:10px;">
+      <label>How the channels combine</label>
+      <select id="mx-rollrule" style="width:100%;" onchange="mxRollPreview()">
+        <option value="sum">Add them up (sales, installs, counts)</option>
+        <option value="avg">Average of the channels (NPS, CSAT, scores)</option>
+      </select>
+      <label style="margin-top:10px;display:block;">Which metrics roll up into this one <span style="font-weight:400;color:var(--muted)">— tick the channels</span></label>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><input id="mxRollSearch" placeholder="Search metrics…" oninput="mxRollPreview()" style="flex:1;"></div>
+      <div class="mx-rollkids" id="mxRollKids"></div>
+      <p class="block-desc" id="mxRollNote" style="margin-top:6px;font-size:.78rem;">Nobody types this number in — it lands as soon as its channels have a number for the week. A channel can also point at this roll-up from its own form (<b>Rolls up into</b>).</p>
+    </div>
+    <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
+      <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
+      <div class="mx-calcrow">
+        <select id="mx-calc-a" onchange="mxCalcPreview()"></select>
+        <select id="mx-calc-op" class="op" onchange="mxCalcPreview()">
+          <option value="div">&divide;</option><option value="mul">&times;</option>
+          <option value="add">+</option><option value="sub">&minus;</option>
+        </select>
+        <select id="mx-calc-b" onchange="mxCalcPreview()"></select>
+      </div>
+      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:400;">
+        <input type="checkbox" id="mx-calc-x100" onchange="mxCalcPreview()" style="width:auto;margin:0;"> Multiply by 100 (turns a ratio into a percentage)
+      </label>
+      <p class="block-desc" id="mx-calc-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
+    <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
+      <label id="mx-srcref-label">Source</label>
+      <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
+      <datalist id="sfReportList"></datalist>
+      <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
     <div style="margin-top:10px;">
       <label>Rolls up into <span style="font-weight:400;color:var(--muted)">— optional</span></label>
       <select id="mx-parent" style="width:100%;" onchange="mxParentNote()"></select>
@@ -1534,45 +1578,6 @@
     <p class="block-desc" id="mxStartHint" style="display:none;margin-top:7px;font-size:.78rem;">
       <b>Started at</b> is the number this was sitting at when the quarter opened (e.g. 43,439 herd members on July 1).
       Progress and pace are measured from there to the target. Leave it blank and the last reading before the quarter is used instead.</p>
-    <label style="margin-top:12px;display:block;">Where does this number come from?</label>
-    <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
-      <option value="manual">Manual entry — someone types it in weekly</option>
-      <option value="salesforce">Salesforce report</option>
-      <option value="connect">AWS Connect</option>
-      <option value="calc">Calculated from other metrics</option>
-      <option value="rollup">Roll-up — combined from the metrics that roll up into this one</option>
-    </select>
-    <div id="mx-roll-wrap" style="display:none;margin-top:10px;">
-      <label>How the channels combine</label>
-      <select id="mx-rollrule" style="width:100%;" onchange="mxRollPreview()">
-        <option value="sum">Add them up (sales, installs, counts)</option>
-        <option value="avg">Average of the channels (NPS, CSAT, scores)</option>
-      </select>
-      <label style="margin-top:10px;display:block;">Rolling up into this metric</label>
-      <div class="mx-rollkids" id="mxRollKids"></div>
-      <p class="block-desc" style="margin-top:6px;font-size:.78rem;">To add or remove a channel, open that metric and change its <b>Rolls up into</b>. Nobody types this number in — it lands as soon as its channels have a number for the week.</p>
-    </div>
-    <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
-      <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
-      <div class="mx-calcrow">
-        <select id="mx-calc-a" onchange="mxCalcPreview()"></select>
-        <select id="mx-calc-op" class="op" onchange="mxCalcPreview()">
-          <option value="div">&divide;</option><option value="mul">&times;</option>
-          <option value="add">+</option><option value="sub">&minus;</option>
-        </select>
-        <select id="mx-calc-b" onchange="mxCalcPreview()"></select>
-      </div>
-      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:400;">
-        <input type="checkbox" id="mx-calc-x100" onchange="mxCalcPreview()" style="width:auto;margin:0;"> Multiply by 100 (turns a ratio into a percentage)
-      </label>
-      <p class="block-desc" id="mx-calc-note" style="margin-top:6px;font-size:.78rem;"></p>
-    </div>
-    <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
-      <label id="mx-srcref-label">Source</label>
-      <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
-      <datalist id="sfReportList"></datalist>
-      <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
-    </div>
     <label style="margin-top:14px;display:block;">Backfill history <span style="font-weight:400;color:var(--muted)">— paste “date, value” lines (one per week); any date inside a week works</span></label>
     <textarea id="mx-backfill" rows="4" placeholder="2026-01-04, 176&#10;2026-01-11, 131&#10;2026-01-18, 149" style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;"></textarea>
     <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -3665,6 +3670,7 @@
     set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
     mxFillParentPicker(editing?m:null); mxParentNote();
     set('mx-rollrule', editing?(m.rollRule||'sum'):'sum');
+    mxRollLoadTicks(editing?m:null); const rs=document.getElementById('mxRollSearch'); if(rs) rs.value='';
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
     mxPendingBackfill=null;
@@ -3797,17 +3803,42 @@
   function mxParentNote(){
     const note=document.getElementById('mxParentNote'); const sel=document.getElementById('mx-parent'); if(!note||!sel) return;
     if(!sel.options.length || (sel.options.length===1 && !sel.value)){
-      note.innerHTML = (sel.options.length<=1) ? 'No roll-up metrics yet. To make one, create a metric whose source is <b>Roll-up</b>, then point channels at it here.' : 'Shows as its own card.'; return; }
+      note.innerHTML = (sel.options.length<=1) ? 'No roll-up metrics yet. Make one by setting a metric&rsquo;s source (above) to <b>Roll-up</b> and ticking its channels there.' : 'Shows as its own card.'; return; }
     if(!sel.value){ note.textContent='Shows as its own card.'; return; }
     const p=metricsStore.find(x=>x.id===sel.value);
     note.innerHTML='Nests under <b>'+esc(p?p.name:'?')+'</b> on the scorecard and feeds its number. Keeps its own owner, target and source.';
   }
+  /* the channels ticked for this roll-up while the form is open; null until the form loads them */
+  let mxRollTicks=null;
+  function mxRollLoadTicks(m){ mxRollTicks={}; if(m) metricsStore.forEach(x=>{ if(x && x.parent===m.id && x.id!==m.id) mxRollTicks[x.id]=1; }); }
+  function mxRollTick(id,on){ if(!mxRollTicks) mxRollTicks={}; if(on) mxRollTicks[id]=1; else delete mxRollTicks[id]; }
   function mxRollPreview(){
     const box=document.getElementById('mxRollKids'); if(!box) return;
+    if(!mxRollTicks) mxRollTicks={};
     const meId=(document.getElementById('mx-id')||{}).value||'';
-    const kids=meId ? metricsStore.filter(x=>x && x.id!=='fnconfig' && x.parent===meId) : [];
-    if(!kids.length){ box.innerHTML='<div class="mx-rollkid" style="color:var(--muted)">'+(meId?'Nothing yet.':'Save this metric first, then point channels at it from their own forms.')+'</div>'; return; }
-    box.innerHTML=kids.map(k=>'<div class="mx-rollkid">'+avatarHtml(resolvePerson(k.owner))+'<span>'+esc(k.name||'Untitled')+'</span><span class="who">'+esc(pmName(resolvePerson(k.owner))||'—')+(k.source&&k.source!=='manual'?' · '+esc(k.source):' · manual')+'</span></div>').join('');
+    const q=((document.getElementById('mxRollSearch')||{}).value||'').trim().toLowerCase();
+    /* anything but this metric, its own ancestors (no loops) and the function config */
+    const isAncestor=x=>{ let p=metricsStore.find(y=>y.id===meId), n=0; while(p && p.parent && n++<6){ if(p.parent===x.id) return true; p=metricsStore.find(y=>y.id===p.parent); } return false; };
+    const opts=metricsStore.filter(x=>x && x.id!=='fnconfig' && x.id!==meId && metricVisible(x) && !isAncestor(x))
+      .filter(x=>!q || String(x.name||'').toLowerCase().indexOf(q)>=0)
+      .slice().sort((a,b)=>{ const ta=mxRollTicks[a.id]?0:1, tb=mxRollTicks[b.id]?0:1; if(ta!==tb) return ta-tb; return String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()); });
+    if(!opts.length){ box.innerHTML='<div class="mx-rollkid" style="color:var(--muted);cursor:default;">'+(q?'No metrics match.':'No other metrics yet.')+'</div>'; return; }
+    box.innerHTML=opts.map(k=>{ const on=!!mxRollTicks[k.id];
+      const other=(!on && k.parent && k.parent!==meId) ? metricsStore.find(y=>y.id===k.parent) : null;
+      return '<label class="mx-rollkid"><input type="checkbox"'+(on?' checked':'')+' onchange="mxRollTick(\''+esc(k.id)+'\',this.checked)">'
+        + avatarHtml(resolvePerson(k.owner))+'<span>'+esc(k.name||'Untitled')+'</span>'
+        + (other?'<span class="elsewhere" title="Ticking it here moves it out of '+esc(other.name||'')+'">in '+esc(other.name||'another roll-up')+'</span>':'')
+        + '<span class="who">'+esc(pmName(resolvePerson(k.owner))||'—')+(k.source&&k.source!=='manual'?' · '+esc(k.source):' · manual')+'</span></label>'; }).join('');
+  }
+  /* after a roll-up is saved: point the ticked metrics at it, release the ones unticked */
+  function mxRollKidsApply(m){
+    if(!m || !mxRollTicks) return;
+    const changed=[];
+    metricsStore.forEach(x=>{ if(!x || x.id==='fnconfig' || x.id===m.id) return;
+      const want=!!mxRollTicks[x.id], has=(x.parent===m.id);
+      if(want && !has){ x.parent=m.id; changed.push(x); }
+      else if(!want && has){ x.parent=''; changed.push(x); } });
+    changed.forEach(persistMetric);
   }
   /* the two metric pickers for a formula — anything but this metric itself */
   function mxFillCalcPickers(){
@@ -3920,6 +3951,8 @@
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
     if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); Object.keys(mxPendingBackfill).forEach(wk=>dbUpsertMetricValue(m.id,wk,mxPendingBackfill[wk])); mxPendingBackfill=null; }
+    if(source==='rollup') mxRollKidsApply(m);
+    mxRollTicks=null;
     persistMetric(m); closeMetricModal(); renderMetrics();
     // if the chart/history window is open for this metric, refresh it so the new goal type shows
     if(curChartMetricId===m.id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(m.id);
