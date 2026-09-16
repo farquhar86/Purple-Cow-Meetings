@@ -6120,6 +6120,7 @@ Herd Life`;
       else if(sort==='dept') pr.sort((a,b)=>(a.dept||'~').localeCompare(b.dept||'~'));
       else if(sort==='contrib') pr.sort((a,b)=>(a.by||'').localeCompare(b.by||''));
       else if(sort==='new') pr.sort((a,b)=>(b.t||0)-(a.t||0));
+      pr=sinkCompletePrios(pr);
       document.getElementById('dash-count').textContent = pr.length+' priorit'+(pr.length===1?'y':'ies');
       const stageBar = stageBarHTML(baseList) + stageHintHTML(baseList, pr.length);
       if(!pr.length){
@@ -6297,7 +6298,7 @@ Herd Life`;
     const tasksAll=pvAllTasks(all);
     const depts=pvDeptList(all,tasksAll);
     if(!depts.includes(dashDeptPick)) dashDeptPick=depts[0]||'';
-    const owned=all.filter(e=>(e.dept||'Unassigned')===dashDeptPick);
+    const owned=sinkCompletePrios(all.filter(e=>(e.dept||'Unassigned')===dashDeptPick));
     const mine=tasksAll.filter(t=>t.dept===dashDeptPick);
     const contributed=mine.filter(t=>(t.e.dept||'Unassigned')!==dashDeptPick);
     document.getElementById('dash-count').textContent = dashDeptPick+' · '+owned.length+' owned · '+contributed.length+' contributed task'+(contributed.length===1?'':'s');
@@ -6321,7 +6322,7 @@ Herd Life`;
     const owners=[...keys.values()].sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
     const hasUn=tasksAll.some(t=>!t.owner);
     const ownerTasks=o=>tasksAll.filter(t=> o? sameEmail(t.owner,o) : !t.owner);
-    const ownerPms=o=>o?all.filter(e=>sameEmail(e.pm,o)):[];
+    const ownerPms=o=>o?sinkCompletePrios(all.filter(e=>sameEmail(e.pm,o))):[];
     if(dashOwnerPick && dashOwnerPick!=='__un' && !owners.some(o=>sameEmail(o,dashOwnerPick))) dashOwnerPick='';
     const shown = dashOwnerPick ? [dashOwnerPick==='__un'?'':dashOwnerPick] : [...owners, ...(hasUn?[''] : [])];
     const scope = dashOwnerPick ? ownerTasks(dashOwnerPick==='__un'?'':dashOwnerPick) : tasksAll;
@@ -6631,6 +6632,10 @@ Herd Life`;
     let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
     return Math.round(sum/done.length);
   }
+  /* a priority is complete once every one of its tasks is done */
+  function prioComplete(e){ return !!(e.done&&e.done.length) && prioPct(e)===100; }
+  /* completed priorities sink to the bottom of any list; the existing order is kept otherwise */
+  function sinkCompletePrios(list){ return list.filter(e=>!prioComplete(e)).concat(list.filter(prioComplete)); }
   /* the clickable completion circle, used on every task list */
   function tickHTML(id,i,pct){
     const on=Number(pct)===100;
