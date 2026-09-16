@@ -581,6 +581,13 @@
   .mtg-prigroup .mtg-pri{padding-left:8px;}
   .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
   .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
+  .mtg-empty.sm{font-size:.8rem;padding:4px 8px;opacity:.8;}
+  .mtg-addrow-person{margin-top:6px;margin-bottom:4px;padding-left:8px;}
+  .mtg-addrow-person input[type=text],.mtg-addrow-person>input:not([type=date]){font-size:.9rem;}
+  .mtg-prigroup{padding-bottom:8px;margin-bottom:16px;border-bottom:1px solid var(--line);}
+  .mtg-prigroup:last-child{border-bottom:none;}
+  .mtg-cpa-row{margin-top:12px;align-items:center;}
+  .mtg-cpa-lbl{font-size:.78rem;color:var(--muted);align-self:center;}
   .from-issue{display:inline-block;font-size:.68rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 8px;margin-left:8px;cursor:pointer;white-space:nowrap;vertical-align:middle;}
   .mtg-pri .pri-due{display:inline-block;font-size:.68rem;font-weight:700;color:var(--purple-dark);background:var(--lilac-2);border-radius:999px;padding:1px 8px;margin-left:8px;white-space:nowrap;vertical-align:middle;}
   .mtg-pri .pri-due.over{background:#fbe6e5;color:#c9302c;}
@@ -1388,7 +1395,7 @@
       <option value="issues">Issues list</option>
       <option value="metrics">Metrics snapshot</option>
       <option value="qpriorities">This quarter's priorities (with Gantt)</option>
-      <option value="qpriOwners">Quarterly Priority Items — tasks grouped by who they're assigned to</option>
+      <option value="qpriOwners">Quarterly Priority Items — grouped by owner</option>
     </select>
     <div id="secQuarterRow" style="display:none;margin-top:10px;">
       <label style="display:block;">Quarter</label>
@@ -2011,26 +2018,6 @@
   const INITIAL_HASH = (typeof location!=='undefined' && location.hash) || ''; // captured before Supabase consumes it (invite / password-reset links)
   const sb = USE_DB ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
-  /* Supabase caps a plain select at the project's "Max rows" setting (1000 by
-     default) and tells you nothing — you just silently get the first page. Once
-     a table passes that, freshly-added rows fall off the end and look like they
-     were never saved. Always read a whole table through this. */
-  const SB_PAGE=1000;
-  async function sbSelectAll(table, cols, orderCol){
-    const out=[];
-    for(let from=0; ; from+=SB_PAGE){
-      let q=sb.from(table).select(cols).range(from, from+SB_PAGE-1);
-      if(orderCol) q=q.order(orderCol,{ascending:true});   // stable paging — without it pages can overlap or skip
-      const r=await q;
-      if(r.error) return {data:null, error:r.error};
-      const rows=r.data||[];
-      out.push.apply(out, rows);
-      if(rows.length<SB_PAGE) break;
-      if(from>200000) break;                               // guard against a runaway loop
-    }
-    return {data:out, error:null};
-  }
-
   function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
   function defaultQuarterName(){ const d=new Date(); return 'Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear(); }
   function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -2064,7 +2051,7 @@
   let _noteT={};
   function persistNote(e){ save(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertEntry(cur().id, e), 600); }
   async function dbLoad(){
-    const [mr,er]=await Promise.all([ sbSelectAll('meetings','id,data','id'), sbSelectAll('entries','id,meeting_id,data','id') ]);
+    const [mr,er]=await Promise.all([ sb.from('meetings').select('id,data'), sb.from('entries').select('id,meeting_id,data') ]);
     if(mr.error) throw mr.error; if(er.error) throw er.error;
     const ms=mr.data||[];
     if(ms.length===0){
@@ -2421,13 +2408,13 @@
   function dbDeleteMetricValue(mid,wk){ if(!USE_DB) return; sb.from('metric_values').delete().eq('id',mid+'|'+wk).then(()=>{}); }
   async function dbLoadMetrics(){
     if(!USE_DB){ metricsLoaded=true; return; }
-    try{ const r=await sbSelectAll('metrics','id,data','id'); if(r.error) throw r.error;
+    try{ const r=await sb.from('metrics').select('id,data'); if(r.error) throw r.error;
       const remote=(r.data||[]).map(x=>x.data).filter(Boolean);
       // tombstoned metrics stay out of the scorecard AND out of the recovery step below
       const byId={}, tombstoned={};
       remote.forEach(m=>{ if(!m||!m.id) return; if(m.deleted){ tombstoned[m.id]=true; return; } byId[m.id]=m; });
       // weekly numbers come from their own table
-      const vals={}; try{ const rv=await sbSelectAll('metric_values','metric_id,wk,value','metric_id'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
+      const vals={}; try{ const rv=await sb.from('metric_values').select('metric_id,wk,value'); if(!rv.error){ (rv.data||[]).forEach(v=>{ (vals[v.metric_id]=vals[v.metric_id]||{})[v.wk]=v.value; }); } }catch(_){}
       // recover any browser-only metrics or values (e.g. entered before the tables existed) — never overwrite what's already shared
       (metricsStore||[]).forEach(lm=>{ if(!lm||!lm.id) return;
         if(tombstoned[lm.id]) return;   // deleted on purpose — a stale cache must not bring it back
@@ -3789,7 +3776,7 @@
   function dbUpsertSwim(row){ if(!USE_DB) return; sb.from('swimlanes').upsert({id:row.id,kind:row.kind,data:row.data}).then(r=>{ if(r.error) console.warn('swim save',r.error); }); }
   function dbDeleteSwim(id){ if(!USE_DB) return; sb.from('swimlanes').delete().eq('id',id).then(()=>{}); }
   async function dbLoadSwim(){ if(!USE_DB){ swLoaded=true; return; }
-    try{ const r=await sbSelectAll('swimlanes','id,kind,data','id'); if(r.error) throw r.error; const rows=r.data||[];
+    try{ const r=await sb.from('swimlanes').select('id,kind,data'); if(r.error) throw r.error; const rows=r.data||[];
       swLanes=rows.filter(x=>x.kind==='lane').map(x=>({id:x.id,kind:'lane',data:x.data||{}}));
       swCards=rows.filter(x=>x.kind==='card').map(x=>({id:x.id,kind:'card',data:x.data||{}}));
       const cfg=rows.find(x=>x.kind==='config'); if(cfg&&cfg.data) swConfig=Object.assign({startYear:2026,startQ:1,count:12},cfg.data);
@@ -4050,12 +4037,7 @@ Herd Life`;
   function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
   function dbUpsertMtg(m){ if(!USE_DB) return; sb.from('mtgs').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('mtg save',r.error); }); }
   function dbDeleteMtg(id){ if(!USE_DB) return; sb.from('mtgs').delete().eq('id',id).then(()=>{}); sb.from('mtg_items').delete().eq('meeting_id',id).then(()=>{}); }
-  function dbUpsertItem(it,retry){ if(!USE_DB) return;
-    const failed=e=>{ console.warn('item save',e);
-      if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500);
-      else showToast('⚠️ Couldn’t save that — check your connection, or log out and back in.'); };
-    sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data})
-      .then(r=>{ if(r.error) failed(r.error); }).catch(failed); }
+  function dbUpsertItem(it,retry){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error){ console.warn('item save',r.error); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); } }).catch(e=>{ console.warn('item save err',e); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); }); }
   /* when we replace the item list from the server, keep anything just added here that the
      server pull hasn't returned yet — otherwise a refresh right after adding wipes it off-screen */
   function mergeFreshItems(fresh){
@@ -4067,10 +4049,10 @@ Herd Life`;
   function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
   async function dbLoadMeetings(){
     if(!USE_DB){ mtgLoaded=true; return; }
-    try{ const a=await sbSelectAll('mtgs','id,data','id'); if(a.error) throw a.error;
+    try{ const a=await sb.from('mtgs').select('id,data'); if(a.error) throw a.error;
       const rows=(a.data||[]); const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data){ visionData=vrow.data; saveVisionLocal(); }
       mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean);
-      const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(b.error) throw b.error;
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) throw b.error;
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
       mtgItems=mergeFreshItems(fresh);
       saveMtgLocal();
@@ -4200,7 +4182,7 @@ Herd Life`;
     const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const secEl=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
     if(secEl) secEl.style.opacity='0.5';
-    if(USE_DB){ try{ const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(!b.error){
+    if(USE_DB){ try{ const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(!b.error){
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); mtgItems=mergeFreshItems(fresh); saveMtgLocal(); } }catch(_){} }
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
     const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
@@ -4221,11 +4203,11 @@ Herd Life`;
     if(document.getElementById('issueModal').classList.contains('show')) return;
     if(document.getElementById('mtgModal').classList.contains('show')) return;
     try{
-      const b=await sbSelectAll('mtg_items','id,meeting_id,section,inst,data','id'); if(b.error) return;
+      const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(b.error) return;
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}}));
       const merged=mergeFreshItems(fresh);
       const changed = mtgSig(merged)!==mtgSig(mtgItems);
-      const a=await sbSelectAll('mtgs','id,data','id'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
+      const a=await sb.from('mtgs').select('id,data'); if(a&&!a.error){ const rows=a.data||[]; const vrow=rows.find(r=>r.id==='app-vision'); if(vrow&&vrow.data) visionData=vrow.data; mtgsStore=rows.filter(r=>r.id!=='app-vision').map(x=>x.data).filter(Boolean); }
       mtgItems=merged; saveMtgLocal();
       if(changed && screen==='meetings' && curMtgId && !document.getElementById('issueModal').classList.contains('show')) renderMeetingView();
     }catch(e){}
@@ -4263,13 +4245,11 @@ Herd Life`;
         +'<button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
-      body = rows.length ? priGroupsHtml(rows,sec.id,canEdit,true) : '<div class="mtg-empty">Nothing added for this meeting yet.</div>';
-      if(canEdit){ const nextDue=mtgNextKey();
-        body+='<div class="mtg-addrow"><input id="in-'+sec.id+'" placeholder="Add a to-do…" onkeydown="if(event.key===\'Enter\')addPriority(\''+sec.id+'\')">'
-          +'<button type="button" class="mtg-datebtn" title="Set a due date — defaults to the next meeting" onclick="toggleDueInput(\''+sec.id+'\')">📅</button>'
-          +'<input type="date" id="due-'+sec.id+'" class="mtg-duein" style="display:none;" value="'+nextDue+'">'
-          +cpaBtn(m,sec)
-          +'<button class="btn sm" onclick="addPriority(\''+sec.id+'\')">Add</button></div>'; }
+      // Show every person in the meeting as their own group (with avatar) so you can
+      // add and assign to-dos to each of them — yours and theirs — even before anyone
+      // has any items yet.
+      body = priPeopleGroupsHtml(rows,sec.id,canEdit,true,null,m);
+      if(canEdit){ const extra=cpaBtn(m,sec); if(extra) body+='<div class="mtg-addrow mtg-cpa-row">'+extra+'<span class="mtg-cpa-lbl">copy an answer from another meeting</span></div>'; }
     } else if(sec.type==='prioritiesPrev'){
       // sourceSection is only stamped on the seeded meetings; sections added through the UI get a
       // generated id, so fall back to whichever priorities section this meeting actually has.
@@ -4302,7 +4282,7 @@ Herd Life`;
     return '<div class="mtg-sec" data-sid="'+esc(sec.id)+'"><div class="mtg-sec-hd">'+handle+'<h3>'+esc(sec.title)+'</h3>'+tools+'</div><div class="mtg-sec-bd" id="'+bodyId+'">'+body+'</div></div>';
   }
   let mtgEditItemId=null;
-  function canEditItem(it){ return it && (it.data.author===myEmail || canManageUsers()); }
+  function canEditItem(it){ return it && (it.data.author===myEmail || (it.data.assignee && sameEmail(resolvePerson(it.data.assignee), myEmail)) || canManageUsers()); }
   function editItem(id){ mtgEditItemId=id; renderMeetingView(); setTimeout(()=>{ const el=document.getElementById('edit-'+id); if(el){ el.focus(); if(el.setSelectionRange){ const n=el.value.length; try{ el.setSelectionRange(n,n); }catch(_){} } } },30); }
   function cancelItemEdit(){ mtgEditItemId=null; renderMeetingView(); }
   function saveItemEdit(id){ const el=document.getElementById('edit-'+id); const it=mtgItems.find(x=>x.id===id);
@@ -4487,6 +4467,57 @@ Herd Life`;
         +'<span class="cnt">'+doneN+'/'+total+'</span></div>'
         +items.map(it=>priHtml(it,section,canEdit,editable,true,carrySection)).join('')+'</div>';
     }).join('');
+  }
+  /* who a to-do belongs to: the person it's assigned to, else whoever added it */
+  function priAssigneeOf(it){ return (it&&it.data&&(it.data.assignee||it.data.author))||''; }
+  /* every attendee of the current meeting, de-duped, current user always included */
+  function mtgAttendeeList(m){
+    let list=(m&&m.attendees||[]).slice();
+    const seen=new Set(); const out=[];
+    list.forEach(e=>{ const k=String(resolvePerson(e||'')).toLowerCase(); if(k && !seen.has(k)){ seen.add(k); out.push(e); } });
+    const meK=String(resolvePerson(myEmail||'')).toLowerCase();
+    if(meK && !seen.has(meK)){ out.push(myEmail); seen.add(meK); }
+    if(!out.length && myEmail) out.push(myEmail);
+    // put "you" first so your own list is right at the top
+    out.sort((a,b)=>{ const am=String(resolvePerson(a)).toLowerCase()===meK?0:1, bm=String(resolvePerson(b)).toLowerCase()===meK?0:1; return am-bm; });
+    return out;
+  }
+  /* One group per person in the meeting — each with a header (avatar + name + count),
+     their to-dos, and an add field that assigns a new to-do to that person. Anyone
+     with items who isn't (or is no longer) an attendee is shown after, without an add row. */
+  function priPeopleGroupsHtml(rows,section,canEdit,editable,carrySection,m){
+    const attendees=mtgAttendeeList(m);
+    const byKey=new Map();
+    rows.forEach(it=>{ const a=priAssigneeOf(it); const k=String(resolvePerson(a||'')).toLowerCase();
+      if(!byKey.has(k)) byKey.set(k,{email:a,items:[]}); byKey.get(k).items.push(it); });
+    const used=new Set(); let html='';
+    attendees.forEach(e=>{ const k=String(resolvePerson(e||'')).toLowerCase(); used.add(k);
+      const grp=byKey.get(k); const items=grp?grp.items:[];
+      html+=priPersonGroupHtml(e,items,section,canEdit,editable,carrySection,true);
+    });
+    Array.from(byKey.keys()).forEach(k=>{ if(used.has(k)) return; const grp=byKey.get(k);
+      html+=priPersonGroupHtml(grp.email,grp.items,section,canEdit,editable,carrySection,false);
+    });
+    return html;
+  }
+  function priPersonGroupHtml(email,items,section,canEdit,editable,carrySection,showAdd){
+    items=(items||[]).slice().sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
+    const total=items.length, doneN=items.filter(it=>it.data.done).length;
+    const isMe=String(resolvePerson(email||'')).toLowerCase()===String(resolvePerson(myEmail||'')).toLowerCase();
+    const nm=esc(pmName(resolvePerson(email))||'Unassigned');
+    let h='<div class="mtg-prigroup"><div class="mtg-prigroup-hd">'+avatarHtml(email)+'<span class="nm">'+nm+(isMe?' (you)':'')+'</span>'
+      +'<span class="cnt">'+doneN+'/'+total+'</span></div>';
+    h+= items.length ? items.map(it=>priHtml(it,section,canEdit,editable,true,carrySection)).join('')
+      : '<div class="mtg-empty sm">No to-dos yet.</div>';
+    if(showAdd && canEdit && editable){
+      const nextDue=mtgNextKey(); const idb=esc(section)+'::'+esc(email);
+      h+='<div class="mtg-addrow mtg-addrow-person">'
+        +'<input id="in-'+idb+'" placeholder="Add a to-do for '+nm+'…" onkeydown="if(event.key===\'Enter\')addPriorityFor(\''+esc(section)+'\',\''+esc(email)+'\')">'
+        +'<button type="button" class="mtg-datebtn" title="Set a due date — defaults to the next meeting" onclick="toggleDueInput(\''+idb+'\')">📅</button>'
+        +'<input type="date" id="due-'+idb+'" class="mtg-duein" style="display:none;" value="'+nextDue+'">'
+        +'<button class="btn sm" onclick="addPriorityFor(\''+esc(section)+'\',\''+esc(email)+'\')">Add</button></div>';
+    }
+    return h+'</div>';
   }
   function issueHtml(it,section,canEdit){ const solved=!!it.data.done;
     return '<div class="mtg-pri'+(solved?' done':'')+'">'
@@ -4694,53 +4725,54 @@ Herd Life`;
       ? 'The quarter this section was set to no longer exists. Use ✎ to pick another one.'
       : 'No quarter loaded.')+'</div>';
     const attendees=(m.attendees||[]).filter(Boolean);
-    if(!attendees.length) return '<div class="mtg-empty">Nobody is on this meeting yet — add attendees and their tasks will show up here.</div>';
+    if(!attendees.length) return '<div class="mtg-empty">Nobody is on this meeting yet — add attendees and their priorities will show up here.</div>';
 
-    /* every priority in the quarter, same set the Priorities screen's by-owner view uses */
-    const prios=(q.entries||[]).filter(e=>e.type==='priority').filter(teamVisible);
+    /* same set of rocks the Quarterly Priorities section shows: things actually committed to */
+    const prios=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e))).filter(teamVisible);
     const tasksAll=pvAllTasks(prios);
 
-    /* one card per person in this meeting, holding the tasks assigned to them. Grouping is by
-       the task's own owner, not by who PMs the priority — a task sits with whoever has to do it. */
+    /* owners = the people in this meeting, deduped through resolvePerson so a name and an
+       email for the same person don't show up as two cards */
     const keys=new Map();
     attendees.forEach(a=>{ const r=resolvePerson(a)||a; if(r) keys.set(String(r).toLowerCase(), r); });
     const owners=[...keys.values()].sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
     const ownerTasks=o=>tasksAll.filter(t=>t.owner && sameEmail(t.owner,o));
+    const ownerPms=o=>prios.filter(e=>e.pm && sameEmail(e.pm,o));
 
     const cards=owners.map(o=>{
-      const mine=ownerTasks(o);
-      if(!mine.length) return '';
+      const mine=ownerTasks(o), pms=ownerPms(o);
+      if(!mine.length && !pms.length) return '';
       const done=mine.filter(t=>t.pct===100).length;
       const prog=mine.filter(t=>t.pct>0&&t.pct<100).length;
       const late=mine.filter(t=>isOverduePlan(t.p)).length;
       const nP=new Set(mine.map(t=>t.e.id)).size;
+      const pmRows=pms.map(e=>{ const pct=prioPct(e);
+        return `<div class="pv-pmrow" onclick="openPrioInQuarter('${esc(q.id)}','${e.id}')" title="Open this priority">
+          <span class="prio-link" style="font-weight:700;">🎯 ${esc(e.title||'Untitled')} ↗</span>
+          <span class="pv-tag">${esc(e.dept||'Unassigned')}</span>
+          ${isAtRisk(e)?'<span class="pv-pill late">⚠ at risk</span>':''}
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600;"><span class="pctbar" style="display:inline-block;width:110px;margin:0;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%</span>
+        </div>`;}).join('');
       return `<div class="pv-owcard">
         <div class="pv-owhd">${avatarHtml(o)}
-          <div><h3>${esc(pmName(o))}</h3><div class="pv-owsub">${mine.length} task${mine.length===1?'':'s'} on ${nP} priorit${nP===1?'y':'ies'}</div></div>
+          <div><h3>${esc(pmName(o))}</h3><div class="pv-owsub">${pms.length?`PM of ${pms.length} priorit${pms.length===1?'y':'ies'} · `:''}${mine.length} task${mine.length===1?'':'s'} on ${nP} priorit${nP===1?'y':'ies'}</div></div>
           <div class="pv-owbadges">
+            ${pms.length?`<span class="pv-pill pm">📋 PM × ${pms.length}</span>`:''}
             <span class="pv-pill done">✔ ${done} done</span>
             <span class="pv-pill prog">${prog} in progress</span>
             ${late?`<span class="pv-pill late">⚠ ${late} overdue</span>`:''}
           </div>
         </div>
-        ${pvTaskTable(mine,true,true,q.id)}
+        ${pms.length?`<div class="pv-pmblock"><div class="pv-pmhd">📋 Priorities ${esc(pmName(o))} is PMing</div>${pmRows}</div>`:''}
+        ${mine.length?pvTaskTable(mine,true,true,q.id):'<p class="empty" style="padding:14px 16px;">No tasks assigned — PM only.</p>'}
       </div>`;
     }).join('');
 
-    const who=owners.map(o=>esc(pmName(o))).join(', ');
-    if(!cards){
-      /* say which of the three reasons it is, so an empty section isn't a mystery */
-      const msg = !prios.length
-        ? esc(q.name||'This quarter')+' has no priorities yet — add them in the Priorities tab.'
-        : (!tasksAll.length
-          ? esc(q.name||'This quarter')+' has priorities, but none of them have tasks yet.'
-          : 'No tasks in '+esc(q.name||'this quarter')+' are assigned to the people in this meeting ('+who+'). Task owners are set on each task in the Priorities tab.');
-      return '<div class="mtg-empty">'+msg+'</div>';
-    }
-    const shown=owners.reduce((n,o)=>n+ownerTasks(o).length,0);
+    if(!cards) return '<div class="mtg-empty">Nobody in this meeting is PMing a priority or holding a task on one in '+esc(q.name||'this quarter')+'.</div>';
+    const shownTasks=owners.reduce((n,o)=>n+ownerTasks(o).length,0);
     const bar='<div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">'
       + esc(q.name||'This quarter')+(sec.quarterId?'':' (follows whichever quarter is active)')
-      + ' — '+shown+' task'+(shown===1?'':'s')+' assigned to the people in this meeting. Click a priority to open it.</div>';
+      + ' — '+shownTasks+' task'+(shownTasks===1?'':'s')+' for the people in this meeting. Click a priority to open it.</div>';
     return bar+cards;
   }
 
@@ -5077,7 +5109,7 @@ Herd Life`;
     if(!file) return;
     if(!USE_DB){ infoModal('Images need the database connection.'); return; }
     if(!/^image\//.test(file.type||'')){ infoModal('Please choose an image file.'); return; }
-    if(file.size>6*1024*1024){ infoModal('That image is over 6MB — please use a smaller one.'); return; }
+    if(file.size>25*1024*1024){ infoModal('That image is over 25MB — please use a smaller one.'); return; }
     const ext=((file.name||'img').split('.').pop()||'png').toLowerCase().replace(/[^a-z0-9]/g,'')||'png';
     const path=curMtgId+'/'+uid()+'.'+ext;
     const btn=document.querySelector('#imgin-'+section); // just for reference
@@ -5111,6 +5143,15 @@ Herd Life`;
     const de=document.getElementById('due-'+section); const due=de&&de.value?de.value:''; if(de){ de.value=''; de.style.display='none'; }
     const data={type:'pri',text:v,done:false}; if(due) data.due=due;
     addItem(section,instKey(),data); renderMeetingView(); focusAdd(section); }
+  /* Add a to-do assigned to a specific person in the meeting. The item's author is
+     still whoever typed it (for edit rights), but `assignee` decides whose list it
+     shows under. */
+  function addPriorityFor(section,email){ const idb=section+'::'+email;
+    const el=document.getElementById('in-'+idb); if(!el) return; const v=(el.value||'').trim(); if(!v) return; el.value='';
+    const de=document.getElementById('due-'+idb); const due=de&&de.value?de.value:''; if(de){ de.value=''; de.style.display='none'; }
+    const data={type:'pri',text:v,done:false,assignee:email}; if(due) data.due=due;
+    addItem(section,instKey(),data); renderMeetingView();
+    setTimeout(()=>{ const e2=document.getElementById('in-'+idb); if(e2) e2.focus(); },30); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
   function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
   /* 🎉 celebrate a completed task */
@@ -6558,7 +6599,7 @@ Herd Life`;
   window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
 
   async function dbLoadMeetingsOnly(){
-    const mr=await sbSelectAll('meetings','id,data','id'); if(mr.error) throw mr.error;
+    const mr=await sb.from('meetings').select('id,data'); if(mr.error) throw mr.error;
     const ms=mr.data||[]; if(!ms.length) return;
     const meetings=ms.map(r=>({id:r.id,name:r.data&&r.data.name,theme:r.data&&r.data.theme,goal:r.data&&r.data.goal,entries:[]}));
     const byId={}; meetings.forEach(m=>byId[m.id]=m);
