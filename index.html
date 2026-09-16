@@ -4356,18 +4356,54 @@ Herd Life`;
   ];
   function mtgQuoteFor(date){ const d=date||new Date(); const wk=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000/7); return MTG_QUOTES[((wk%MTG_QUOTES.length)+MTG_QUOTES.length)%MTG_QUOTES.length]; }
   let mtgsStore=[], mtgItems=[], mtgLoaded=false, curMtgId=null, curMtgDate=null;
-  function loadMtgLocal(){ try{ mtgsStore=JSON.parse(localStorage.getItem(KEY+'_mtgs')||'[]')||[]; mtgItems=JSON.parse(localStorage.getItem(KEY+'_mtgitems')||'[]')||[]; }catch(e){ mtgsStore=[]; mtgItems=[]; } }
+  // ids the SERVER has actually shown us at least once. If an id is in here and later
+  // disappears from a server pull, that's a real delete by someone. If an id is NOT in
+  // here and isn't on the server yet, it's a local item that never synced — we keep it
+  // (and keep retrying the save) instead of wiping it. Persisted so a page reload/new
+  // code push can still tell "never saved" apart from "deleted elsewhere".
+  let mtgSeenIds=new Set();
+  function loadMtgLocal(){ try{ mtgsStore=JSON.parse(localStorage.getItem(KEY+'_mtgs')||'[]')||[]; mtgItems=JSON.parse(localStorage.getItem(KEY+'_mtgitems')||'[]')||[];
+      try{ mtgSeenIds=new Set(JSON.parse(localStorage.getItem(KEY+'_mtgseen')||'[]')||[]); }catch(_){ mtgSeenIds=new Set(); }
+    }catch(e){ mtgsStore=[]; mtgItems=[]; } }
   function saveMtgLocal(){ try{ localStorage.setItem(KEY+'_mtgs',JSON.stringify(mtgsStore)); localStorage.setItem(KEY+'_mtgitems',JSON.stringify(mtgItems)); }catch(e){} }
+  function saveMtgSeen(){ try{ localStorage.setItem(KEY+'_mtgseen',JSON.stringify(Array.from(mtgSeenIds))); }catch(e){} }
   function dbUpsertMtg(m){ if(!USE_DB) return; sb.from('mtgs').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('mtg save',r.error); }); }
   function dbDeleteMtg(id){ if(!USE_DB) return; sb.from('mtgs').delete().eq('id',id).then(()=>{}); sb.from('mtg_items').delete().eq('meeting_id',id).then(()=>{}); }
   function dbUpsertItem(it,retry){ if(!USE_DB) return; sb.from('mtg_items').upsert({id:it.id,meeting_id:it.meeting_id,section:it.section,inst:it.inst,data:it.data}).then(r=>{ if(r.error){ console.warn('item save',r.error); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); } }).catch(e=>{ console.warn('item save err',e); if(!retry) setTimeout(()=>dbUpsertItem(it,true),1500); }); }
-  /* when we replace the item list from the server, keep anything just added here that the
-     server pull hasn't returned yet — otherwise a refresh right after adding wipes it off-screen */
+  /* Merge a fresh server pull into what we have locally WITHOUT losing anything the
+     server hasn't caught up on yet.
+       • a local item the server has never shown us  → it never saved (or is still in
+         flight): KEEP it and try the save again — do NOT wipe it.
+       • a local item the server showed us before but now omits → a real delete by
+         someone else: let it go.
+       • an item on both sides → keep whichever copy is newer (protects a local edit
+         that hasn't propagated), and re-save if ours is newer.
+     This replaces the old 120-second window, which silently dropped any entry that
+     failed to save and was more than two minutes old — the cause of entries vanishing
+     on refresh / after a code push. */
+  function itemStamp(it){ return Math.max(Number(it&&it.data&&it.data.editedAt)||0, Number(it&&it.data&&it.data.t)||0); }
   function mergeFreshItems(fresh){
-    const ids=new Set(fresh.map(x=>x.id)); const now=Date.now();
-    const pending=(mtgItems||[]).filter(it=> it && !ids.has(it.id) && it.data && it.data.t && (now-it.data.t)<120000);
-    if(pending.length){ pending.forEach(it=>dbUpsertItem(it)); return fresh.concat(pending); }
-    return fresh;
+    fresh=Array.isArray(fresh)?fresh:[];
+    const freshById=new Map(fresh.map(x=>[x.id,x]));
+    const localById=new Map((mtgItems||[]).map(x=>[x.id,x]));
+    // 1) local-only items: keep the ones the server has never confirmed; re-save them.
+    const keepLocal=[];
+    (mtgItems||[]).forEach(it=>{
+      if(!it||!it.id) return;
+      if(freshById.has(it.id)) return;            // present on server → handled in step 2
+      if(mtgSeenIds.has(it.id)) return;           // server had it before, now gone → real delete
+      keepLocal.push(it);                          // never synced → don't lose it
+      dbUpsertItem(it);                            // and keep trying to persist it
+    });
+    // 2) items on both sides: keep the newer copy; re-save if the local copy is newer.
+    const out=fresh.map(f=>{ const l=localById.get(f.id);
+      if(l && itemStamp(l)>itemStamp(f)){ dbUpsertItem(l); return l; }
+      return f; });
+    // remember every id the server has now shown us (persisted, so a reload can still
+    // tell "never saved" apart from "deleted elsewhere")
+    let added=false; fresh.forEach(f=>{ if(!mtgSeenIds.has(f.id)){ mtgSeenIds.add(f.id); added=true; } });
+    if(added) saveMtgSeen();
+    return out.concat(keepLocal);
   }
   function dbDeleteItem(id){ if(!USE_DB) return; sb.from('mtg_items').delete().eq('id',id).then(()=>{}); }
   async function dbLoadMeetings(){
