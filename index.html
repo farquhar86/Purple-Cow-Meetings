@@ -2375,7 +2375,7 @@
       p.jiraDone={key:t.key,status:(jiraInfo(t.key)||{}).status||'Done',at:Date.now()};
       changed.add(t.e); n++;
     });
-    changed.forEach(function(e){ autoStage(e); persist(e); });
+    changed.forEach(function(e){ sinkCompleted(e); autoStage(e); persist(e); });
     todos.forEach(function(t){
       if(!jiraIsDone(t.key) || t.it.data.done || t.it.data.jiraSkip) return;
       t.it.data.done=true; t.it.data.doneBy=''; t.it.data.doneAt=Date.now();
@@ -6638,6 +6638,20 @@ Herd Life`;
       + ` onclick="toggleTaskDone('${id}',${i},event)"`
       + ` onkeydown="if(event.key==='Enter'||event.key===' '){toggleTaskDone('${id}',${i},event);}">${on?'✓':''}</span>`;
   }
+  /* a task that's just been marked done moves to the bottom of its priority's list
+     (done[] and plan[] are index-aligned, so both move together) */
+  function sinkTask(e,i){
+    syncPlan(e); if(!e.done || i<0 || i>=e.done.length) return;
+    const d=e.done.splice(i,1)[0]; const p=e.plan.splice(i,1)[0];
+    e.done.push(d); e.plan.push(p);
+  }
+  /* same idea for many at once: keep the existing order, but every completed task sinks below the open ones */
+  function sinkCompleted(e){
+    syncPlan(e); const open=[], done=[];
+    e.done.forEach((d,i)=>{ (Number(e.plan[i].pct)===100?done:open).push([d,e.plan[i]]); });
+    if(!done.length) return;
+    const all=open.concat(done); e.done=all.map(x=>x[0]); e.plan=all.map(x=>x[1]);
+  }
   /* click the circle on a task row: complete it, or un-complete it back to where it was */
   function toggleTaskDone(id,i,ev){
     if(ev){ ev.stopPropagation(); ev.preventDefault(); }
@@ -6647,7 +6661,7 @@ Herd Life`;
     // Un-ticking something the Jira sync ticked means "I don't agree" — remember that so
     // the next sync leaves it alone.
     if(now===100){ if(p.jiraDone) p.jiraSkip=true; p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
-    else { p.pctBefore=now; p.pct=100; }
+    else { p.pctBefore=now; p.pct=100; sinkTask(e,i); }
     autoStage(e); persist(e); refreshPrio();
   }
   function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); persist(e); refreshPrio(); }
@@ -6832,6 +6846,7 @@ Herd Life`;
       if(nv.origEnd && nv.end && parseD(nv.end) && parseD(nv.origEnd) && parseD(nv.end)<=parseD(nv.origEnd)){ nv.origStart=''; nv.origEnd=''; }   // pulled back on plan → no longer bumped
       e.done[taskModalIdx]=title||e.done[taskModalIdx]||'Untitled task';
       e.plan[taskModalIdx]=nv;
+      if(nv.pct===100 && (Number(old.pct)||0)<100) sinkTask(e,taskModalIdx);
     } else {
       if(nv.end) nv.datesSetAt=Date.now();
       e.done.push(title||'Untitled task'); e.plan.push(nv);
