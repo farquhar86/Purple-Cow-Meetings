@@ -461,6 +461,45 @@
   .sc-cumtag{font-size:.6rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--purple);background:#f0e6fa;border-radius:999px;padding:2px 7px;vertical-align:middle;}
   .sc-cum{font-size:.82rem;color:var(--ink);line-height:1.45;}
   .sc-cum2{font-size:.72rem;color:var(--muted);margin-top:3px;}
+  /* ---- roll-up metric: an overall number with its channels nested inside ---- */
+  .mx-src.roll{background:#efe7fb;color:var(--purple-dark);}
+  .sc-roll{grid-column:1/-1;padding:0;overflow:hidden;cursor:default;}
+  .sc-roll:hover{transform:none;box-shadow:var(--shadow);}
+  .sc-roll .sc-head{padding:16px 18px 14px;display:grid;grid-template-columns:minmax(220px,1.2fr) auto auto;gap:10px 22px;align-items:center;cursor:pointer;}
+  .sc-roll .sc-head:hover{background:#fcfaff;}
+  .sc-roll .sc-name{font-size:1.05rem;}
+  .sc-roll .sc-top{margin:0;justify-content:flex-start;gap:12px;}
+  .sc-roll .sc-num-row{gap:14px;}
+  .sc-roll .sc-big{width:auto;}
+  .sc-roll .sc-side{display:flex;align-items:center;gap:14px;justify-content:flex-end;}
+  .sc-roll .sc-side .sc-meta{margin:0;flex-direction:column;align-items:flex-end;gap:2px;}
+  .sc-rollfoot{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:.78rem;padding:0 18px 12px;color:var(--muted);flex-wrap:wrap;}
+  .sc-rollfoot .rule{color:var(--purple-dark);font-weight:700;}
+  .sc-caret{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--lilac);color:var(--purple-dark);font-size:.9rem;font-weight:800;flex:0 0 auto;transition:transform .15s;}
+  .sc-roll.open .sc-caret{transform:rotate(90deg);}
+  .sc-kids{display:none;background:#fbf9fe;border-top:1px solid var(--line);padding:12px 18px 14px;}
+  .sc-roll.open .sc-kids{display:block;}
+  .sc-kids-hd{display:flex;align-items:center;gap:7px;font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:0 0 10px;}
+  .sc-kids-hd::after{content:"";flex:1;height:1px;background:var(--line);}
+  .sc-kids .sc-cards{grid-template-columns:repeat(auto-fill,minmax(240px,1fr));padding:0;}
+  .sc-kids .sc-card{border-left-width:4px;padding:13px 15px;}
+  .sc-kids .sc-name{font-size:.92rem;}
+  .sc-kids .sc-top{margin-bottom:8px;}
+  .sc-kids .sc-top img,.sc-kids .sc-top .tm-initials{width:26px;height:26px;font-size:.6rem;}
+  .sc-kids .sc-big{font-size:1.6rem;width:80px;}
+  .sc-kids .sc-meta{margin-top:8px;font-size:.76rem;}
+  .sc-kids .sc-foot{margin-top:8px;padding-top:8px;font-size:.74rem;}
+  .sc-share b{color:var(--ink);}
+  .sc-kids-empty{font-size:.82rem;color:var(--muted);}
+  @media(max-width:640px){.sc-roll .sc-head{grid-template-columns:1fr;}}
+  .mx-rollkids{border:1px solid var(--line);border-radius:10px;background:#fbf9fe;padding:4px 10px;margin-top:8px;}
+  .mx-rollkid{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.88rem;}
+  .mx-rollkid:last-child{border-bottom:none;}
+  .mx-rollkid .who{margin-left:auto;font-size:.76rem;color:var(--muted);}
+  .modal label.mx-rollkid{display:flex;align-items:center;gap:8px;margin:0;padding:7px 0;font-size:.88rem;font-weight:500;color:var(--ink);cursor:pointer;}
+  .mx-rollkid input[type=checkbox]{width:16px;height:16px;margin:0;padding:0;flex:0 0 auto;}
+  .mx-rollkid .elsewhere{font-size:.7rem;color:#8a6100;background:#fffdf6;border:1px dashed #d9a940;border-radius:999px;padding:1px 7px;}
+  .mx-rollkids{max-height:230px;overflow:auto;}
   .ch-proj{background:#faf6ff;border:1px solid var(--line);border-left:4px solid var(--purple);border-radius:10px;padding:12px 16px;margin:4px 0 14px;font-size:.9rem;line-height:1.5;color:var(--ink);}
   .ch-proj.off{border-left-color:#d8533b;} .ch-proj.on{border-left-color:#2e9e6b;}
   .mx-owner-group{margin-bottom:22px;}
@@ -806,6 +845,13 @@
   ul.done.tasklist .tl-pct{font-size:11.5px;color:var(--muted);font-weight:700;}
   .badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;text-transform:uppercase;letter-spacing:.4px;}
   .b-high{background:#e4f4ec;color:var(--green);} .b-med{background:#fdeede;color:var(--amber);} .b-low{background:#eee;color:#666;}
+  /* live Jira ticket status beside a task that names one */
+  .jira-chip{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:999px;letter-spacing:.3px;
+    text-decoration:none;white-space:nowrap;vertical-align:middle;border:1px solid transparent;}
+  .jira-chip:hover{filter:brightness(.96);text-decoration:none;}
+  .jira-chip.done{background:#e4f4ec;color:var(--green);border-color:#c4e6d4;}
+  .jira-chip.wip{background:#fdeede;color:var(--amber);border-color:#f2dcbc;}
+  .jira-chip.todo{background:#eef1f8;color:#4a6cf7;border-color:#d8def0;}
   .prio-meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px;}
 
   .note{font-size:13px;color:var(--muted);background:var(--lilac);border:1px solid var(--lilac-2);border-radius:10px;padding:12px 14px;margin-top:10px;}
@@ -1452,6 +1498,51 @@
       <div style="flex:1;min-width:150px;"><label>Sub-function <span style="font-weight:400;color:var(--muted)">— optional</span></label>
         <select id="mx-sub" style="width:100%;"></select></div>
     </div>
+    <label style="margin-top:10px;display:block;">Where does this number come from?</label>
+    <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
+      <option value="manual">Manual entry — someone types it in weekly</option>
+      <option value="salesforce">Salesforce report</option>
+      <option value="connect">AWS Connect</option>
+      <option value="calc">Calculated from other metrics</option>
+      <option value="rollup">Roll-up — combined from the metrics that roll up into this one</option>
+    </select>
+    <div id="mx-roll-wrap" style="display:none;margin-top:10px;">
+      <label>How the channels combine</label>
+      <select id="mx-rollrule" style="width:100%;" onchange="mxRollPreview()">
+        <option value="sum">Add them up (sales, installs, counts)</option>
+        <option value="avg">Average of the channels (NPS, CSAT, scores)</option>
+      </select>
+      <label style="margin-top:10px;display:block;">Which metrics roll up into this one <span style="font-weight:400;color:var(--muted)">— tick the channels</span></label>
+      <div style="display:flex;gap:8px;margin-bottom:6px;"><input id="mxRollSearch" placeholder="Search metrics…" oninput="mxRollPreview()" style="flex:1;"></div>
+      <div class="mx-rollkids" id="mxRollKids"></div>
+      <p class="block-desc" id="mxRollNote" style="margin-top:6px;font-size:.78rem;">Nobody types this number in — it lands as soon as its channels have a number for the week. A channel can also point at this roll-up from its own form (<b>Rolls up into</b>).</p>
+    </div>
+    <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
+      <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
+      <div class="mx-calcrow">
+        <select id="mx-calc-a" onchange="mxCalcPreview()"></select>
+        <select id="mx-calc-op" class="op" onchange="mxCalcPreview()">
+          <option value="div">&divide;</option><option value="mul">&times;</option>
+          <option value="add">+</option><option value="sub">&minus;</option>
+        </select>
+        <select id="mx-calc-b" onchange="mxCalcPreview()"></select>
+      </div>
+      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:400;">
+        <input type="checkbox" id="mx-calc-x100" onchange="mxCalcPreview()" style="width:auto;margin:0;"> Multiply by 100 (turns a ratio into a percentage)
+      </label>
+      <p class="block-desc" id="mx-calc-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
+    <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
+      <label id="mx-srcref-label">Source</label>
+      <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
+      <datalist id="sfReportList"></datalist>
+      <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
+    <div style="margin-top:10px;">
+      <label>Rolls up into <span style="font-weight:400;color:var(--muted)">— optional</span></label>
+      <select id="mx-parent" style="width:100%;" onchange="mxParentNote()"></select>
+      <p class="block-desc" id="mxParentNote" style="margin-top:6px;font-size:.78rem;"></p>
+    </div>
     <div style="margin-top:10px;">
       <label>What kind of metric is this?</label>
       <select id="mx-kind" onchange="mxKindChange()" style="width:100%;">
@@ -1494,34 +1585,6 @@
     <p class="block-desc" id="mxStartHint" style="display:none;margin-top:7px;font-size:.78rem;">
       <b>Started at</b> is the number this was sitting at when the quarter opened (e.g. 43,439 herd members on July 1).
       Progress and pace are measured from there to the target. Leave it blank and the last reading before the quarter is used instead.</p>
-    <label style="margin-top:12px;display:block;">Where does this number come from?</label>
-    <select id="mx-source" onchange="mxToggleSource()" style="width:100%;">
-      <option value="manual">Manual entry — someone types it in weekly</option>
-      <option value="salesforce">Salesforce report</option>
-      <option value="connect">AWS Connect</option>
-      <option value="calc">Calculated from other metrics</option>
-    </select>
-    <div id="mx-calc-wrap" style="display:none;margin-top:10px;">
-      <label>Formula <span style="font-weight:400;color:var(--muted)">— e.g. Broken orders &divide; Sales &times; 100 for breakage</span></label>
-      <div class="mx-calcrow">
-        <select id="mx-calc-a" onchange="mxCalcPreview()"></select>
-        <select id="mx-calc-op" class="op" onchange="mxCalcPreview()">
-          <option value="div">&divide;</option><option value="mul">&times;</option>
-          <option value="add">+</option><option value="sub">&minus;</option>
-        </select>
-        <select id="mx-calc-b" onchange="mxCalcPreview()"></select>
-      </div>
-      <label style="margin-top:8px;display:flex;align-items:center;gap:8px;font-weight:400;">
-        <input type="checkbox" id="mx-calc-x100" onchange="mxCalcPreview()" style="width:auto;margin:0;"> Multiply by 100 (turns a ratio into a percentage)
-      </label>
-      <p class="block-desc" id="mx-calc-note" style="margin-top:6px;font-size:.78rem;"></p>
-    </div>
-    <div id="mx-srcref-wrap" style="display:none;margin-top:10px;">
-      <label id="mx-srcref-label">Source</label>
-      <input type="text" id="mx-srcref" list="sfReportList" placeholder="" style="width:100%;" onchange="mxResolveReport()">
-      <datalist id="sfReportList"></datalist>
-      <p class="block-desc" id="mx-src-note" style="margin-top:6px;font-size:.78rem;"></p>
-    </div>
     <label style="margin-top:14px;display:block;">Backfill history <span style="font-weight:400;color:var(--muted)">— paste “date, value” lines (one per week); any date inside a week works</span></label>
     <textarea id="mx-backfill" rows="4" placeholder="2026-01-04, 176&#10;2026-01-11, 131&#10;2026-01-18, 149" style="width:100%;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;"></textarea>
     <div style="margin-top:6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -1754,6 +1817,7 @@
       </div>
       <div class="mgroup admin-only" style="margin-left:auto;">
         <button class="btn sm" onclick="openNewPrioModal()">➕ New priority</button>
+        <button class="btn ghost sm" id="jiraSyncBtn" title="Check Jira now — ticks off any task whose ticket is done" onclick="jiraSyncClick()">↻ Sync Jira</button>
         <button class="btn danger sm" onclick="resetAll()">Clear quarter</button>
       </div>
     </div>
@@ -2217,6 +2281,120 @@
     setTimeout(()=>document.getElementById('np-title').focus(),60);
   }
   function closeNewPrioModal(){ document.getElementById('newPrioModal').classList.remove('show'); }
+
+  /* ---------- Jira ticket sync ----------
+     Put a ticket number in a task ("Fix the modem swap flow PCHT-1234") and the app shows
+     how that ticket is doing, then ticks the task off by itself once the ticket is done.
+     The lookup goes through the "jira-status" Edge Function — Jira won't answer a web page
+     directly, and the API token has to stay off the site. See JIRA-SYNC-SETUP.md.
+     If the function isn't deployed nothing breaks: no chips, no ticking. */
+  const JIRA_SITE = 'https://purplecowinternet.atlassian.net';
+  const JIRA_KEY_RE = /\b([A-Z][A-Z0-9]{1,9}-\d+)\b/g;
+  const JIRA_MIN_GAP = 5*60*1000;   // don't pester Jira more often than this
+  let jiraCache={}; try{ jiraCache=JSON.parse(localStorage.getItem(KEY+'_jira')||'{}')||{}; }catch(e){ jiraCache={}; }
+  let jiraLastRun=0, jiraRunning=false;
+  function jiraSaveCache(){ try{ localStorage.setItem(KEY+'_jira', JSON.stringify(jiraCache)); }catch(e){} }
+  /* every ticket number mentioned in a bit of text */
+  function jiraKeysIn(text){ const out=[]; String(text||'').replace(JIRA_KEY_RE,function(m,k){ if(out.indexOf(k)<0) out.push(k); return m; }); return out; }
+  function jiraFirstKey(text){ const k=jiraKeysIn(text); return k.length?k[0]:''; }
+  /* Only a ticket Jira has actually confirmed counts. Anything Jira didn't recognise is
+     remembered as unknown so wording like "Plan Q1-2026 offsite" never grows a dead chip. */
+  function jiraInfo(key){ const r=key?jiraCache[key]:null; return (r && !r.unknown) ? r : null; }
+  function jiraIsDone(key){ const i=jiraInfo(key); return !!(i && i.category==='done'); }
+  /* the little linked status pill shown beside a task that names a ticket */
+  function jiraChipHTML(text){
+    const i=jiraInfo(jiraFirstKey(text)); if(!i) return '';
+    const key=jiraFirstKey(text);
+    const cls = i.category==='done' ? 'done' : (i.category==='indeterminate' ? 'wip' : 'todo');
+    const label = i.status ? (key+' · '+i.status) : key;
+    return ' <a class="jira-chip '+cls+'" target="_blank" rel="noopener" href="'+esc(i.url||(JIRA_SITE+'/browse/'+key))+'"'
+      + ' title="'+esc((i.summary||key)+' — '+(i.status||''))+'" onclick="event.stopPropagation();">'+esc(label)+'</a>';
+  }
+  async function callJiraFn(keys){
+    if(!USE_DB) throw new Error('Not connected to the database.');
+    const {data}=await sb.auth.getSession();
+    const token=data && data.session && data.session.access_token;
+    if(!token) throw new Error('Please log in again.');
+    const res=await fetch(SUPABASE_URL+'/functions/v1/jira-status',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:JSON.stringify({action:'status',keys})});
+    let j; try{ j=await res.json(); }catch(e){ j=null; }
+    if(!res.ok || !j || j.error){
+      let msg = j && j.error;
+      if(msg && typeof msg==='object') msg = msg.message || JSON.stringify(msg);
+      if(!msg) msg = 'Jira lookup failed (status '+res.status+'). Is the jira-status function deployed?';
+      throw new Error(msg);
+    }
+    return j;
+  }
+  /* Look up every ticket mentioned on this quarter's tasks and the open meeting's to-dos,
+     then tick off the ones whose ticket is finished. Never un-ticks — if someone unticks a
+     task on purpose, jiraSkip keeps it that way. */
+  async function syncJiraTasks(opts){
+    opts=opts||{};
+    if(!USE_DB || jiraRunning) return;
+    if(!opts.force && Date.now()-jiraLastRun < JIRA_MIN_GAP) return;
+
+    const tasks=[];                       // {e,i,key} — tasks under this quarter's priorities
+    (cur().entries||[]).forEach(function(e){
+      if(e.type!=='priority' || !Array.isArray(e.done)) return;
+      e.done.forEach(function(label,i){ const k=jiraFirstKey(label); if(k) tasks.push({e:e,i:i,key:k}); });
+    });
+    const todos=[];                       // {it,key} — to-dos in the meeting that's open
+    if(curMtgId) mtgItems.forEach(function(it){
+      if(it.meeting_id!==curMtgId || !it.data || it.data.type!=='pri') return;
+      const k=jiraFirstKey(it.data.text); if(k) todos.push({it:it,key:k});
+    });
+    const keys=[...new Set(tasks.concat(todos).map(x=>x.key))].slice(0,100);
+    if(!keys.length){ jiraLastRun=Date.now(); if(opts.force) showToast('No Jira ticket numbers found on these tasks'); return; }
+
+    jiraRunning=true;
+    let j;
+    try{ j=await callJiraFn(keys); }
+    catch(err){ jiraRunning=false; console.warn('Jira sync', err); if(opts.force) showToast('Couldn’t reach Jira — '+err.message); return; }
+    jiraRunning=false; jiraLastRun=Date.now();
+
+    Object.keys(j.issues||{}).forEach(function(k){ jiraCache[k]=j.issues[k]; });
+    (j.unknown||[]).forEach(function(k){ jiraCache[k]={unknown:true,at:Date.now()}; });
+    jiraSaveCache();
+
+    /* Jira answered but couldn't tell us about anything — a wrong token or an account that
+       can't see these projects looks exactly like "nothing to do" otherwise. Say so instead. */
+    const jerrs=j.errors||[];
+    if(jerrs.length && !Object.keys(j.issues||{}).length){
+      console.warn('Jira sync — nothing came back:', jerrs);
+      if(opts.force) showToast('Jira couldn’t look these up — '+jerrs[0]);
+      return;
+    }
+    if(jerrs.length) console.warn('Jira sync — some tickets failed:', jerrs);
+
+    const changed=new Set(); let n=0;
+    tasks.forEach(function(t){
+      if(!jiraIsDone(t.key)) return;
+      syncPlan(t.e); const p=t.e.plan[t.i]; if(!p) return;
+      if(Number(p.pct)===100 || p.jiraSkip) return;
+      p.pctBefore=Number(p.pct)||0; p.pct=100;
+      p.jiraDone={key:t.key,status:(jiraInfo(t.key)||{}).status||'Done',at:Date.now()};
+      changed.add(t.e); n++;
+    });
+    changed.forEach(function(e){ autoStage(e); persist(e); });
+    todos.forEach(function(t){
+      if(!jiraIsDone(t.key) || t.it.data.done || t.it.data.jiraSkip) return;
+      t.it.data.done=true; t.it.data.doneBy=''; t.it.data.doneAt=Date.now();
+      t.it.data.jiraDone={key:t.key,status:(jiraInfo(t.key)||{}).status||'Done'};
+      saveItem(t.it); n++;
+    });
+
+    if(screen==='dash'||screen==='prio') refreshPrio();
+    else if(screen==='meetings' && curMtgId) renderMeetingView();
+    if(n) showToast('Ticked '+n+' task'+(n===1?'':'s')+' off — the Jira ticket'+(n===1?' is':'s are')+' done');
+    else if(opts.force) showToast('Checked Jira — nothing new to tick off');
+  }
+  /* the ↻ Sync Jira button on the priorities screen */
+  async function jiraSyncClick(){
+    const b=document.getElementById('jiraSyncBtn'); const was=b?b.textContent:'';
+    if(b){ b.disabled=true; b.textContent='↻ Checking…'; }
+    try{ await syncJiraTasks({force:true}); }
+    finally{ const b2=document.getElementById('jiraSyncBtn'); if(b2){ b2.disabled=false; b2.textContent=was||'↻ Sync Jira'; } }
+  }
   /* ---------- team / user management (via secure Edge Function) ---------- */
   async function callUserFn(payload){
     if(!USE_DB) throw new Error('Not connected to the database.');
@@ -2433,10 +2611,27 @@
   function metricVisible(m){ return myRole!=='team' || (m.owner||'')===myEmail; }
   function canEditMetric(m){ return (myRole!=='team' || (m.owner||'')===myEmail); }
   /* a calculated number is worked out, not typed — the cell shows the result */
-  function canTypeMetric(m){ return canEditMetric(m) && !isCalc(m); }
+  function canTypeMetric(m){ return canEditMetric(m) && !isCalc(m) && !isRollup(m); }
+  /* ---- roll-ups: a parent metric worked out from the children that point at it ---- */
+  function isRollup(m){ return !!(m && m.source==='rollup'); }
+  function rollupKids(m){ if(!m) return []; return metricsStore.filter(x=>x && x.id!=='fnconfig' && x.parent===m.id && x.id!==m.id); }
+  /* the roll-up this metric sits under on the scorecard, if that roll-up exists */
+  function rollupParentOf(m){ if(!m||!m.parent) return null; const p=metricsStore.find(x=>x.id===m.parent); return (p && isRollup(p) && p.id!==m.id)?p:null; }
+  function rollupValue(m,col,depth){
+    if(!isRollup(m) || (depth||0)>4) return null;
+    const vals=[]; rollupKids(m).forEach(k=>{ const v=cellValue(k,col,(depth||0)+1).eff; if(v!==null && !isNaN(v)) vals.push(v); });
+    if(!vals.length) return null;
+    const sum=vals.reduce((a,b)=>a+b,0);
+    const v=(m.rollRule==='avg') ? Math.round(sum/vals.length*10)/10 : sum;
+    return isFinite(v)?Math.round(v*100)/100:null;
+  }
+  function rollupLabel(m){ const kids=rollupKids(m); if(!kids.length) return 'No channels yet';
+    if(m.rollRule==='avg') return 'Average of '+kids.length+' channel'+(kids.length===1?'':'s');
+    return kids.map(k=>k.name||'Untitled').join(' + '); }
   function metricSrcBadge(m){ return m.source==='salesforce'?'<span class="mx-src sf">SF</span>'
     :(m.source==='connect'?'<span class="mx-src connect">CONNECT</span>'
-    :(isCalc(m)?'<span class="mx-src calc" title="'+esc(calcLabel(m))+'">CALC</span>':'')); }
+    :(isCalc(m)?'<span class="mx-src calc" title="'+esc(calcLabel(m))+'">CALC</span>'
+    :(isRollup(m)?'<span class="mx-src roll" title="'+esc(rollupLabel(m))+'">ROLL-UP · '+rollupKids(m).length+'</span>':''))); }
   /* week columns — start day is configurable, defaults to Sunday */
   let weekStartDay=0;
   function loadWeekStart(){ try{ const v=localStorage.getItem(KEY+'_weekstart'); weekStartDay = (v===null)?0:(Number(v)||0); }catch(e){ weekStartDay=0; }
@@ -2514,6 +2709,17 @@
   /* the weekly numbers to read for a metric — computed on the fly for a calculated one */
   function metricValues(m,depth){
     if(!m) return {};
+    if(isRollup(m) && (depth||0)<=4){
+      const out=Object.assign({},m.values||{}); const keys={};
+      rollupKids(m).forEach(k=>{ Object.keys(metricValues(k,(depth||0)+1)).forEach(kk=>{ keys[kk]=1; }); });
+      Object.keys(keys).forEach(k=>{
+        const typed=out[k]; if(!(typed===undefined||typed===null||typed==='')) return;
+        const d=parseAnyDate(k); if(!d) return;
+        const v=rollupValue(m,{key:k,start:d,end:new Date(d.getTime()+6*86400000)},(depth||0)+1);
+        if(v!==null) out[k]=v;
+      });
+      return out;
+    }
     if(!isCalc(m) || (depth||0)>4) return m.values||{};
     const c=m.calc, out=Object.assign({},m.values||{});
     const A=metricsStore.find(x=>x.id===c.a), B=metricsStore.find(x=>x.id===c.b);
@@ -2543,6 +2749,7 @@
     const hasDirect=!(direct===undefined||direct===null||direct===''||isNaN(Number(direct)));
     let derived=null;
     if(isCalc(m)) derived=calcValue(m,col,depth);
+    else if(isRollup(m)) derived=rollupValue(m,col,depth);
     else if((m.period||'weekly')!=='weekly'){
       const inside=[];
       Object.keys(vals).forEach(k=>{ if(k===col.key) return; const d=parseAnyDate(k); if(!d) return;
@@ -2738,13 +2945,63 @@
       : '<span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span>';
     const badge=metricSrcBadge(m);
     const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
-    const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>' : '';
+    const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>'
+      : (isRollup(m) ? '<span class="mx-calcfoot" title="Worked out automatically from its channels">\u0192 '+esc(rollupLabel(m))+'</span>' : '');
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
       +'<div class="sc-foot">'+(calcFoot||trend)+'<span class="sc-open">History &amp; graph →</span></div>'
+      +'</div>';
+  }
+  /* a child's share of a summed roll-up, shown in place of the goal label */
+  function rollShareHtml(m,parent,thisW){
+    if(!parent || parent.rollRule==='avg') return '';
+    const pv=cellValue(parent,colFor(thisW)).eff, cv=cellValue(m,colFor(thisW)).eff;
+    if(pv===null||cv===null||isNaN(pv)||isNaN(cv)||!pv) return '';
+    return '<span class="sc-share"><b>'+Math.round(cv/pv*100)+'%</b> of the total</span>';
+  }
+  /* which roll-ups the viewer has folded shut — remembered per browser */
+  let rollClosed={}; try{ rollClosed=JSON.parse(localStorage.getItem(KEY+'_rollclosed')||'{}')||{}; }catch(e){ rollClosed={}; }
+  function toggleRoll(id,ev){ if(ev) ev.stopPropagation(); const el=document.getElementById('roll-'+id); if(!el) return;
+    el.classList.toggle('open'); if(el.classList.contains('open')) delete rollClosed[id]; else rollClosed[id]=1;
+    try{ localStorage.setItem(KEY+'_rollclosed', JSON.stringify(rollClosed)); }catch(e){} }
+  function setAllRolls(open){ document.querySelectorAll('.sc-roll').forEach(el=>{ const id=el.id.replace(/^roll-/,'');
+    el.classList.toggle('open',open); if(open) delete rollClosed[id]; else rollClosed[id]=1; });
+    try{ localStorage.setItem(KEY+'_rollclosed', JSON.stringify(rollClosed)); }catch(e){} }
+  /* any card on the scorecard: a roll-up gets its channels nested inside it */
+  function scCardHtml(m,lastW,thisW,depth){
+    if(!isRollup(m) || (depth||0)>3) return metricCardHtml(m,lastW,thisW);
+    return rollCardHtml(m,lastW,thisW,depth||0);
+  }
+  function rollCardHtml(m,lastW,thisW,depth){
+    const kids=rollupKids(m).filter(metricVisible);
+    const cvT=cellValue(m,colFor(thisW)), cvL=cellValue(m,colFor(lastW));
+    const gT=effectiveGoal(m,thisW);
+    const hasT=cvT.eff!==null&&!isNaN(cvT.eff), hasL=cvL.eff!==null&&!isNaN(cvL.eff);
+    const tier=hasT?tierOfGoal(m,cvT.eff,gT):'';
+    const color=TIER_COLORS[tier]||'#c9bcd9';
+    let trend='<span style="color:var(--muted)">No prior week</span>';
+    if(hasT&&hasL){ if(cvT.eff===cvL.eff) trend='<span style="color:var(--muted)">→ same as last week</span>';
+      else { const up=cvT.eff>cvL.eff; const good=(m.direction==='lower')?!up:up; trend='<span style="color:'+(good?'#2e9e6b':'#d8533b')+';font-weight:700;">'+(up?'▲':'▼')+' '+esc(fmtVal(m,Math.abs(cvT.eff-cvL.eff)))+' vs last week</span>'; } }
+    const coBadge=m.company?' <span title="Company goal — on the Company Targets tile and meeting scorecards">🐄</span>':'';
+    const open=!rollClosed[m.id];
+    const kidCards = kids.length
+      ? '<div class="sc-cards">'+kids.map(k=>{ const h=scCardHtml(k,lastW,thisW,depth+1);
+          const share=rollShareHtml(k,m,thisW); return share ? h.replace('<div class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<div class="sc-meta">'+share) : h; }).join('')+'</div>'
+      : '<div class="sc-kids-empty">Nothing rolls up into this yet. Open a metric and set its <b>Rolls up into</b> to '+esc(m.name||'this metric')+'.</div>';
+    return '<div class="sc-card sc-roll'+(open?' open':'')+'" id="roll-'+esc(m.id)+'" style="border-left-color:'+color+'">'
+      +'<div class="sc-head" onclick="toggleRoll(\''+m.id+'\',event)">'
+      +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+'</span></div>'
+      +'<div class="sc-num-row"><span class="sc-big-wrap"><span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span><span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<div class="sc-side"><span class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></span>'
+      +'<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'</div>'
+      +'<div class="sc-rollfoot"><span class="rule" title="Worked out automatically from its channels">\u0192 '+esc(rollupLabel(m))+'</span>'+trend
+      +'<a class="sc-open" href="#" onclick="event.preventDefault();openMetricChart(\''+m.id+'\')">History &amp; graph →</a></div>'
+      +'<div class="sc-kids"><div class="sc-kids-hd">Channels that roll into '+esc(m.name||'this')+'</div>'+kidCards+'</div>'
       +'</div>';
   }
   let mxGroupMode='func';   // 'func' | 'owner' | 'all'
@@ -2985,13 +3242,18 @@
   function renderMetrics(){
     renderCompanyTargets();
     const wrap=document.getElementById('metricsWrap'); if(!wrap) return;
-    const list=metricsStore.filter(metricVisible);
-    if(!list.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
-    list.forEach(normalizeMetric);
+    const all=metricsStore.filter(metricVisible);
+    if(!all.length){ wrap.innerHTML='<div class="mx-empty">'+(canCreate()?'No metrics yet — click <b>➕ New metric</b> to add your first one.':'No metrics are assigned to you yet.')+'</div>'; return; }
+    all.forEach(normalizeMetric);
+    /* a channel shows inside its roll-up, not as a loose card as well */
+    const visIds={}; all.forEach(m=>{ visIds[m.id]=1; });
+    const list=all.filter(m=>{ const p=rollupParentOf(m); return !(p && visIds[p.id]); });
     const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
     const gbtn=(mode,label)=>'<button class="btn '+(mxGroupMode===mode?'':'ghost')+' sm" onclick="setMxGroup(\''+mode+'\')">'+label+'</button>';
-    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+'</div>';
-    if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
+    const hasRolls=list.some(isRollup);
+    const rollBtns = hasRolls ? '<span style="flex:1"></span><button class="btn ghost sm" onclick="setAllRolls(true)">Expand roll-ups</button><button class="btn ghost sm" onclick="setAllRolls(false)">Collapse roll-ups</button>' : '';
+    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+rollBtns+'</div>';
+    if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
     if(mxGroupMode==='func'){
       const cfg=ensureFnConfig();
       const groups=new Map();
@@ -3015,9 +3277,9 @@
         const subOrder=[]; (f?f.subs:[]).forEach(s=>{ if(subOrder.indexOf(s)<0) subOrder.push(s); });
         items.forEach(m=>{ const s=m.sub||''; if(s && subOrder.indexOf(s)<0) subOrder.push(s); });
         const noSub=items.filter(m=>!(m.sub||'')).slice().sort(coFirst);
-        let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
+        let body = noSub.length ? '<div class="sc-cards">'+noSub.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>' : '';
         subOrder.forEach(s=>{ const su=items.filter(m=>(m.sub||'')===s).slice().sort(coFirst); if(!su.length) return;
-          body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div>'; });
+          body+='<div class="mx-sub-hd">'+esc(s)+'</div><div class="sc-cards">'+su.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>'; });
         return '<div class="mx-owner-group mx-fn-group" data-fn="'+esc(d)+'"><div class="mx-owner-hd" draggable="true" title="Drag to reorder the sections"><span class="grip">⠿</span>'+avs
           +'<span class="nm">'+(d?esc(d):'No function yet')+'</span>'+foLab+'<span class="cnt">'+items.length+'</span></div>'
           + body + '</div>';
@@ -3032,7 +3294,7 @@
     const html=keys.map(o=>{ const items=groups.get(o); const person=resolvePerson(o);
       return '<div class="mx-owner-group"><div class="mx-owner-hd">'+(o?avatarHtml(person):'<span class="tm-initials">?</span>')
         +'<span class="nm">'+esc(o?pmName(person):'Unassigned')+'</span><span class="cnt">'+items.length+'</span></div>'
-        +'<div class="sc-cards">'+items.map(m=>metricCardHtml(m,lastW,thisW)).join('')+'</div></div>';
+        +'<div class="sc-cards">'+items.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div></div>';
     }).join('');
     wrap.innerHTML=toggle+html;
   }
@@ -3393,6 +3655,9 @@
     set('mx-pct', (editing && m.tierPct!==undefined && m.tierPct!=='')?m.tierPct:10);
     set('mx-source', editing?(m.source||'manual'):'manual');
     set('mx-srcref', editing?(m.sourceName||m.sourceRef||''):'');
+    mxFillParentPicker(editing?m:null); mxParentNote();
+    set('mx-rollrule', editing?(m.rollRule||'sum'):'sum');
+    mxRollLoadTicks(editing?m:null); const rs=document.getElementById('mxRollSearch'); if(rs) rs.value='';
     document.getElementById('mxErr').textContent='';
     document.getElementById('mxDeleteBtn').style.display = editing?'inline-block':'none';
     mxPendingBackfill=null;
@@ -3510,6 +3775,58 @@
     if(hit){ inp.value=hit.name; note.innerHTML='✅ Linked to report <b>'+esc(hit.id)+'</b>. The scheduled sync will pull this report’s total each week.'; }
     else if(inp.value.trim()){ note.textContent='Not recognised yet — pick a report from the list, or paste the report link from Salesforce and it will be matched automatically.'; }
   }
+  /* "Rolls up into" — every roll-up metric this one could sit under (not itself, not its own channels) */
+  function mxFillParentPicker(m){
+    const sel=document.getElementById('mx-parent'); if(!sel) return;
+    const meId=m?m.id:'';
+    const isKidOfMe=x=>{ let p=x, n=0; while(p && n++<6){ if(p.id===meId) return true; p=p.parent?metricsStore.find(y=>y.id===p.parent):null; } return false; };
+    const opts=metricsStore.filter(x=>x && x.id!=='fnconfig' && isRollup(x) && x.id!==meId && !isKidOfMe(x))
+      .slice().sort((a,b)=>String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()));
+    const cur=(m&&m.parent)||'';
+    sel.innerHTML='<option value="">Nothing — shows as its own card</option>'
+      + opts.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===cur?' selected':'')+'>'+esc(x.name||'Untitled')+(x.dept?' · '+esc(x.dept):'')+'</option>').join('');
+    if(cur && !opts.some(x=>x.id===cur)) sel.value='';
+  }
+  function mxParentNote(){
+    const note=document.getElementById('mxParentNote'); const sel=document.getElementById('mx-parent'); if(!note||!sel) return;
+    if(!sel.options.length || (sel.options.length===1 && !sel.value)){
+      note.innerHTML = (sel.options.length<=1) ? 'No roll-up metrics yet. Make one by setting a metric&rsquo;s source (above) to <b>Roll-up</b> and ticking its channels there.' : 'Shows as its own card.'; return; }
+    if(!sel.value){ note.textContent='Shows as its own card.'; return; }
+    const p=metricsStore.find(x=>x.id===sel.value);
+    note.innerHTML='Nests under <b>'+esc(p?p.name:'?')+'</b> on the scorecard and feeds its number. Keeps its own owner, target and source.';
+  }
+  /* the channels ticked for this roll-up while the form is open; null until the form loads them */
+  let mxRollTicks=null;
+  function mxRollLoadTicks(m){ mxRollTicks={}; if(m) metricsStore.forEach(x=>{ if(x && x.parent===m.id && x.id!==m.id) mxRollTicks[x.id]=1; }); }
+  function mxRollTick(id,on){ if(!mxRollTicks) mxRollTicks={}; if(on) mxRollTicks[id]=1; else delete mxRollTicks[id]; }
+  function mxRollPreview(){
+    const box=document.getElementById('mxRollKids'); if(!box) return;
+    if(!mxRollTicks) mxRollTicks={};
+    const meId=(document.getElementById('mx-id')||{}).value||'';
+    const q=((document.getElementById('mxRollSearch')||{}).value||'').trim().toLowerCase();
+    /* anything but this metric, its own ancestors (no loops) and the function config */
+    const isAncestor=x=>{ let p=metricsStore.find(y=>y.id===meId), n=0; while(p && p.parent && n++<6){ if(p.parent===x.id) return true; p=metricsStore.find(y=>y.id===p.parent); } return false; };
+    const opts=metricsStore.filter(x=>x && x.id!=='fnconfig' && x.id!==meId && metricVisible(x) && !isAncestor(x))
+      .filter(x=>!q || String(x.name||'').toLowerCase().indexOf(q)>=0)
+      .slice().sort((a,b)=>{ const ta=mxRollTicks[a.id]?0:1, tb=mxRollTicks[b.id]?0:1; if(ta!==tb) return ta-tb; return String(a.name||'').toLowerCase().localeCompare(String(b.name||'').toLowerCase()); });
+    if(!opts.length){ box.innerHTML='<div class="mx-rollkid" style="color:var(--muted);cursor:default;">'+(q?'No metrics match.':'No other metrics yet.')+'</div>'; return; }
+    box.innerHTML=opts.map(k=>{ const on=!!mxRollTicks[k.id];
+      const other=(!on && k.parent && k.parent!==meId) ? metricsStore.find(y=>y.id===k.parent) : null;
+      return '<label class="mx-rollkid"><input type="checkbox"'+(on?' checked':'')+' onchange="mxRollTick(\''+esc(k.id)+'\',this.checked)">'
+        + avatarHtml(resolvePerson(k.owner))+'<span>'+esc(k.name||'Untitled')+'</span>'
+        + (other?'<span class="elsewhere" title="Ticking it here moves it out of '+esc(other.name||'')+'">in '+esc(other.name||'another roll-up')+'</span>':'')
+        + '<span class="who">'+esc(pmName(resolvePerson(k.owner))||'—')+(k.source&&k.source!=='manual'?' · '+esc(k.source):' · manual')+'</span></label>'; }).join('');
+  }
+  /* after a roll-up is saved: point the ticked metrics at it, release the ones unticked */
+  function mxRollKidsApply(m){
+    if(!m || !mxRollTicks) return;
+    const changed=[];
+    metricsStore.forEach(x=>{ if(!x || x.id==='fnconfig' || x.id===m.id) return;
+      const want=!!mxRollTicks[x.id], has=(x.parent===m.id);
+      if(want && !has){ x.parent=m.id; changed.push(x); }
+      else if(!want && has){ x.parent=''; changed.push(x); } });
+    changed.forEach(persistMetric);
+  }
   /* the two metric pickers for a formula — anything but this metric itself */
   function mxFillCalcPickers(){
     const meId=(document.getElementById('mx-id')||{}).value||'';
@@ -3575,6 +3892,8 @@
     const wrap=document.getElementById('mx-srcref-wrap'), lab=document.getElementById('mx-srcref-label');
     const inp=document.getElementById('mx-srcref'), note=document.getElementById('mx-src-note');
     const cw=document.getElementById('mx-calc-wrap'); if(cw) cw.style.display=(s==='calc')?'block':'none';
+    const rw=document.getElementById('mx-roll-wrap'); if(rw) rw.style.display=(s==='rollup')?'block':'none';
+    if(s==='rollup'){ wrap.style.display='none'; mxRollPreview(); return; }
     if(s==='calc'){ wrap.style.display='none'; mxFillCalcPickers(); mxCalcPreview(); return; }
     if(s==='manual'){ wrap.style.display='none'; return; }
     wrap.style.display='block';
@@ -3609,6 +3928,8 @@
       quarterGoals: mxReadQuarters(),
       quarterStarts: mxReadQuarterStarts(),
       source, sourceRef, sourceName,
+      parent: (function(){ const p=(document.getElementById('mx-parent')||{}).value||''; return (p && p!==id)?p:''; })(),
+      rollRule: (document.getElementById('mx-rollrule')||{}).value||'sum',
       calc: (source==='calc') ? { a:(document.getElementById('mx-calc-a')||{}).value||'',
                                   op:(document.getElementById('mx-calc-op')||{}).value||'div',
                                   b:(document.getElementById('mx-calc-b')||{}).value||'',
@@ -3617,6 +3938,8 @@
     if(id){ m=metricsStore.find(x=>x.id===id); if(!m){ closeMetricModal(); return; } Object.assign(m,data); }
     else { m=Object.assign({id:uid(), values:{}, t:Date.now(), by:myEmail}, data); metricsStore.push(m); }
     if(mxPendingBackfill){ m.values=Object.assign(m.values||{}, mxPendingBackfill); Object.keys(mxPendingBackfill).forEach(wk=>dbUpsertMetricValue(m.id,wk,mxPendingBackfill[wk])); mxPendingBackfill=null; }
+    if(source==='rollup') mxRollKidsApply(m);
+    mxRollTicks=null;
     persistMetric(m); closeMetricModal(); renderMetrics();
     // if the chart/history window is open for this metric, refresh it so the new goal type shows
     if(curChartMetricId===m.id && document.getElementById('chartModal').classList.contains('show')) openMetricChart(m.id);
@@ -4082,7 +4405,13 @@ Herd Life`;
     let d=new Date(base), guard=0; while(d<t && guard<600){ d=stepDate(d,m.type,1); guard++; } return d;
   }
   function fmtMtgDate(d){ return d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}); }
-  function mtgVisible(m){ return isSuperAdmin() || (m.attendees||[]).indexOf(myEmail)>=0; }
+  /* A meeting is "mine" if I'm an attendee OR the organizer. Organizers who untick
+     "include me" (which only scopes metrics/priorities) must still see their own meeting. */
+  function mtgIsMine(m){ if(!m) return false;
+    if((m.attendees||[]).indexOf(myEmail)>=0) return true;
+    const me=String(myEmail||'').toLowerCase();
+    return !!me && [m.organizer,m.by].some(p=>p && String(resolvePerson(p)).toLowerCase()===me); }
+  function mtgVisible(m){ return isSuperAdmin() || mtgIsMine(m); }
   let mtgShowAll=true;   // super admin default to seeing every meeting
   function setMtgFilter(all){ mtgShowAll=all; renderMeetingsList(); }
   function renderMeetingsList(){
@@ -4090,7 +4419,7 @@ Herd Life`;
     document.getElementById('mtgDetailView').style.display='none';
     const box=document.getElementById('mtgListView');
     const seeAll=isSuperAdmin();
-    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    const mine=mtgsStore.filter(m=>mtgIsMine(m));
     let list = (seeAll && mtgShowAll) ? mtgsStore.slice() : mine;
     let toggle='';
     if(seeAll){ toggle='<div style="display:flex;gap:6px;margin-bottom:16px;">'
@@ -4117,7 +4446,7 @@ Herd Life`;
   function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
     try{ curMtgDate=occurrenceOnOrAfter(m,new Date()); }catch(e){ curMtgDate=new Date(); }
     if(!curMtgDate || isNaN(curMtgDate.getTime())) curMtgDate=new Date();
-    renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); }
+    renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
   function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=occStep(m,curMtgDate,dir); renderMeetingView(); }
   /* clear any stale local cache and pull everything fresh from the server (in-app version of "clear cache") */
@@ -4144,7 +4473,7 @@ Herd Life`;
     document.getElementById('mtgListView').style.display='none';
     const box=document.getElementById('mtgDetailView'); box.style.display='';
     const recurring=!(m.type==='once'||!m.type);
-    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const canEdit = canManageUsers() || mtgIsMine(m);
     const nav = recurring
       ? '<div class="mtg-datenav"><button class="btn ghost" onclick="mtgNav(-1)">◀</button>'
         + '<span class="mtg-date">'+esc(fmtMtgDate(curMtgDate))+'</span>'
@@ -4185,7 +4514,7 @@ Herd Life`;
     if(USE_DB){ try{ const b=await sb.from('mtg_items').select('id,meeting_id,section,inst,data'); if(!b.error){
       const fresh=(b.data||[]).map(x=>({id:x.id,meeting_id:x.meeting_id,section:x.section,inst:x.inst,data:x.data||{}})); mtgItems=mergeFreshItems(fresh); saveMtgLocal(); } }catch(_){} }
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec){ renderMeetingView(); return; }
-    const canEdit = canManageUsers() || (m.attendees||[]).indexOf(myEmail)>=0;
+    const canEdit = canManageUsers() || mtgIsMine(m);
     const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
     const node=fresh.firstElementChild;
     const cur=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
@@ -4348,7 +4677,7 @@ Herd Life`;
     const carry = (carrySection && !done) ? '<button class="carry-btn" title="Add this to today’s to-dos" onclick="event.stopPropagation();carryToThisWeek(\''+it.id+'\',\''+carrySection+'\')">↪ Add for today</button>' : '';
     return '<div class="mtg-pri'+(done?' done':'')+'">'
       +'<input type="checkbox" '+(done?'checked':'')+' '+(canEdit?'':'disabled')+' onchange="togglePri(\''+it.id+'\',this.checked)">'
-      +'<span class="ptxt">'+esc(it.data.text||'')+fromIss+dueChip+'</span>'
+      +'<span class="ptxt">'+esc(it.data.text||'')+jiraChipHTML(it.data.text)+fromIss+dueChip+'</span>'
       +carry
       +(hideWho?'':'<span class="who">'+esc(pmName(it.data.author))+'</span>')
       +(editable&&canE?'<button class="x" title="Edit" onclick="editItem(\''+it.id+'\')">✎</button><button class="x" title="Remove" onclick="delItem(\''+it.id+'\');renderMeetingView()">×</button>':'')
@@ -4375,7 +4704,7 @@ Herd Life`;
     const out=[];
     mtgsStore.forEach(mm=>{
       if(!mm || mm.id===m.id) return;
-      if((mm.attendees||[]).indexOf(myEmail)<0) return;
+      if(!mtgIsMine(mm)) return;
       (mm.sections||[]).forEach(s=>{
         if(s.type!==sec.type) return;
         const mine=mtgItems.filter(it=>it.meeting_id===mm.id && it.section===s.id && it.inst && it.inst!=='static'
@@ -4921,16 +5250,16 @@ Herd Life`;
     const links=(it.data.alsoIn||[]).map(id=>mtgsStore.find(x=>x.id===id)).filter(Boolean);
     let html='<span class="issm-lbl">Shown in:</span>';
     html+='<span class="issm-chip home" title="Home meeting — where this issue lives">🏠 '+esc(home?home.title:'this meeting')+'</span>';
-    html+=links.map(mm=>{ const mine=(mm.attendees||[]).indexOf(myEmail)>=0;
+    html+=links.map(mm=>{ const mine=mtgIsMine(mm);
       return '<span class="issm-chip">'+esc(mm.title)+(mine?'<button title="Remove from this meeting" onclick="removeIssueFromMeeting(\''+mm.id+'\')">×</button>':'')+'</span>'; }).join('');
     const linkedSet=new Set([it.meeting_id].concat(it.data.alsoIn||[]));
-    const opts=mtgsStore.filter(mm=>(mm.attendees||[]).indexOf(myEmail)>=0 && !linkedSet.has(mm.id) && (mm.sections||[]).some(s=>s.type==='issues'));
+    const opts=mtgsStore.filter(mm=>mtgIsMine(mm) && !linkedSet.has(mm.id) && (mm.sections||[]).some(s=>s.type==='issues'));
     if(opts.length){ html+='<select class="issm-add" onchange="addIssueToMeeting(this.value);this.value=\'\';"><option value="">＋ Also show in a meeting…</option>'
       + opts.slice().sort((a,b)=>String(a.title||'').localeCompare(String(b.title||''))).map(mm=>'<option value="'+esc(mm.id)+'">'+esc(mm.title)+'</option>').join('')+'</select>'; }
     box.innerHTML=html; }
   function addIssueToMeeting(mid){ if(!mid) return; const it=mtgItems.find(x=>x.id===curIssueId); if(!it) return;
     const mm=mtgsStore.find(x=>x.id===mid); if(!mm) return;
-    if((mm.attendees||[]).indexOf(myEmail)<0){ infoModal('You can only add this issue to meetings you’re a part of.'); return; }
+    if(!mtgIsMine(mm)){ infoModal('You can only add this issue to meetings you’re a part of.'); return; }
     if(!Array.isArray(it.data.alsoIn)) it.data.alsoIn=[];
     if(it.meeting_id!==mid && it.data.alsoIn.indexOf(mid)<0) it.data.alsoIn.push(mid);
     it.data.editedAt=Date.now(); it.data.editedBy=myEmail; saveItem(it); renderIssueMeetings(it); showToast('Added to '+mm.title); }
@@ -5153,7 +5482,9 @@ Herd Life`;
     addItem(section,instKey(),data); renderMeetingView();
     setTimeout(()=>{ const e2=document.getElementById('in-'+idb); if(e2) e2.focus(); },30); }
   function addIssue(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'issue',text:v,done:false}); renderMeetingView(); focusAdd(section); }
-  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null; saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
+  function togglePri(id,checked){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.done=checked; it.data.doneBy=checked?myEmail:''; it.data.doneAt=checked?Date.now():null;
+    if(!checked && it.data.jiraDone) it.data.jiraSkip=true;   // un-ticked on purpose — the Jira sync backs off
+    saveItem(it); if(checked) popConfetti(); renderMeetingView(); }
   /* 🎉 celebrate a completed task */
   let lastPointer={x:null,y:null};
   if(typeof document!=='undefined') document.addEventListener('pointerdown',function(e){ lastPointer={x:e.clientX,y:e.clientY}; }, true);
@@ -5534,7 +5865,7 @@ Herd Life`;
   /* which of a meeting's sections you can actually put something into */
   const HOME_ADDABLE={notes:'note', priorities:'pri'};
   function homeMeetingsHtml(){
-    const mine=mtgsStore.filter(m=>(m.attendees||[]).indexOf(myEmail)>=0);
+    const mine=mtgsStore.filter(m=>mtgIsMine(m));
     if(!mine.length) return '<div class="mtg-empty">You are not on any meetings yet.</div>';
     const withNext=mine.map(m=>{ let d=null; try{ d=occurrenceOnOrAfter(m,new Date()); }catch(e){}
       return {m, d:(d&&!isNaN(d.getTime()))?d:null}; });
@@ -5669,7 +6000,7 @@ Herd Life`;
   function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }
   document.addEventListener('click', (e)=>{ const b=document.getElementById('sbAcct'), m=document.getElementById('sbAcctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target) && b && !b.contains(e.target)) m.classList.remove('show'); });
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
-  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); }
+  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); presenting=on; document.getElementById('presentBtn').textContent= on?'✕ Exit presentation (showing reviewed only)':'▶ Presentation mode'; if(screen==='dash') renderDashBody(); }
 
   /* ---------- render: master ---------- */
@@ -5801,7 +6132,7 @@ Herd Life`;
     const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
     const done=(e.done&&e.done.length)?'<ul class="done tasklist">'+e.done.map((d,i)=>{
       const tp=Number(((e.plan||[])[i]||{}).pct)||0;
-      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
+      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}${jiraChipHTML(d)}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
     }).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
@@ -5905,7 +6236,7 @@ Herd Life`;
       ${tasks.map(t=>{ const st=pvStatus(t); const homeD=(t.e.dept||'Unassigned');
         return `<tr>
         <td style="text-align:center;">${readOnly?`<span class="tick ${t.pct===100?'done':''}" title="${t.pct}% complete">${t.pct===100?'✓':''}</span>`:tickHTML(t.e.id,t.i,t.pct)}</td>
-        <td style="font-weight:600;">${esc(t.label)}</td>
+        <td style="font-weight:600;">${esc(t.label)}${jiraChipHTML(t.label)}</td>
         ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
         <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
         <td>${t.owner?esc(pmName(t.owner)):'<span class="pv-note">Unassigned</span>'}</td>
@@ -6277,7 +6608,9 @@ Herd Life`;
     const e=cur().entries.find(x=>x.id===id); if(!e) return;
     syncPlan(e); const p=e.plan[i]; if(!p) return;
     const now=Number(p.pct)||0;
-    if(now===100){ p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
+    // Un-ticking something the Jira sync ticked means "I don't agree" — remember that so
+    // the next sync leaves it alone.
+    if(now===100){ if(p.jiraDone) p.jiraSkip=true; p.pct=Math.max(0,Math.min(99,Number(p.pctBefore)||0)); p.pctBefore=0; }
     else { p.pctBefore=now; p.pct=100; }
     autoStage(e); persist(e); refreshPrio();
   }
@@ -6303,7 +6636,7 @@ Herd Life`;
       return `
       <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
         <td style="text-align:center;">${tickHTML(e.id,i,tpct)}</td>
-        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
+        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${jiraChipHTML(d)}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
         <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
         <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
         <td class="tnum">${p.start?fmtShort(p.start):'—'}${(b&&p.origStart)?`<br><span class="was-dates">was ${fmtShort(p.origStart)}</span>`:''}</td>
@@ -6619,6 +6952,8 @@ Herd Life`;
       }
     }
     applyRoute();
+    // check Jira in the background — never hold up the page for it
+    if(USE_DB && reviewUnlocked) syncJiraTasks().catch(e=>console.warn('Jira sync', e));
   })();
 </script>
 </body>

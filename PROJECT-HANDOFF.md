@@ -26,6 +26,7 @@ Browser (any teammate)  ─►  index.html on GitHub Pages (the whole app: HTML+
                                    ├─►  Supabase Postgres  (shared data, JSONB tables + RLS)
                                    ├─►  Supabase Auth       (email/password logins, invites)
                                    ├─►  Supabase Edge Function "manage-users" (invite/list/roles)
+                                   ├─►  Supabase Edge Function "jira-status" ─► Jira Cloud (ticket statuses)
                                    └─►  Supabase Storage    ("meeting-uploads" bucket, note images)
 
 Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset emails from @purplecowinternet.com
@@ -51,6 +52,7 @@ Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset
 | `index.html` | The whole app (what GitHub Pages serves). |
 | `herd-100k-worksheet.html` | Same content, working copy. |
 | `manage-users-function.ts` | Supabase Edge Function code (paste into Supabase to deploy). |
+| `jira-status-function.ts` | Supabase Edge Function that looks up Jira ticket statuses (see `JIRA-SYNC-SETUP.md`). |
 | `supabase-setup.sql` | Original quarters tables (`meetings`, `entries`). |
 | `supabase-lockdown.sql` | RLS policies for those tables. |
 | `supabase-metrics.sql` | Metrics tables (`metrics` + `metric_values`). |
@@ -104,6 +106,13 @@ RLS model: intake form is public-insert; everything else requires a logged-in us
 - **Setting: "Verify JWT" must be OFF** for the function (it verifies the caller itself).
 - Deploy by pasting `manage-users-function.ts` into Supabase → Edge Functions → manage-users → Code → Deploy. **Confirm the "Last deployed" timestamp changes** — several times it silently didn't redeploy.
 
+### Edge Function `jira-status`
+- Answers `{action:'status', keys:[…]}` with each ticket's status, status **category** and URL.
+- Env vars: `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN` (plus the project's `SUPABASE_URL` / `SUPABASE_ANON_KEY`).
+- **"Verify JWT" must be OFF** — it verifies the caller itself, like `manage-users`.
+- Filters requested keys against the real project list first, because one bad key makes a whole JQL search fail; falls back to per-issue lookups if the bulk search errors anyway.
+- Deploy the same way: paste `jira-status-function.ts` into a function named `jira-status`. Full setup in `JIRA-SYNC-SETUP.md`.
+
 ### Auth configuration (Supabase → Authentication)
 - **URL Configuration:** Site URL and Redirect URLs = `https://farquhar86.github.io/Purple-Cow-Meetings/` (with `/**` on the redirect). Wrong/missing values here break invites and password resets.
 - **Email OTP Expiration:** set to `86400` (24h max) so invite links last a day.
@@ -124,6 +133,12 @@ RLS model: intake form is public-insert; everything else requires a logged-in us
 - **Metrics (Scorecard)** — cards focused on *this week* vs goal (green/yellow/red), last week + trend arrow, owner photo; grouped by owner (toggle). Click a card → full history + trend graph, editable weekly history. Per-metric **quarterly targets** with step %, direction (higher/lower better), "total ÷ 13 = weekly pace" vs "level" goals. **Salesforce report picker** + paste-a-report-link; **backfill** box to paste history. **🏢 Company metric** flag → shows on meeting scorecards.
 - **Priorities** — the original quarterly dashboard (Rocks), pipeline stages, Gantt, roadmap, load; off-track/behind color flags.
 - **Meetings** — list (attendee-filtered; superadmin sees all with toggle). Create: title, type (one-time / daily / weekly / biweekly / monthly), **day-of-week picker for daily**, date, time, timezone, length, attendees (photo cards). In a meeting: date ◀▶ nav, motivational quote on weekly meetings, drag-reorder sections, per-section ↻ refresh, live auto-sync every 10s. Section types: **text**, **Core Values/Vision**, **notes** (Good News — multiline, Shift+Enter, paste/attach images), **priorities today**, **priorities yesterday** (done/not-done carry-over), **issues** (Notion/Trello board), **metrics snapshot** (company metrics only), **quarterly priorities (Rocks)** with expandable Gantt (today line + past-due). Entries grouped by person, alphabetical; editable by their owner; **confetti** when a task is checked off.
+- **Jira ticket sync** — put a ticket number in a task (`Ship the swap flow PCHT-1234`) and it grows a
+  live chip linking to the ticket; when the ticket hits Done/Resolved/Closed the task ticks itself off.
+  Works on quarterly-priority tasks and meeting to-dos. Runs on page load, when opening Priorities or a
+  meeting, and on the **↻ Sync Jira** button (five-minute floor between automatic runs). Never un-ticks —
+  un-ticking by hand tells it to leave that task alone. Reads Jira through the `jira-status` Edge Function
+  so the API token stays off the site. Setup: `JIRA-SYNC-SETUP.md`.
 - **Issues board** — Not started / In progress / Has update / Done columns, drag cards. Card detail = rich-text notes (bold/H2/lists/tables, paste tables), created-by + last-edited, comments. **Highlight text → right-click or ✅ To-Do button → assign as a weekly to-do** for a person; a "To-Dos from this issue" list shows below the notes; the resulting to-do carries a "🔗 from issue" chip back.
 - **Team panel** — invite by email + role, change roles, remove, login status (Active/Pending), Slack profile photos (auto on invite + "Sync photos from Slack").
 - **Auth** — real email/password login, "Forgot password?" flow, invite-to-set-password flow.
