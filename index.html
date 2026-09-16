@@ -6169,8 +6169,8 @@ Herd Life`;
     const cls=e.impact==='High'?'b-high':e.impact==='Low'?'b-low':'b-med';
     const done=(e.done&&e.done.length)?'<ul class="done tasklist">'+e.done.map((d,i)=>{
       const tp=Number(((e.plan||[])[i]||{}).pct)||0;
-      return `<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}${jiraChipHTML(d)}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`;
-    }).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+      return {tp, html:`<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}${jiraChipHTML(d)}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`};
+    }).sort((a,b)=>(a.tp===100)-(b.tp===100)).map(x=>x.html).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
     const plan=e.plan||[]; const totalT=(e.done||[]).length;
@@ -6702,6 +6702,9 @@ Herd Life`;
       </tr>`;
     };
     let doneRows='';
+    // completed tasks always list below the open ones (existing order kept within each half)
+    const isDoneT=i=>Number((e.plan[i]||{}).pct)===100;
+    const idxOrder=e.done.map((_,i)=>i).filter(i=>!isDoneT(i)).concat(e.done.map((_,i)=>i).filter(isDoneT));
     if(!e.done.length){
       doneRows='<tr><td colspan="9" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
     } else if(prioTaskGroup){
@@ -6710,10 +6713,10 @@ Herd Life`;
       const order=[...(ds.includes(home)?[home]:[]), ...ds.filter(dd=>dd!==home).sort()];
       order.forEach(dd=>{
         doneRows+=`<tr class="g-hd"><td colspan="9">${esc(dd)}${dd===home?' · home':''}</td></tr>`;
-        e.done.forEach((d,i)=>{ if((taskDept(e,i)||'Unassigned')===dd) doneRows+=taskRow(d,i); });
+        idxOrder.forEach(i=>{ if((taskDept(e,i)||'Unassigned')===dd) doneRows+=taskRow(e.done[i],i); });
       });
     } else {
-      doneRows=e.done.map(taskRow).join('');
+      doneRows=idxOrder.map(i=>taskRow(e.done[i],i)).join('');
     }
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
