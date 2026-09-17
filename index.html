@@ -1811,6 +1811,7 @@
       <div class="mgroup">
         <span class="lbl">📅 Quarter</span>
         <select id="meetingSel" onchange="switchMeeting(this.value)"></select>
+        <button class="btn sm admin-only" onclick="openMeetingModal('new')" title="Start a fresh quarter">➕ New quarter</button>
         <button class="btn ghost sm admin-only" onclick="openMeetingModal('edit')">Edit theme &amp; goal</button>
         <button class="btn sm admin-only" onclick="copyFormLink()">🔗 Copy form link</button>
         <button class="btn ghost sm admin-only" onclick="openCarryModal()">↪ Carry over</button>
