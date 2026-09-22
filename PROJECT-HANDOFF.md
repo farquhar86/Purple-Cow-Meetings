@@ -58,6 +58,7 @@ Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset
 | `supabase-metrics.sql` | Metrics tables (`metrics` + `metric_values`). |
 | `supabase-meetings.sql` | Meetings tables (`mtgs` + `mtg_items`). |
 | `supabase-storage.sql` | Public `meeting-uploads` bucket + policies (note images). |
+| `supabase-special-projects.sql` | Special Projects table (`special_projects`). |
 | `invite-email.html` | Branded invite email template (paste into Supabase). |
 | `metric-*.txt` | Real Salesforce history pulled for backfilling metrics. |
 
@@ -85,6 +86,7 @@ warns in console "relation ... does not exist").
 | `metric_values` | Weekly numbers | **one row per (metric, week)** — key `"<metricId>|<week>"` |
 | `mtgs` | Meeting definitions + the Vision page (`id = 'app-vision'`) | authenticated only |
 | `mtg_items` | Every meeting entry (notes, to-dos, issues, comments, text blocks) | one row per item |
+| `special_projects` | Special Projects (kanban cards, priority-shaped JSON) | one row per project; authenticated only |
 | Storage bucket `meeting-uploads` | Note images (public) | |
 
 RLS model: intake form is public-insert; everything else requires a logged-in user.
@@ -127,11 +129,12 @@ RLS model: intake form is public-insert; everything else requires a logged-in us
 
 ## 6. Feature list (what's built)
 
-**Left sidebar shell** (mobile = hamburger drawer): Home, Core Values, Metrics, Priorities, To-Dos, Issues, Meetings, + Add teammates, account menu. Lands on Home after login.
+**Left sidebar shell** (mobile = hamburger drawer): Home, Core Values, Metrics, Priorities, Special Projects, To-Dos, Issues, Meetings, + Add teammates, account menu. Lands on Home after login.
 
 - **Core Values / Vision** — editable page (strategy, purpose, 3 core values, 1HAG/3HAG/BHAG goals). Stored in DB (`app-vision`). Can be dropped into meetings as a section.
 - **Metrics (Scorecard)** — cards focused on *this week* vs goal (green/yellow/red), last week + trend arrow, owner photo; grouped by owner (toggle). Click a card → full history + trend graph, editable weekly history. Per-metric **quarterly targets** with step %, direction (higher/lower better), "total ÷ 13 = weekly pace" vs "level" goals. **Salesforce report picker** + paste-a-report-link; **backfill** box to paste history. **🏢 Company metric** flag → shows on meeting scorecards.
 - **Priorities** — the original quarterly dashboard (Rocks), pipeline stages, Gantt, roadmap, load; off-track/behind color flags.
+- **Special Projects** — kanban for projects that run outside the quarterly cycle. Columns Backlog / In progress / Blocked / Done; cards are ranked top-to-bottom inside a column (drag between cards, or ▲▼) and dragged across columns to change status. Each project has an Owner/PM, a "Working on it" assignee and the same tasks + % + Gantt detail page as a priority (progress = average task %, off-track/behind flags). Stored in `special_projects`, never in `entries`, so it doesn't appear on the quarterly dashboard. Team-role users see only projects where they are PM, assignee or a task owner.
 - **Meetings** — list (attendee-filtered; superadmin sees all with toggle). Create: title, type (one-time / daily / weekly / biweekly / monthly), **day-of-week picker for daily**, date, time, timezone, length, attendees (photo cards). In a meeting: date ◀▶ nav, motivational quote on weekly meetings, drag-reorder sections, per-section ↻ refresh, live auto-sync every 10s. Section types: **text**, **Core Values/Vision**, **notes** (Good News — multiline, Shift+Enter, paste/attach images), **priorities today**, **priorities yesterday** (done/not-done carry-over), **issues** (Notion/Trello board), **metrics snapshot** (company metrics only), **quarterly priorities (Rocks)** with expandable Gantt (today line + past-due). Entries grouped by person, alphabetical; editable by their owner; **confetti** when a task is checked off.
 - **Jira ticket sync** — put a ticket number in a task (`Ship the swap flow PCHT-1234`) and it grows a
   live chip linking to the ticket; when the ticket hits Done/Resolved/Closed the task ticks itself off.
