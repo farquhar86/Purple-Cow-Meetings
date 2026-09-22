@@ -82,7 +82,7 @@
   .sb-menu-hd b{color:var(--ink);}
   .sb-menu button{display:block;width:100%;text-align:left;background:none;border:none;padding:9px 10px;border-radius:7px;font-size:.9rem;cursor:pointer;color:var(--ink);}
   .sb-menu button:hover{background:var(--lilac);}
-  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim{margin-left:236px;}
+  body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim,body.app-shell #screen-special{margin-left:236px;}
   body.presenting #screen-dash{margin-left:0 !important;}
   /* placeholder section pages */
   .sec-head{background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;padding:26px 34px;}
@@ -698,6 +698,23 @@
   .kb-card .kc-meta img,.kb-card .kc-meta .tm-initials{width:18px;height:18px;border-radius:50%;}
   .kb-add{width:100%;text-align:left;background:none;border:none;color:var(--purple);font-weight:600;font-size:.84rem;padding:7px 6px;cursor:pointer;border-radius:7px;}
   .kb-add:hover{background:var(--lilac);}
+  /* ----- special projects board ----- */
+  .sp-kb .kb-col{min-width:240px;}
+  .sp-kb .kb-card{position:relative;}
+  .sp-ph{height:6px;border-radius:3px;background:var(--purple-light);margin:0 0 8px;}
+  .sp-bar{display:block;width:100%;height:6px;border-radius:99px;background:var(--lilac-2);overflow:hidden;margin-top:8px;}
+  .sp-bar i{display:block;height:100%;background:var(--green);}
+  .sp-bar i.warn{background:var(--amber);} .sp-bar i.bad{background:var(--red);}
+  .sp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;font-size:.72rem;color:var(--muted);}
+  .sp-people{display:flex;align-items:center;gap:6px;}
+  .sp-people img,.sp-people .tm-initials{width:18px;height:18px;border-radius:50%;}
+  .sp-rank{display:flex;gap:2px;}
+  .sp-rank button{border:none;background:none;color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 3px;border-radius:4px;line-height:1.2;}
+  .sp-rank button:hover{background:var(--lilac);color:var(--purple);}
+  .sp-rank button:disabled{opacity:.25;cursor:default;background:none;}
+  .sp-num{font-size:.68rem;font-weight:800;color:var(--purple);background:var(--lilac-2);border-radius:999px;padding:1px 7px;margin-right:6px;}
+  .sp-status-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+  .sp-status-row label{margin:0;}
   /* issue detail modal + rich text */
   .iss-title-input{width:100%;font-size:1.3rem;font-weight:800;color:var(--purple-dark);border:none;padding:4px 0;margin-bottom:6px;}
   .iss-title-input:focus{outline:none;border-bottom:2px solid var(--purple-light);}
@@ -1085,7 +1102,7 @@
     body.app-shell #mobileNavBtn{display:flex;}
     #appSidebar{transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 22px rgba(0,0,0,.18);width:260px;}
     body.sb-open #appSidebar{transform:none;}
-    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim{margin-left:0 !important;}
+    body.app-shell #screen-dash,body.app-shell #screen-prio,body.app-shell #screen-home,body.app-shell #screen-vision,body.app-shell #screen-metrics,body.app-shell #screen-todos,body.app-shell #screen-issues,body.app-shell #screen-meetings,body.app-shell #screen-swim,body.app-shell #screen-special{margin-left:0 !important;}
     /* leave room for the ☰ button on section headers */
     .sec-head{padding:20px 16px 18px 66px !important;}
     .sec-head h1{font-size:1.25rem;}
@@ -1129,6 +1146,7 @@
     <button class="sb-item" data-sec="vision" onclick="navTo('vision')"><span class="sb-ic">🧭</span>Core Values</button>
     <button class="sb-item" data-sec="metrics" onclick="navTo('metrics')"><span class="sb-ic">📈</span>Metrics</button>
     <button class="sb-item" data-sec="priorities" onclick="navTo('priorities')"><span class="sb-ic">🎯</span>Priorities</button>
+    <button class="sb-item" data-sec="special" onclick="navTo('special')"><span class="sb-ic">🚀</span>Special Projects</button>
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item manage-only" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
@@ -1887,7 +1905,7 @@
     <div class="hero-inner">
       <h1>⭐ Priority detail</h1>
       <div class="dash-acts no-print">
-        <button class="btn" onclick="gotoDash()">← Back to priorities</button>
+        <button class="btn" id="prioBackBtn" onclick="prioBack()">← Back to priorities</button>
       </div>
       <p class="sub"><span id="prioCrumb"></span></p>
     </div>
@@ -1988,6 +2006,38 @@
 </div>
 
 <!-- ====================== SECTION: SWIMLANES ====================== -->
+<div id="screen-special" style="display:none;">
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div><h1>🚀 Special Projects</h1><p>Projects that run outside the quarterly cycle. Drag a card up or down to re-prioritise, across columns to change status.</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn" onclick="openNewSpModal()">➕ New project</button>
+      <button class="btn ghost sm" onclick="refreshSp()" title="Reload from the shared database">↻</button>
+    </div>
+  </div>
+  <div id="spWrap" class="kb sp-kb"></div>
+  <footer>Purple Cow Internet · Backend · <span id="footerThemeSp">The March to 100,000 Herd Members</span> 🐄</footer>
+</div>
+<div class="modal-ov no-print" id="newSpModal" onclick="if(event.target===this)closeNewSpModal()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">🚀 New special project</h3>
+    <label>Title</label>
+    <input type="text" id="sp-title" placeholder="What's the project?" style="width:100%;">
+    <div class="pm-grid">
+      <div><label>Owner / PM</label><select id="sp-pm"></select></div>
+      <div><label>Working on it</label><select id="sp-assignee"></select></div>
+      <div><label>Department</label><select id="sp-dept"></select></div>
+      <div><label>Status</label><select id="sp-status"></select></div>
+    </div>
+    <label>Why it matters</label>
+    <textarea id="sp-why" placeholder="What does it unlock?"></textarea>
+    <label>Tasks <span style="font-weight:400;color:var(--muted)">— one per line (you can add dates after)</span></label>
+    <textarea id="sp-done" placeholder="e.g. Choose vendor"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="saveNewSp()">Create project</button>
+      <button class="btn ghost" onclick="closeNewSpModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 <div id="screen-swim" style="display:none;">
   <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
     <div><h1>🏊 Swimlanes</h1><p>The big blocks we’ll move quarter by quarter to get where we’re going.</p></div>
@@ -2139,9 +2189,9 @@
   // Save just ONE entry to the database (never the whole quarter — so no one clobbers others' work)
   function dbUpsertEntry(mid, e){ if(!USE_DB) return; sb.from('entries').upsert({id:e.id,meeting_id:mid,data:e}).then(r=>{ if(r.error) console.warn('entry upsert',r.error); }); }
   function dbUpsertMeeting(m){ if(!USE_DB) return; sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}}).then(r=>{ if(r.error) console.warn('meeting upsert',r.error); }); }
-  function persist(e){ save(); dbUpsertEntry(cur().id, e); }
+  function persist(e){ if(e&&e.special){ saveSpLocal(); dbUpsertSp(e); return; } save(); dbUpsertEntry(cur().id, e); }
   let _noteT={};
-  function persistNote(e){ save(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertEntry(cur().id, e), 600); }
+  function persistNote(e){ if(e&&e.special){ saveSpLocal(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertSp(e), 600); return; } save(); clearTimeout(_noteT[e.id]); _noteT[e.id]=setTimeout(()=>dbUpsertEntry(cur().id, e), 600); }
   async function dbLoad(){
     const [mr,er]=await Promise.all([ sbSelectAll('meetings','id,data','id'), sbSelectAll('entries','id,meeting_id,data','id') ]);
     if(mr.error) throw mr.error; if(er.error) throw er.error;
@@ -2236,7 +2286,7 @@
 
   function remove(id){ cur().entries=cur().entries.filter(e=>e.id!==id); save(); render(); dbDeleteEntry(id); }
   function edit(id, field){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    const e=findEntry(id); if(!e) return;
     const curVal = field==='done' ? (e.done||[]).join('\n') : (e[field]||'');
     const label = field==='done' ? 'Edit "done" measures (one per line)' : ('Edit '+field);
     editModal(label, curVal, (v)=>{
@@ -2245,7 +2295,7 @@
     });
   }
   function saveNote(id, val){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return; e.notes=val;
+    const e=findEntry(id); if(!e) return; e.notes=val;
     e.notesAt=Date.now(); if(typeof myEmail!=='undefined' && myEmail) e.notesBy=myEmail;
     persistNote(e);
     const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
@@ -2448,10 +2498,10 @@
   function canCreate(){ return myRole!=='team'; }
   function isSuperAdmin(){ return myRole==='superadmin'; }
   function canManageUsers(){ return myRole==='admin' || myRole==='superadmin'; }
-  function teamVisible(e){ if(myRole!=='team') return true; if(!e||e.type!=='priority') return true; return e.pm===myEmail || (e.plan||[]).some(p=>p&&p.owner===myEmail); }
+  function teamVisible(e){ if(myRole!=='team') return true; if(!e||e.type!=='priority') return true; return e.pm===myEmail || e.assignee===myEmail || (e.plan||[]).some(p=>p&&p.owner===myEmail); }
   function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); document.body.classList.toggle('can-manage', canManageUsers()); document.body.classList.toggle('is-super', isSuperAdmin()); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = roleName(myRole); if(typeof updateSidebarAccount==='function') updateSidebarAccount(); }
   function roleName(r){ r=r||'admin'; if(r==='superadmin') return 'Super Admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
-  async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); }catch(e){ /* function may not be deployed yet */ } }
+  async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); if(screen==='special') renderSpBoard(); }catch(e){ /* function may not be deployed yet */ } }
   function pmName(p){ return p ? (p.indexOf('@')>=0 ? p.split('@')[0] : p) : ''; }
   /* ---------- profile photos (from Slack) ----------
      Seeded here so photos work with no setup. Once a Slack bot token is added
@@ -5795,11 +5845,145 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','swim'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','swim','special'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','swim'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','swim','special'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
+  }
+  /* ================= SPECIAL PROJECTS =================
+     Projects that run outside the quarterly cycle. Each project is a priority-shaped
+     object (same tasks/plan/% model, same detail page) with three extra fields:
+       status   → kanban column (backlog | inprogress | blocked | done)
+       ord      → rank inside the column (lower = higher priority)
+       assignee → the person doing the work (pm = owner / PM)
+     Stored one row per project in the `special_projects` table (see supabase-special-projects.sql). */
+  const SP_STATUSES=[{k:'backlog',label:'Backlog',c:'#9b8fae'},{k:'inprogress',label:'In progress',c:'#4a6cf7'},{k:'blocked',label:'Blocked',c:'#c9302c'},{k:'done',label:'Done',c:'#2e9e6b'}];
+  function spStatusLabel(k){ const st=SP_STATUSES.find(x=>x.k===k); return st?st.label:'Backlog'; }
+  let spProjects=[], spLoaded=false, spDragId=null;
+  function loadSpLocal(){ try{ spProjects=JSON.parse(localStorage.getItem(KEY+'_special')||'[]'); if(!Array.isArray(spProjects)) spProjects=[]; }catch(e){ spProjects=[]; } }
+  function saveSpLocal(){ try{ localStorage.setItem(KEY+'_special',JSON.stringify(spProjects)); }catch(e){} }
+  function dbUpsertSp(e){ if(!USE_DB) return; sb.from('special_projects').upsert({id:e.id,data:e}).then(r=>{ if(r.error) console.warn('special project save',r.error); }); }
+  function dbDeleteSp(id){ if(!USE_DB) return; sb.from('special_projects').delete().eq('id',id).then(r=>{ if(r.error) console.warn('special project delete',r.error); }); }
+  async function dbLoadSp(){ if(!USE_DB){ spLoaded=true; return; }
+    try{ const r=await sbSelectAll('special_projects','id,data','id'); if(r.error) throw r.error;
+      spProjects=(r.data||[]).map(x=>x.data).filter(Boolean); saveSpLocal();
+    }catch(e){ console.warn('special projects load',e); loadSpLocal(); }
+    spLoaded=true; }
+  async function ensureSp(){ if(!spLoaded){ loadSpLocal(); await dbLoadSp(); } if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  function renderSpSection(){ ensureSp().then(()=>renderSpBoard()); }
+  function refreshSp(){ spLoaded=false; renderSpSection(); }
+  function spColumn(k){ return spProjects.filter(e=>(e.status||'backlog')===k).sort((a,b)=>(Number(a.ord)||0)-(Number(b.ord)||0)); }
+  /* renumber a column 0..n and persist whatever actually moved */
+  function spRenumber(k){ spColumn(k).forEach((e,i)=>{ if(e.ord!==i || (e.status||'backlog')!==k){ e.ord=i; e.status=k; persist(e); } }); }
+  function spCardHTML(e,i,n){
+    const pct=prioPct(e); const done=(e.status==='done');
+    let trk='', cls='';
+    if(!done){ if(isAtRisk(e)){ trk='<span class="trk off">⚠ Off track</span>'; cls='bad'; }
+      else if(isPrioBehind(e)){ trk='<span class="trk behind">⏰ Behind</span>'; cls='warn'; }
+      else if(pct>0){ trk='<span class="trk on">On track</span>'; } }
+    const tasks=(e.done||[]).length, tdone=(e.plan||[]).filter(p=>Number(p&&p.pct)===100).length;
+    const canEdit=canCreate();
+    return '<div class="kb-card" draggable="'+(canEdit?'true':'false')+'" data-id="'+e.id+'" onclick="openPrio(\''+e.id+'\')">'
+      +'<div class="kc-title"><span class="sp-num">#'+(i+1)+'</span>'+esc(e.title||'Untitled project')+'</div>'
+      +'<span class="sp-bar"><i class="'+cls+'" style="width:'+pct+'%"></i></span>'
+      +'<div class="sp-row"><span>'+pct+'% · '+tdone+'/'+tasks+' tasks</span>'+trk+'</div>'
+      +'<div class="sp-row"><span class="sp-people">'
+        +(e.pm?'<span title="Owner / PM: '+esc(pmName(e.pm))+'">'+avatarHtml(e.pm)+'</span>':'')
+        +(e.assignee?'<span title="Working on it: '+esc(pmName(e.assignee))+'">'+avatarHtml(e.assignee)+'</span>':'')
+        +(!e.pm&&!e.assignee?'<span>Unassigned</span>':'')
+        +(e.dept?'<span class="pv-tag contrib" style="margin-left:4px;">'+esc(e.dept)+'</span>':'')
+      +'</span>'
+      +(canEdit?'<span class="sp-rank"><button title="Move up" '+(i===0?'disabled':'')+' onclick="event.stopPropagation();spNudge(\''+e.id+'\',-1)">▲</button><button title="Move down" '+(i===n-1?'disabled':'')+' onclick="event.stopPropagation();spNudge(\''+e.id+'\',1)">▼</button></span>':'')
+      +'</div></div>';
+  }
+  function renderSpBoard(){
+    const wrap=document.getElementById('spWrap'); if(!wrap) return;
+    const canEdit=canCreate();
+    wrap.innerHTML=SP_STATUSES.map(st=>{
+      const cards=spColumn(st.k).filter(teamVisible);
+      let col='<div class="kb-col" data-status="'+st.k+'"><div class="kb-col-hd"><span class="kb-dot" style="background:'+st.c+'"></span>'+esc(st.label)+' <span class="kb-count">'+cards.length+'</span></div>';
+      col+=cards.map((e,i)=>spCardHTML(e,i,cards.length)).join('');
+      if(!cards.length) col+='<p class="empty" style="font-size:.8rem;padding:6px;">Nothing here.</p>';
+      if(canEdit) col+='<button class="kb-add" onclick="openNewSpModal(\''+st.k+'\')">＋ New project</button>';
+      return col+'</div>';
+    }).join('');
+    if(canEdit) enableSpDrag();
+  }
+  /* keyboard / touch friendly reorder: swap with the neighbour above or below */
+  function spNudge(id,dir){ const e=spProjects.find(x=>x.id===id); if(!e) return; const k=e.status||'backlog'; const list=spColumn(k); const i=list.indexOf(e); const j=i+dir; if(j<0||j>=list.length) return;
+    list.splice(i,1); list.splice(j,0,e); list.forEach((x,n)=>{ if(x.ord!==n){ x.ord=n; persist(x); } }); renderSpBoard(); }
+  /* drag & drop with a positional placeholder so a card can be dropped between two others */
+  function spPlaceholder(){ let ph=document.getElementById('spPh'); if(!ph){ ph=document.createElement('div'); ph.id='spPh'; ph.className='sp-ph'; } return ph; }
+  function enableSpDrag(){
+    document.querySelectorAll('#spWrap .kb-card[draggable=true]').forEach(c=>{
+      if(c.dataset.dnd) return; c.dataset.dnd='1';
+      c.addEventListener('dragstart',e=>{ spDragId=c.getAttribute('data-id'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',spDragId);}catch(_){}; setTimeout(()=>c.classList.add('dragging'),0); e.stopPropagation(); });
+      c.addEventListener('dragend',()=>{ spDragId=null; const ph=document.getElementById('spPh'); if(ph&&ph.parentNode) ph.parentNode.removeChild(ph); document.querySelectorAll('#spWrap .kb-card').forEach(x=>x.classList.remove('dragging')); document.querySelectorAll('#spWrap .kb-col').forEach(x=>x.classList.remove('drop')); });
+    });
+    document.querySelectorAll('#spWrap .kb-col').forEach(col=>{
+      if(col.dataset.dnd) return; col.dataset.dnd='1';
+      col.addEventListener('dragover',e=>{ if(!spDragId) return; e.preventDefault(); e.dataTransfer.dropEffect='move'; col.classList.add('drop');
+        const ph=spPlaceholder(); const cards=[...col.querySelectorAll('.kb-card')].filter(x=>!x.classList.contains('dragging'));
+        const next=cards.find(x=>{ const r=x.getBoundingClientRect(); return e.clientY < r.top + r.height/2; });
+        if(next) col.insertBefore(ph,next); else { const add=col.querySelector('.kb-add'); if(add) col.insertBefore(ph,add); else col.appendChild(ph); } });
+      col.addEventListener('dragleave',e=>{ if(!col.contains(e.relatedTarget)) col.classList.remove('drop'); });
+      col.addEventListener('drop',e=>{ if(!spDragId) return; e.preventDefault(); e.stopPropagation();
+        const it=spProjects.find(x=>x.id===spDragId); const ph=document.getElementById('spPh');
+        if(it){ const k=col.getAttribute('data-status');
+          const ids=[...col.querySelectorAll('.kb-card, .sp-ph')].map(x=>x.id==='spPh'?'__ph':x.getAttribute('data-id')).filter(id=>id!==it.id);
+          const idx=ids.indexOf('__ph');
+          const list=spColumn(k).filter(x=>x.id!==it.id);
+          // cards a team member can't see aren't in the DOM; keep them where they are by splicing on visible order
+          const visible=list.filter(teamVisible); const hidden=list.filter(x=>!teamVisible(x));
+          visible.splice(idx<0?visible.length:idx,0,it);
+          const merged=visible.concat(hidden);
+          const fromCol=it.status||'backlog';
+          merged.forEach((x,n)=>{ if(x.ord!==n || (x.status||'backlog')!==k){ x.ord=n; x.status=k; persist(x); } });
+          if(fromCol!==k) spRenumber(fromCol);
+        }
+        if(ph&&ph.parentNode) ph.parentNode.removeChild(ph); spDragId=null; renderSpBoard(); });
+    });
+  }
+  /* status control shown on the detail page in place of the quarterly stage stepper */
+  function spHeaderHTML(e){
+    const opts=SP_STATUSES.map(st=>'<option value="'+st.k+'"'+((e.status||'backlog')===st.k?' selected':'')+'>'+esc(st.label)+'</option>').join('');
+    const list=spColumn(e.status||'backlog'); const i=list.indexOf(e);
+    return '<div class="sp-status-row"><label>Status</label><select onchange="setSpStatus(\''+e.id+'\',this.value)">'+opts+'</select>'
+      +'<span style="font-size:.8rem;color:var(--muted);">Rank #'+(i+1)+' of '+list.length+' in '+esc(spStatusLabel(e.status))+' · drag on the board to re-prioritise</span></div>';
+  }
+  function setSpStatus(id,k){ const e=spProjects.find(x=>x.id===id); if(!e) return; const from=e.status||'backlog'; if(from===k) return;
+    e.status=k; e.ord=spColumn(k).length; persist(e); spRenumber(from); refreshPrio(); }
+  function removeSp(id){ spProjects=spProjects.filter(e=>e.id!==id); saveSpLocal(); dbDeleteSp(id); }
+  /* ----- new project modal ----- */
+  async function openNewSpModal(status){
+    if(!canCreate()){ infoModal('Your account can view and update the projects you own, but not create new ones. Ask an admin if you need a new project added.'); return; }
+    if(USE_DB && !teamUsers.length){ try{ await loadTeamUsersCache(); }catch(e){} }
+    document.getElementById('sp-title').value=''; document.getElementById('sp-why').value=''; document.getElementById('sp-done').value='';
+    document.getElementById('sp-dept').innerHTML='<option value="">—</option>'+DEPARTMENTS.map(d=>'<option>'+esc(d)+'</option>').join('');
+    document.getElementById('sp-pm').innerHTML=ownerOptions(myEmail||'');
+    document.getElementById('sp-assignee').innerHTML=ownerOptions('');
+    document.getElementById('sp-status').innerHTML=SP_STATUSES.map(st=>'<option value="'+st.k+'"'+((status||'backlog')===st.k?' selected':'')+'>'+esc(st.label)+'</option>').join('');
+    document.getElementById('newSpModal').classList.add('show');
+    setTimeout(()=>document.getElementById('sp-title').focus(),60);
+  }
+  function closeNewSpModal(){ document.getElementById('newSpModal').classList.remove('show'); }
+  function saveNewSp(){
+    if(!canCreate()){ closeNewSpModal(); return; }
+    const title=document.getElementById('sp-title').value.trim(); if(!title){ infoModal('Give the project a title first.'); return; }
+    const done=document.getElementById('sp-done').value.split('\n').map(s=>s.trim()).filter(Boolean);
+    const assignee=document.getElementById('sp-assignee').value||'';
+    const status=document.getElementById('sp-status').value||'backlog';
+    const e={ id:uid(), type:'priority', special:true, kind:'', title,
+      why:document.getElementById('sp-why').value.trim(), dept:document.getElementById('sp-dept').value||'',
+      impact:'Medium', size:'', pm:document.getElementById('sp-pm').value||'', assignee,
+      status, ord:spColumn(status).length,
+      done, plan:done.map(()=>({start:'',end:'',pct:0,owner:assignee,dept:'',note:''})),
+      notes:'', by:'Added on special projects', stage:'committed', t:Date.now() };
+    syncStageFlags(e);
+    spProjects.push(e); persist(e);
+    closeNewSpModal(); renderSpBoard();
+    openPrio(e.id);
   }
   /* ---------- sidebar navigation ---------- */
   let currentSection='home';
@@ -5809,7 +5993,7 @@ Herd Life`;
     if(sec==='swim' && !canManageUsers()) sec='home';   // Swimlanes is admin-only
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     if(sec==='priorities'){ gotoDash(); }
-    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); if(sec==='special') renderSpSection(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
@@ -6420,7 +6604,8 @@ Herd Life`;
   }
   function closeEditModal(){ document.getElementById('editModal').classList.remove('show'); _editCb=null; }
   function saveEditModal(){ const v=document.getElementById('editModalInput').value; const cb=_editCb; closeEditModal(); if(cb) cb(v); }
-  function confirmRemovePriority(id){ confirmModal('Remove this priority entirely? This cannot be undone.', ()=>{ remove(id); gotoDash(); }, 'Remove priority'); }
+  function confirmRemovePriority(id){ const e=findEntry(id); if(e&&e.special){ confirmModal('Remove this project entirely? This cannot be undone.', ()=>{ removeSp(id); navTo('special'); }, 'Remove project'); return; }
+    confirmModal('Remove this priority entirely? This cannot be undone.', ()=>{ remove(id); gotoDash(); }, 'Remove priority'); }
 
   /* ---------- roadmap: combined Gantt of committed priorities ---------- */
   function prioRange(e){
@@ -6551,8 +6736,8 @@ Herd Life`;
 
   /* ---------- commit / size / generic field ---------- */
   let presenting=false;
-  function toggleCommit(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.committed=!e.committed; persist(e); refreshPrio(); }
-  function toggleReviewed(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.reviewed=!e.reviewed; persist(e); refreshPrio(); }
+  function toggleCommit(id){ const e=findEntry(id); if(!e) return; e.committed=!e.committed; persist(e); refreshPrio(); }
+  function toggleReviewed(id){ const e=findEntry(id); if(!e) return; e.reviewed=!e.reviewed; persist(e); refreshPrio(); }
   function isScheduled(e){ return !!prioRange(e); }
   function stageRank(k){ const i=STAGE_ORDER.indexOf(k); return i<0?0:i; }
   function legacyStage(e){
@@ -6623,13 +6808,13 @@ Herd Life`;
     }).join('<span class="stage-arrow">›</span>')+'</div>';
   }
   function setStageClick(id,key){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    const e=findEntry(id); if(!e) return;
     e.stage=key; syncStageFlags(e); persist(e); refreshPrio();
     if(key==='sized' && !e.size){ infoModal('Tip: pick a size (S / M / L) below so this stage reflects an estimate.'); }
     else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
   }
-  function setField(id,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
-  function setDod(id,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.dod=val.split('\n').map(s=>s.trim()).filter(Boolean); persist(e); }
+  function setField(id,field,val){ const e=findEntry(id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
+  function setDod(id,val){ const e=findEntry(id); if(!e) return; e.dod=val.split('\n').map(s=>s.trim()).filter(Boolean); persist(e); }
 
   /* ---------- date helpers ---------- */
   function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
@@ -6639,8 +6824,11 @@ Herd Life`;
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; const ent=cur().entries.find(x=>x.id===id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
-  function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); renderDashBody(); }
+  function openPrio(id){ if(!reviewUnlocked) return; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  /* a priority may live in the active quarter or on the Special Projects board */
+  function findEntry(id){ return cur().entries.find(x=>x.id===id) || spProjects.find(x=>x.id===id); }
+  function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special){ if(screen==='special') renderSpBoard(); } else renderDashBody(); }
+  function prioBack(){ const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special) navTo('special'); else gotoDash(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
     e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0}); });
@@ -6693,7 +6881,7 @@ Herd Life`;
   /* click the circle on a task row: complete it, or un-complete it back to where it was */
   function toggleTaskDone(id,i,ev){
     if(ev){ ev.stopPropagation(); ev.preventDefault(); }
-    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    const e=findEntry(id); if(!e) return;
     syncPlan(e); const p=e.plan[i]; if(!p) return;
     const now=Number(p.pct)||0;
     // Un-ticking something the Jira sync ticked means "I don't agree" — remember that so
@@ -6702,14 +6890,15 @@ Herd Life`;
     else { p.pctBefore=now; p.pct=100; sinkTask(e,i); }
     autoStage(e); persist(e); refreshPrio();
   }
-  function setPlan(id,i,field,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); persist(e); refreshPrio(); }
-  function addDone(id){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); autoStage(e); persist(e); refreshPrio(); }
-  function editDoneText(id,i,val){ const e=cur().entries.find(x=>x.id===id); if(!e) return; e.done[i]=val; persist(e); refreshPrio(); }
-  function removeDone(id,i){ const e=cur().entries.find(x=>x.id===id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); autoStage(e); persist(e); refreshPrio(); }
+  function setPlan(id,i,field,val){ const e=findEntry(id); if(!e) return; syncPlan(e); if(e.plan[i]){ e.plan[i][field]=val; } autoStage(e); persist(e); refreshPrio(); }
+  function addDone(id){ const e=findEntry(id); if(!e) return; e.done=e.done||[]; e.done.push(''); syncPlan(e); if(e.special&&e.assignee){ const p=e.plan[e.plan.length-1]; if(p&&!p.owner) p.owner=e.assignee; } autoStage(e); persist(e); refreshPrio(); }
+  function editDoneText(id,i,val){ const e=findEntry(id); if(!e) return; e.done[i]=val; persist(e); refreshPrio(); }
+  function removeDone(id,i){ const e=findEntry(id); if(!e) return; syncPlan(e); e.done.splice(i,1); e.plan.splice(i,1); autoStage(e); persist(e); refreshPrio(); }
   function renderPrioPage(){
-    const e=cur().entries.find(x=>x.id===prioOpenId);
+    const e=findEntry(prioOpenId);
     const body=document.getElementById('prio-body');
-    document.getElementById('prioCrumb').textContent = cur().name+' · '+(cur().theme||'');
+    document.getElementById('prioCrumb').textContent = (e&&e.special) ? ('Special Projects · '+spStatusLabel(e.status)) : (cur().name+' · '+(cur().theme||''));
+    { const bb=document.getElementById('prioBackBtn'); if(bb) bb.textContent = (e&&e.special)?'← Back to special projects':'← Back to priorities'; }
     if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to priorities</button></div>'; return; }
     syncPlan(e);
     const extraDepts=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
@@ -6753,8 +6942,8 @@ Herd Life`;
     }
     body.innerHTML = `
       <div class="card" style="margin-bottom:16px;">
-        ${stepperFor(e)}
-        <label>Priority title</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;">
+        ${e.special?spHeaderHTML(e):stepperFor(e)}
+        <label>${e.special?'Project title':'Priority title'}</label><input type="text" value="${esc(e.title)}" onchange="setField('${e.id}','title',this.value)" style="width:100%;font-size:17px;font-weight:700;">
         <div class="pm-grid">
           <div><label>Department</label><select onchange="setDeptSel('${e.id}',this)">${deptOpts}<option value="__other">✏️ Other — type a name…</option></select></div>
           <div><label>Impact</label><select onchange="setField('${e.id}','impact',this.value)">
@@ -6766,7 +6955,8 @@ Herd Life`;
             <option value="S" ${e.size==='S'?'selected':''}>S — small</option>
             <option value="M" ${e.size==='M'?'selected':''}>M — medium</option>
             <option value="L" ${e.size==='L'?'selected':''}>L — large</option></select></div>
-          <div><label>Project manager</label><select onchange="setField('${e.id}','pm',this.value)">${ownerOptions(e.pm)}</select></div>
+          <div><label>${e.special?'Owner / PM':'Project manager'}</label><select onchange="setField('${e.id}','pm',this.value)">${ownerOptions(e.pm)}</select></div>
+          ${e.special?`<div><label>Working on it</label><select onchange="setField('${e.id}','assignee',this.value)">${ownerOptions(e.assignee)}</select></div>`:''}
           <div><label>Type</label><select onchange="setField('${e.id}','kind',this.value)">
             <option value="" ${!e.kind?'selected':''}>—</option>
             <option value="bottleneck" ${e.kind==='bottleneck'?'selected':''}>🔧 Bottleneck</option>
@@ -6818,8 +7008,8 @@ Herd Life`;
 
       <div class="card">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn ghost" onclick="gotoDash()">← Back to priorities</button>
-          <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">Remove priority</button>
+          <button class="btn ghost" onclick="prioBack()">← Back to ${e.special?'special projects':'priorities'}</button>
+          <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">${e.special?'Remove project':'Remove priority'}</button>
         </div>
       </div>
     `;
@@ -6843,7 +7033,7 @@ Herd Life`;
     if(sel.value==='__other') setTimeout(()=>other.focus(),40);
   }
   function openTaskModal(id, i){
-    const e=cur().entries.find(x=>x.id===id); if(!e) return;
+    const e=findEntry(id); if(!e) return;
     syncPlan(e);
     taskModalEntry=id; taskModalIdx=(typeof i==='number')?i:null;
     const p=(taskModalIdx!=null && e.plan[taskModalIdx]) ? e.plan[taskModalIdx] : {start:'',end:'',pct:0,owner:'',dept:'',note:''};
@@ -6865,7 +7055,7 @@ Herd Life`;
   }
   function closeTaskModal(){ document.getElementById('taskModal').classList.remove('show'); taskModalEntry=null; taskModalIdx=null; }
   function saveTaskModal(){
-    const e=cur().entries.find(x=>x.id===taskModalEntry); if(!e){ closeTaskModal(); return; }
+    const e=findEntry(taskModalEntry); if(!e){ closeTaskModal(); return; }
     syncPlan(e);
     const dSel=document.getElementById('tm-dept');
     let dept=dSel.value; if(dept==='__other') dept=document.getElementById('tm-dept-other').value.trim();
