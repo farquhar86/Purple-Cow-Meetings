@@ -1695,25 +1695,25 @@
       <div class="card">
         <p class="quad-title"><span class="tag t-s">Strengths</span></p>
         <p class="quad-hint">What we're genuinely good at today that helps grow the herd.</p>
-        <div class="add-row"><input id="in-strength" placeholder="Add a strength…" /><button class="btn sm" onclick="addItem('strength','in-strength')">Add</button></div>
+        <div class="add-row"><input id="in-strength" placeholder="Add a strength…" /><button class="btn sm" onclick="addFormItem('strength','in-strength')">Add</button></div>
         <ul class="items" id="list-strength"></ul>
       </div>
       <div class="card">
         <p class="quad-title"><span class="tag t-w">Weaknesses</span></p>
         <p class="quad-hint">Internal gaps slowing us down or capping how many members we serve well.</p>
-        <div class="add-row"><input id="in-weakness" placeholder="Add a weakness…" /><button class="btn sm" onclick="addItem('weakness','in-weakness')">Add</button></div>
+        <div class="add-row"><input id="in-weakness" placeholder="Add a weakness…" /><button class="btn sm" onclick="addFormItem('weakness','in-weakness')">Add</button></div>
         <ul class="items" id="list-weakness"></ul>
       </div>
       <div class="card">
         <p class="quad-title"><span class="tag t-o">Opportunities</span></p>
         <p class="quad-hint">Outside trends or moves we could seize to accelerate growth.</p>
-        <div class="add-row"><input id="in-opportunity" placeholder="Add an opportunity…" /><button class="btn sm" onclick="addItem('opportunity','in-opportunity')">Add</button></div>
+        <div class="add-row"><input id="in-opportunity" placeholder="Add an opportunity…" /><button class="btn sm" onclick="addFormItem('opportunity','in-opportunity')">Add</button></div>
         <ul class="items" id="list-opportunity"></ul>
       </div>
       <div class="card">
         <p class="quad-title"><span class="tag t-t">Threats</span></p>
         <p class="quad-hint">Competitors, risks, or external forces that could stall the march.</p>
-        <div class="add-row"><input id="in-threat" placeholder="Add a threat…" /><button class="btn sm" onclick="addItem('threat','in-threat')">Add</button></div>
+        <div class="add-row"><input id="in-threat" placeholder="Add a threat…" /><button class="btn sm" onclick="addFormItem('threat','in-threat')">Add</button></div>
         <ul class="items" id="list-threat"></ul>
       </div>
     </div>
@@ -1727,19 +1727,19 @@
       <div class="card">
         <p class="quad-title"><span class="tag t-start">Start</span></p>
         <p class="quad-hint">New things worth beginning.</p>
-        <div class="add-row"><input id="in-start" placeholder="Start doing…" /><button class="btn sm" onclick="addItem('start','in-start')">Add</button></div>
+        <div class="add-row"><input id="in-start" placeholder="Start doing…" /><button class="btn sm" onclick="addFormItem('start','in-start')">Add</button></div>
         <ul class="items" id="list-start"></ul>
       </div>
       <div class="card">
         <p class="quad-title"><span class="tag t-stop">Stop</span></p>
         <p class="quad-hint">Things draining time with little payoff.</p>
-        <div class="add-row"><input id="in-stop" placeholder="Stop doing…" /><button class="btn sm" onclick="addItem('stop','in-stop')">Add</button></div>
+        <div class="add-row"><input id="in-stop" placeholder="Stop doing…" /><button class="btn sm" onclick="addFormItem('stop','in-stop')">Add</button></div>
         <ul class="items" id="list-stop"></ul>
       </div>
       <div class="card">
         <p class="quad-title"><span class="tag t-keep">Keep</span></p>
         <p class="quad-hint">What's working — don't lose it.</p>
-        <div class="add-row"><input id="in-keep" placeholder="Keep doing…" /><button class="btn sm" onclick="addItem('keep','in-keep')">Add</button></div>
+        <div class="add-row"><input id="in-keep" placeholder="Keep doing…" /><button class="btn sm" onclick="addFormItem('keep','in-keep')">Add</button></div>
         <ul class="items" id="list-keep"></ul>
       </div>
     </div>
@@ -2229,7 +2229,7 @@
   let formDraft=[]; // this person's in-progress submission — private, not shared until Submit
   function draftRemove(id){ formDraft=formDraft.filter(e=>e.id!==id); renderForm(); }
   function draftEditText(id){ const e=formDraft.find(x=>x.id===id); if(!e) return; editModal('Edit', e.text||'', v=>{ e.text=v.trim(); renderForm(); }); }
-  function addItem(type, inputId){
+  function addFormItem(type, inputId){
     const el=document.getElementById(inputId); const v=el.value.trim(); if(!v) return;
     formDraft.push({ id:uid(), type, text:v, by:who(), dept:deptEl.value.trim(), t:Date.now() });
     el.value=''; renderForm(); el.focus();
