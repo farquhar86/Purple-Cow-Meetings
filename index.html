@@ -1799,7 +1799,7 @@
     <div class="card" style="text-align:center;">
       <h2 style="color:var(--purple-dark);margin:0 0 6px;">Ready to submit?</h2>
       <p class="block-desc" id="submitHint" style="margin:0 auto 16px;">When your team has filled out all four sections, hit Submit to send it to your manager. Once submitted, your responses are in — you can close the page.</p>
-      <button class="btn" style="font-size:16px;padding:13px 30px;" onclick="submitForm()">✅ Submit to manager</button>
+      <button class="btn" id="submitBtn" style="font-size:16px;padding:13px 30px;" onclick="submitForm()">✅ Submit to manager</button>
       <div id="submitMsg" style="margin-top:16px;"></div>
     </div>
   </section>
@@ -2227,6 +2227,13 @@
 
   /* ---------- intake actions ---------- */
   let formDraft=[]; // this person's in-progress submission — private, not shared until Submit
+  // the draft is also kept in this browser so a reload, sleep or discarded tab can't wipe it before Submit
+  const DRAFT_KEY=KEY+'_formdraft';
+  try{ const d=JSON.parse(localStorage.getItem(DRAFT_KEY)||'[]'); if(Array.isArray(d)) formDraft=d; }catch(e){}
+  function saveDraft(){ try{ if(formDraft.length) localStorage.setItem(DRAFT_KEY, JSON.stringify(formDraft)); else localStorage.removeItem(DRAFT_KEY); }catch(e){} }
+  // the quarter the form submits to: the one in the link, else the newest — never whatever quarter the dashboard last showed
+  let formMeetingId=null;
+  function formMeeting(){ return store.meetings.find(x=>x.id===formMeetingId) || store.meetings.reduce((a,b)=>b.id>a.id?b:a); }
   function draftRemove(id){ formDraft=formDraft.filter(e=>e.id!==id); renderForm(); }
   function draftEditText(id){ const e=formDraft.find(x=>x.id===id); if(!e) return; editModal('Edit', e.text||'', v=>{ e.text=v.trim(); renderForm(); }); }
   function addFormItem(type, inputId){
@@ -2263,6 +2270,8 @@
     if(formDraft.filter(e=>e.type==='priority'&&e.kind==='innovation').length<1) p.push('Add at least 1 innovation');
     return p;
   }
+  const SUBMIT_TIMEOUT_MS=20000;
+  let submitting=false;
   async function submitForm(){
     const probs=validateForm(); const box=document.getElementById('submitMsg');
     deptEl.classList.toggle('invalid', !deptEl.value.trim());
@@ -2271,15 +2280,27 @@
       box.innerHTML='<div class="validation"><strong>Almost there — please complete:</strong><ul>'+probs.map(p=>'<li>'+esc(p)+'</li>').join('')+'</ul></div>';
       return;
     }
+    if(submitting) return;
+    submitting=true; const btn=document.getElementById('submitBtn'); btn.disabled=true;
     box.innerHTML='<div class="note">Submitting…</div>';
-    const m=cur();
+    const m=formMeeting();
     // stamp the final name/department on every item at submit, so nothing gets left as "Unnamed"
     const finalBy=who(), finalDept=deptEl.value.trim();
     formDraft.forEach(en=>{ en.by=finalBy; en.dept=finalDept; });
+    saveDraft();
     try{
-      if(USE_DB){ const {error}=await sb.from('entries').insert(formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}))); if(error) throw error; }
+      if(USE_DB){
+        // never leave someone staring at "Submitting…" forever — a stalled request gets a clear error and a retry
+        const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('the server didn\'t respond')), SUBMIT_TIMEOUT_MS));
+        const {error}=await Promise.race([ sb.from('entries').insert(formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}))), timeout ]);
+        // a duplicate id means an earlier attempt that looked stalled actually landed — the insert is all-or-nothing
+        if(error && error.code!=='23505') throw error;
+      }
       else { formDraft.forEach(en=>m.entries.push(en)); save(); }
-    }catch(err){ box.innerHTML='<div class="validation">Could not submit — please try again.'+(err&&err.message?' ('+esc(err.message)+')':'')+'</div>'; return; }
+    }catch(err){
+      box.innerHTML='<div class="validation">Could not submit'+(err&&err.message?' ('+esc(err.message)+')':'')+'. Your answers are still saved on this page — please try again.</div>';
+      return;
+    }finally{ submitting=false; btn.disabled=false; }
     formDraft=[]; renderForm();
     box.innerHTML='<div class="success">✅ Submitted! Thank you — your input has been sent to your manager. You can close this page now.</div>';
   }
@@ -2312,10 +2333,11 @@
 
   /* ---------- meeting management ---------- */
   function applyTheme(){
+    const fm=formMeeting();
+    document.getElementById('heroTitle').textContent=fm.theme||DEFAULT_THEME;
+    document.getElementById('goalPill').innerHTML='🎯 Quarterly goal: '+esc(fm.goal||DEFAULT_GOAL);
+    document.getElementById('quarterChip').textContent='📅 Submitting to '+fm.name;
     const m=cur();
-    document.getElementById('heroTitle').textContent=m.theme||DEFAULT_THEME;
-    document.getElementById('goalPill').innerHTML='🎯 Quarterly goal: '+esc(m.goal||DEFAULT_GOAL);
-    document.getElementById('quarterChip').textContent='📅 '+m.name;
     document.getElementById('dashQuarter').textContent=m.name;
     document.getElementById('dashTheme').textContent=m.theme||DEFAULT_THEME;
     document.getElementById('dashGoal').textContent='🎯 '+(m.goal||DEFAULT_GOAL);
@@ -6261,6 +6283,7 @@ Herd Life`;
 
   /* ---------- render: intake form lists ---------- */
   function renderForm(){
+    saveDraft();
     SIMPLE_TYPES.forEach(t=>{
       const ul=document.getElementById('list-'+t); if(!ul) return;
       const rows=formDraft.filter(e=>e.type===t);
@@ -7199,7 +7222,7 @@ Herd Life`;
   function applyRoute(){
     const r=parseHash();
     if(r.form){
-      if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id;
+      formMeetingId = r.id && store.meetings.some(m=>m.id===r.id) ? r.id : null;
       applyTheme(); renderForm(); showScreen('form');
     } else {
       applyTheme(); renderForm();
@@ -7211,7 +7234,7 @@ Herd Life`;
     const done=()=>infoModal('Shareable form link for “'+cur().name+'”:\n\n'+url+'\n\nSend this to the team — it opens straight to this quarter\'s intake form.');
     if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(done); } else { done(); }
   }
-  window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ if(r.id && store.meetings.some(m=>m.id===r.id)) store.activeId=r.id; applyTheme(); renderForm(); showScreen('form'); } });
+  window.addEventListener('hashchange', ()=>{ const r=parseHash(); if(r.form){ formMeetingId = r.id && store.meetings.some(m=>m.id===r.id) ? r.id : null; applyTheme(); renderForm(); showScreen('form'); } });
 
   async function dbLoadMeetingsOnly(){
     const mr=await sbSelectAll('meetings','id,data','id'); if(mr.error) throw mr.error;
