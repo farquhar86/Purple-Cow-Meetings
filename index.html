@@ -2292,9 +2292,17 @@
       if(USE_DB){
         // never leave someone staring at "Submitting…" forever — a stalled request gets a clear error and a retry
         const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('the server didn\'t respond')), SUBMIT_TIMEOUT_MS));
-        const {error}=await Promise.race([ sb.from('entries').insert(formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}))), timeout ]);
-        // a duplicate id means an earlier attempt that looked stalled actually landed — the insert is all-or-nothing
+        const rows=formDraft.map(en=>({id:en.id,meeting_id:m.id,data:en}));
+        const {error}=await Promise.race([ sb.from('entries').insert(rows), timeout ]);
         if(error && error.code!=='23505') throw error;
+        // a duplicate id means an earlier attempt that looked stalled actually landed, but items added since then
+        // would be rejected with it — so save one at a time, skipping the ones already there
+        if(error){
+          for(const row of rows){
+            const r=await Promise.race([ sb.from('entries').insert(row), timeout ]);
+            if(r.error && r.error.code!=='23505') throw r.error;
+          }
+        }
       }
       else { formDraft.forEach(en=>m.entries.push(en)); save(); }
     }catch(err){
