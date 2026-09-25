@@ -1214,7 +1214,7 @@
 </div>
 
 <!-- ====================== SCREEN: LOGIN LANDING ====================== -->
-<div id="screen-login">
+<div id="screen-login" style="display:none;">
   <div class="login-wrap">
     <div class="login-card">
       <div class="brand" style="justify-content:center;color:var(--heading);"><span class="dot" style="background:var(--purple);">🐄</span> Purple Cow Internet</div>
@@ -6075,11 +6075,17 @@ Herd Life`;
   }
   /* ---------- sidebar navigation ---------- */
   let currentSection='home';
+  // Remember the section in the URL so a refresh lands back where the user was, not on Home.
+  function persistSection(sec){
+    if(!reviewUnlocked) return;
+    try{ history.replaceState(null,'', location.pathname+'#section='+encodeURIComponent(sec)); }catch(e){}
+  }
   function toggleMobileNav(){ document.body.classList.toggle('sb-open'); }
   function closeMobileNav(){ document.body.classList.remove('sb-open'); }
   function navTo(sec){
     if(sec==='swim' && !canManageUsers()) sec='home';   // Swimlanes is admin-only
     currentSection=sec; closeAcctMenu(); closeMobileNav();
+    persistSection(sec);
     if(sec==='priorities'){ gotoDash(); }
     else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); if(sec==='special') renderSpSection(); window.scrollTo({top:0}); }
     setActiveNav(sec);
@@ -6341,7 +6347,7 @@ Herd Life`;
   function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }
   document.addEventListener('click', (e)=>{ const b=document.getElementById('sbAcct'), m=document.getElementById('sbAcctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target) && b && !b.contains(e.target)) m.classList.remove('show'); });
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
-  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
+  function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; persistSection('priorities'); setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function togglePresent(){ document.body.classList.toggle('presenting'); const on=document.body.classList.contains('presenting'); presenting=on; document.getElementById('presentBtn').textContent= on?'✕ Exit presentation (showing reviewed only)':'▶ Presentation mode'; if(screen==='dash') renderDashBody(); }
 
   /* ---------- render: master ---------- */
@@ -7278,10 +7284,14 @@ Herd Life`;
   function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ const mid=cur().id; cur().entries=[]; save(); render(); dbDeleteEntriesForMeeting(mid); }, 'Clear quarter'); }
 
   /* ---------- routing + init ---------- */
+  const NAV_SECTIONS=['home','vision','metrics','priorities','special','todos','issues','swim','meetings'];
   function parseHash(){
     const h=(location.hash||'').replace(/^#/,'');
     if(h==='form' || h.indexOf('form=')===0 || h.indexOf('form/')===0){
       return { form:true, id: h.split(/[=/]/)[1] || '' };
+    }
+    if(h.indexOf('section=')===0){
+      return { section: decodeURIComponent(h.slice('section='.length)) };
     }
     return {};
   }
@@ -7292,7 +7302,10 @@ Herd Life`;
       applyTheme(); renderForm(); showScreen('form');
     } else {
       applyTheme(); renderForm();
-      if(reviewUnlocked){ navTo('home'); } else { showScreen('login'); }
+      if(reviewUnlocked){
+        const sec = (r.section && NAV_SECTIONS.indexOf(r.section)>=0) ? r.section : 'home';
+        navTo(sec);
+      } else { showScreen('login'); }
     }
   }
   function copyFormLink(){
