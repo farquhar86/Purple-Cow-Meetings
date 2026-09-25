@@ -9,7 +9,7 @@
 // Apply the saved theme before first paint, to avoid a light-mode flash.
 (function(){
   try{
-    var pref = localStorage.getItem('pc_herd100k_theme') || 'auto';
+    var pref = localStorage.getItem('pc_herd100k_theme') || 'light';
     var resolved = pref === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref;
     document.documentElement.setAttribute('data-theme', resolved);
   }catch(e){}
@@ -2156,7 +2156,7 @@
   // Named applyColorTheme/getColorThemePref to avoid clashing with the
   // pre-existing applyTheme() (which sets the quarterly meeting's theme text).
   const COLOR_THEME_KEY = 'pc_herd100k_theme';
-  function getColorThemePref(){ try{ return localStorage.getItem(COLOR_THEME_KEY) || 'auto'; }catch(e){ return 'auto'; } }
+  function getColorThemePref(){ try{ return localStorage.getItem(COLOR_THEME_KEY) || 'light'; }catch(e){ return 'light'; } }
   function resolveColorTheme(pref){ return pref === 'auto' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : pref; }
   function applyColorTheme(){
     const pref = getColorThemePref();
