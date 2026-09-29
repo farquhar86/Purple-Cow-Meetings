@@ -5208,8 +5208,22 @@ Herd Life`;
     else if(rockSort==='pm') l.sort((a,b)=>String(pmName(resolvePerson(a.pm))).localeCompare(String(pmName(resolvePerson(b.pm))))||rockScore(b)-rockScore(a));
     return l;
   }
+  /* Which planning quarter a MEETING should show: the calendar quarter of the meeting's
+     own date, so a meeting stays on Q3 until Q4 actually begins (Oct 1) and then flips
+     on its own — NOT whatever quarter the Priorities page happens to be planning ahead on.
+     Falls back to the active quarter only if that calendar quarter hasn't been created yet. */
+  function mtgQuarterForView(){
+    try{
+      const d = (typeof curMtgDate!=='undefined' && curMtgDate) ? curMtgDate : new Date();
+      const want = ('Q'+(Math.floor(d.getMonth()/3)+1)+' '+d.getFullYear()).trim().toLowerCase();
+      const hit = ((typeof store!=='undefined' && store && store.meetings)||[])
+        .find(x=>String(x.name||'').trim().toLowerCase()===want);
+      if(hit) return hit;
+    }catch(e){}
+    return (typeof cur==='function')?cur():null;
+  }
   function renderQuarterRocks(secId){
-    const q=(typeof cur==='function')?cur():null;
+    const q=mtgQuarterForView();
     if(!q){ return '<div class="mtg-empty">No quarter loaded.</div>'; }
     let rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
     const mtg=mtgsStore.find(x=>x.id===curMtgId);
@@ -5256,7 +5270,7 @@ Herd Life`;
      the active quarter. ===== */
   function openPrioInQuarter(qid,id){ if(qid && qid!==store.activeId) switchMeeting(qid); openPrio(id); }
   function renderQuarterOwnerItems(m,sec){
-    const q = sec.quarterId ? (store.meetings||[]).find(x=>x.id===sec.quarterId) : (typeof cur==='function'?cur():null);
+    const q = sec.quarterId ? (store.meetings||[]).find(x=>x.id===sec.quarterId) : mtgQuarterForView();
     if(!q) return '<div class="mtg-empty">'+(sec.quarterId
       ? 'The quarter this section was set to no longer exists. Use ✎ to pick another one.'
       : 'No quarter loaded.')+'</div>';
