@@ -1085,6 +1085,48 @@
   .stage-hint a{color:var(--purple);font-weight:700;cursor:pointer;text-decoration:none;}
   .stage-hint a:hover{text-decoration:underline;}
   .bump-note{font-size:12px;background:#fbf1dc;color:#9a6d14;border-radius:8px;padding:7px 10px;margin:10px 0 2px;}
+/* Definition of Done checklist + task links (Oct 2026) */
+.dod-list{list-style:none;margin:8px 0 0;padding:0;}
+.dod-li{display:flex;gap:12px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--line);}
+.dod-li:first-child{border-top:none;}
+.dod-chk{flex:0 0 auto;width:24px;height:24px;border-radius:6px;border:2px solid var(--purple-light);background:var(--card);color:#fff;font-weight:800;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;margin-top:1px;user-select:none;}
+.dod-chk:hover{background:var(--lilac);}
+.dod-chk.on{background:var(--green);border-color:var(--green);}
+.dod-chk.sm{width:18px;height:18px;border-radius:5px;font-size:11px;margin:0 8px 0 0;vertical-align:-4px;}
+.dod-txt{flex:1;min-width:0;}
+.dod-t{font-weight:600;color:var(--ink);font-size:14px;}
+.dod-li.met .dod-t{color:var(--green);}
+.dod-meta{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:3px;font-size:12px;}
+.dod-stamp{color:var(--green);font-weight:700;}
+.dod-link{border:1px solid var(--line);background:var(--lilac);color:var(--heading);border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700;cursor:pointer;}
+.dod-link:hover{border-color:var(--purple-light);}
+.dod-link.warn,.dod-ready{background:var(--gold-bg);border:1px solid var(--gold-line);color:#9a6d14;}
+.dod-ready{border-radius:999px;padding:1px 9px;font-size:11.5px;font-weight:700;}
+.dod-count{font-size:12.5px;font-weight:700;color:var(--heading);white-space:nowrap;}
+.dod-flag{margin-top:8px;font-size:12.5px;font-weight:600;color:#9a6d14;background:var(--gold-bg);border:1px solid var(--gold-line);border-radius:8px;padding:7px 10px;}
+.dod-empty{font-size:13px;color:var(--muted);margin:8px 0 0;}
+.dod-add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;}
+.dod-add input{flex:1 1 240px;min-width:0;text-align:left;margin:0;}
+.sup-chip{display:inline-block;margin:3px 4px 0 0;border:1px solid var(--line);background:var(--lilac);color:var(--heading);border-radius:999px;padding:0 8px;font-size:11px;font-weight:700;cursor:pointer;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;}
+.sup-chip.none{background:transparent;border-style:dashed;color:var(--muted);cursor:default;font-weight:600;}
+.sup-also{font-size:11px;color:var(--muted);font-weight:600;}
+.sched-tbl tr.g-hd .g-sub{font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted);margin-left:8px;font-size:11.5px;}
+.sched-tbl tr.oc-hd td{text-transform:none;letter-spacing:0;font-size:12.5px;}
+.sched-tbl tr.oc-hd.met td{background:color-mix(in srgb,var(--green) 14%,var(--card));color:var(--green);}
+.dept-sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:10px 0 4px;}
+.ds-card{border:1px solid var(--line);border-radius:12px;padding:9px 12px;background:var(--lilac);}
+.ds-hd{display:flex;justify-content:space-between;gap:8px;font-size:13px;font-weight:800;color:var(--heading);margin-bottom:3px;}
+.ds-hd span{font-weight:700;color:var(--muted);font-size:12px;white-space:nowrap;}
+.ds-who{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;padding:1px 0;}
+.ds-who .n{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;}
+.ds-who .n.late{color:var(--red);font-weight:700;}
+.modal .tm-ocs{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:9px;padding:4px 10px;max-height:220px;overflow-y:auto;}
+.modal .tm-ocs label{display:flex;gap:8px;align-items:flex-start;font-weight:600;font-size:13px;color:var(--ink);margin:0;padding:5px 0;cursor:pointer;}
+.modal .tm-ocs input{width:auto;margin:3px 0 0;flex:0 0 auto;}
+.modal .tm-ocs-hint{font-size:12px;color:var(--muted);}
+.g-none-line{font-size:12px;color:#9a6d14;font-style:italic;margin:0 0 8px;}
+.pv-pill.dod{background:var(--lilac-2);color:var(--heading);}
+html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[data-theme="dark"] .dod-flag,html[data-theme="dark"] .g-none-line{color:var(--amber);}
   .gantt{margin-top:12px;border:1px solid var(--line);border-radius:10px;padding:14px;background:var(--card);}
   .gantt-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
   .g-label{width:38%;font-size:12.5px;color:var(--ink);}
@@ -1273,7 +1315,12 @@
       <div><label>Start</label><input type="date" id="tm-start" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
       <div><label>End</label><input type="date" id="tm-end" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
       <div><label>% done</label><input type="number" id="tm-pct" min="0" max="100" value="0" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
-      <div><label>Note</label><input type="text" id="tm-note" placeholder="Blockers, context, who asked…" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></div>
+    </div>
+    <label>Note</label>
+    <textarea id="tm-note" rows="3" placeholder="Blockers, context, who asked…" style="text-align:left;margin-top:0;width:100%;box-sizing:border-box;"></textarea>
+    <div id="tm-ocs-wrap">
+      <label>Supports which Definition of Done lines? <span style="font-weight:400;text-transform:none;">— pick any that apply</span></label>
+      <div id="tm-ocs"></div>
     </div>
     <div class="modal-actions">
       <button class="btn" onclick="saveTaskModal()">Save task</button>
@@ -2697,7 +2744,8 @@
     const src=cur(); const list=carryCandidates(src); let added=0;
     list.forEach(e=>{
       const copy={ id:uid(), type:'priority', title:e.title, why:e.why, dept:e.dept, impact:e.impact, size:e.size, pm:e.pm,
-        done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0,owner:(p&&p.owner)||'',dept:(p&&p.dept)||'',note:(p&&p.note)||''})),
+        done:(e.done||[]).slice(), plan:(e.plan||[]).map(p=>({start:'',end:'',pct:Number(p.pct)||0,owner:(p&&p.owner)||'',dept:(p&&p.dept)||'',note:(p&&p.note)||'',ocs:(p&&Array.isArray(p.ocs))?p.ocs.slice():[]})),
+        dod:dodLines(e).slice(), dodIds:ensureDodIds(e).slice(), dodMet:Object.assign({},e.dodMet||{}),
         stage:'committed', reviewed:true, committed:true, notes:((e.notes?e.notes+'\n':'')+'↪ Carried over from '+src.name), by:e.by, carriedFrom:src.name, t:Date.now() };
       target.entries.push(copy); dbUpsertEntry(target.id, copy);
       added++;
@@ -6496,7 +6544,7 @@ Herd Life`;
     const done=(e.done&&e.done.length)?'<ul class="done tasklist">'+e.done.map((d,i)=>{
       const tp=Number(((e.plan||[])[i]||{}).pct)||0;
       return {tp, html:`<li class="${tp===100?'is-done':''}">${tickHTML(e.id,i,tp)}<span class="tl-name">${d?esc(d):'Untitled task'}${jiraChipHTML(d)}</span>${(tp>0&&tp<100)?`<span class="tl-pct">${tp}%</span>`:''}</li>`};
-    }).sort((a,b)=>(a.tp===100)-(b.tp===100)).map(x=>x.html).join('')+'</ul>':'<p class="empty">Definition of done not set.</p>';
+    }).sort((a,b)=>(a.tp===100)-(b.tp===100)).map(x=>x.html).join('')+'</ul>':'<p class="empty">No tasks yet.</p>';
     const dept=e.dept?esc(e.dept):'Unassigned';
     const pct=prioPct(e);
     const plan=e.plan||[]; const totalT=(e.done||[]).length;
@@ -6521,7 +6569,7 @@ Herd Life`;
     const offClass = isAtRisk(e) ? ' offtrack-risk' : (isPrioBehind(e) ? ' offtrack-behind' : '');
     const offChip = isAtRisk(e) ? '<span class="offtrack-chip risk" title="Off track — has an overdue task">⚠ OFF TRACK</span>'
                   : (isPrioBehind(e) ? '<span class="offtrack-chip behind" title="Behind — progress hasn\'t kept up with the timeline">⏰ BEHIND</span>' : '');
-    const summary = (!exp && totalT) ? `<div class="pv-sum"><span class="pv-pill done">✔ ${doneT} done</span><span class="pv-pill prog">${progT} in progress</span><span class="pv-pill todo">${totalT-doneT-progT} not started</span>${lateT?`<span class="pv-pill late">⚠ ${lateT} overdue</span>`:''}</div>` : '';
+    const summary = (!exp && totalT) ? `<div class="pv-sum"><span class="pv-pill done">✔ ${doneT} done</span><span class="pv-pill prog">${progT} in progress</span><span class="pv-pill todo">${totalT-doneT-progT} not started</span>${lateT?`<span class="pv-pill late">⚠ ${lateT} overdue</span>`:''}${dodLines(e).length?`<span class="pv-pill dod">✅ ${dodStatus(e).met}/${dodStatus(e).n} DoD met</span>`:''}</div>` : '';
     return `<div class="card prio-card rev-card pv-card ${e.committed?'committed-card':''}${offClass}">
       <div class="pv-priohd" onclick="toggleCard('${e.id}')">
         <div style="flex:1;min-width:0;">
@@ -6850,7 +6898,7 @@ Herd Life`;
   function isScheduled(e){ return !!prioRange(e); }
   function stageRank(k){ const i=STAGE_ORDER.indexOf(k); return i<0?0:i; }
   function legacyStage(e){
-    const full = e.completed===true || (e.done && e.done.length>0 && prioPct(e)===100);
+    const full = dodLines(e).length ? dodAllMet(e) : (e.completed===true || (e.done && e.done.length>0 && prioPct(e)===100));
     if(full) return 'complete';
     if(isScheduled(e)) return 'scheduled';
     if(e.committed) return 'committed';
@@ -6865,7 +6913,11 @@ Herd Life`;
     if(!e.stage) e.stage=legacyStage(e);
     if(e.size && stageRank(e.stage)<stageRank('sized')) e.stage='sized';
     if(isScheduled(e) && stageRank(e.stage)<stageRank('scheduled')) e.stage='scheduled';
-    if(e.done && e.done.length>0 && prioPct(e)===100 && stageRank(e.stage)<stageRank('complete')) e.stage='complete';
+    if(dodLines(e).length){
+      // a priority with Definition of Done lines is complete when every line is ticked, not when the tasks hit 100%
+      if(dodAllMet(e)){ if(stageRank(e.stage)<stageRank('complete')) e.stage='complete'; }
+      else if(e.stage==='complete'){ e.stage = isScheduled(e) ? 'scheduled' : 'committed'; }
+    } else if(e.done && e.done.length>0 && prioPct(e)===100 && stageRank(e.stage)<stageRank('complete')) e.stage='complete';
     syncStageFlags(e);
   }
   function todayStart(){ const d=new Date(); d.setHours(0,0,0,0); return d; }
@@ -6918,6 +6970,7 @@ Herd Life`;
   }
   function setStageClick(id,key){
     const e=findEntry(id); if(!e) return;
+    if(key==='complete' && dodLines(e).length && !dodAllMet(e)){ infoModal('This priority completes when every Definition of Done line is ticked. '+(dodStatus(e).n-dodStatus(e).met)+' still to go.'); return; }
     e.stage=key; syncStageFlags(e); persist(e); refreshPrio();
     if(key==='sized' && !e.size){ infoModal('Tip: pick a size (S / M / L) below so this stage reflects an estimate.'); }
     else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
@@ -6940,7 +6993,7 @@ Herd Life`;
   function prioBack(){ const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special) navTo('special'); else gotoDash(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0,ocs:Array.isArray(old[i].ocs)?old[i].ocs.slice():[]} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0,ocs:[]}); });
     e.plan=np;
   }
   /* a task counts as "bumped" once its end date has been pushed later than the original plan */
@@ -6962,8 +7015,77 @@ Herd Life`;
     let sum=0; done.forEach((d,i)=>{ sum += (plan[i]&&Number(plan[i].pct))||0; });
     return Math.round(sum/done.length);
   }
-  /* a priority is complete once every one of its tasks is done */
-  function prioComplete(e){ return !!(e.done&&e.done.length) && prioPct(e)===100; }
+  /* a priority is complete once every one of its tasks is done; one with Definition of Done lines, once every line is ticked */
+  function prioComplete(e){ if(dodLines(e).length) return dodAllMet(e); return !!(e.done&&e.done.length) && prioPct(e)===100; }
+
+  /* ---------- Definition of Done checklist ----------
+     e.dod      the lines (strings), as before
+     e.dodIds   a stable id per line, index-aligned with e.dod
+     e.dodMet   { lineId: {by, at} } for lines the PM has ticked
+     plan[i].ocs  ids of the lines a task supports (any number)
+     Priorities with no lines behave exactly as before. */
+  function dodLines(e){ return (e && Array.isArray(e.dod)) ? e.dod : []; }
+  function dodHash(s){ let h=5381; s=String(s||''); for(let i=0;i<s.length;i++){ h=((h<<5)+h+s.charCodeAt(i))|0; } return (h>>>0).toString(36); }
+  function ensureDodIds(e){
+    const L=dodLines(e); if(!Array.isArray(e.dodIds)) e.dodIds=[];
+    const seen=new Set(e.dodIds.slice(0,L.length));
+    while(e.dodIds.length<L.length){ const i=e.dodIds.length; let id='d'+dodHash(L[i]); if(seen.has(id)) id+='_'+i; seen.add(id); e.dodIds.push(id); }
+    if(e.dodIds.length>L.length) e.dodIds.length=L.length;
+    return e.dodIds;
+  }
+  function dodItems(e){ const ids=ensureDodIds(e), met=e.dodMet||{}; return dodLines(e).map((t,i)=>({id:ids[i], text:t, met:!!met[ids[i]], by:(met[ids[i]]||{}).by||'', at:(met[ids[i]]||{}).at||''})); }
+  function dodStatus(e){ const it=dodItems(e); return {n:it.length, met:it.filter(x=>x.met).length}; }
+  function dodAllMet(e){ const s=dodStatus(e); return s.n>0 && s.met===s.n; }
+  function planSupports(p,id){ return !!(p && Array.isArray(p.ocs) && p.ocs.indexOf(id)>=0); }
+  function taskDodIds(e,p){ const ids=ensureDodIds(e); return (p&&Array.isArray(p.ocs)?p.ocs:[]).filter(x=>ids.indexOf(x)>=0); }
+  function dodTextById(e,id){ const i=ensureDodIds(e).indexOf(id); return i>=0 ? dodLines(e)[i] : ''; }
+  let dodEditing=null;
+  function toggleDodMet(id,lineId,ev){
+    if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+    const e=findEntry(id); if(!e) return; ensureDodIds(e); e.dodMet=e.dodMet||{};
+    if(e.dodMet[lineId]) delete e.dodMet[lineId]; else e.dodMet[lineId]={by:myEmail||'', at:toISO(new Date())};
+    autoStage(e); persist(e); refreshPrio();
+  }
+  function addDodLine(id){
+    const e=findEntry(id); if(!e) return; const inp=document.getElementById('dod-new'); const v=(inp&&inp.value||'').trim(); if(!v) return;
+    ensureDodIds(e); e.dod=dodLines(e).slice(); e.dod.push(v); e.dodIds.push(uid());
+    autoStage(e); persist(e); refreshPrio();
+    setTimeout(()=>{ const x=document.getElementById('dod-new'); if(x) x.focus(); },40);
+  }
+  function startDodFromTasks(id){
+    const e=findEntry(id); if(!e) return; e.dod=(e.done||[]).filter(Boolean).slice(); e.dodIds=[]; ensureDodIds(e);
+    autoStage(e); persist(e); refreshPrio();
+  }
+  function dropDodLine(e,lineId){
+    const ids=ensureDodIds(e), i=ids.indexOf(lineId); if(i<0) return;
+    e.dod=dodLines(e).slice(); e.dod.splice(i,1); e.dodIds.splice(i,1);
+    if(e.dodMet) delete e.dodMet[lineId];
+    (e.plan||[]).forEach(p=>{ if(p&&Array.isArray(p.ocs)) p.ocs=p.ocs.filter(x=>x!==lineId); });
+  }
+  function removeDodLine(id,lineId){
+    const e=findEntry(id); if(!e) return;
+    const linked=(e.plan||[]).filter(p=>planSupports(p,lineId)).length;
+    confirmModal('Remove this Definition of Done line?'+(linked?' '+linked+' task'+(linked===1?' is':'s are')+' linked to it and will be unlinked.':''), ()=>{
+      dropDodLine(e,lineId); autoStage(e); persist(e); refreshPrio();
+    }, 'Remove line');
+  }
+  function openDodEdit(id){ dodEditing=id; renderPrioPage(); setTimeout(()=>{ const a=document.getElementById('dod-edit-area'); if(a) a.focus(); },40); }
+  function cancelDodEdit(){ dodEditing=null; renderPrioPage(); }
+  function saveDodEdit(id){
+    const e=findEntry(id); if(!e){ dodEditing=null; return; }
+    const lines=(document.getElementById('dod-edit-area').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
+    const oldIds=ensureDodIds(e).slice(), oldLines=dodLines(e).slice(), used=new Set(), newIds=new Array(lines.length).fill(null);
+    lines.forEach((l,k)=>{ const j=oldLines.findIndex((o,x)=>o===l && !used.has(x)); if(j>=0){ newIds[k]=oldIds[j]; used.add(j); } });
+    lines.forEach((l,k)=>{ if(newIds[k]) return; if(k<oldLines.length && !used.has(k)){ newIds[k]=oldIds[k]; used.add(k); } else newIds[k]=uid(); });
+    oldIds.forEach(x=>{ if(newIds.indexOf(x)<0){ if(e.dodMet) delete e.dodMet[x]; (e.plan||[]).forEach(p=>{ if(p&&Array.isArray(p.ocs)) p.ocs=p.ocs.filter(y=>y!==x); }); } });
+    e.dod=lines; e.dodIds=newIds; dodEditing=null;
+    autoStage(e); persist(e); refreshPrio();
+  }
+  function gotoDodLine(lineId,ev){
+    if(ev){ ev.stopPropagation(); ev.preventDefault(); }
+    prioDetailView='tasks'; prioTaskGroup='oc'; renderPrioPage();
+    setTimeout(()=>{ const r=document.getElementById('oc-grp-'+lineId); if(r) r.scrollIntoView({block:'center',behavior:'smooth'}); },40);
+  }
   /* completed priorities sink to the bottom of any list; the existing order is kept otherwise */
   function sinkCompletePrios(list){ return list.filter(e=>!prioComplete(e)).concat(list.filter(prioComplete)); }
   /* the clickable completion circle, used on every task list */
@@ -7015,14 +7137,23 @@ Herd Life`;
     const deptOpts=deptAll.map(d=>`<option ${(e.dept||'')===d?'selected':''} value="${esc(d)}">${d?esc(d):'—'}</option>`).join('');
     const pmOpts=['',...PROJECT_MANAGERS].map(p=>`<option ${(e.pm||'')===p?'selected':''} value="${esc(p)}">${p?esc(p):'— unassigned —'}</option>`).join('');
     const pct=prioPct(e);
-    const dodText = ((e.dod!==undefined) ? e.dod : (e.done||[]).slice()).join('\n');
-    const taskRow=(d,i)=>{
+    const dodIt=dodItems(e), dodN=dodIt.length, dodMetN=dodIt.filter(x=>x.met).length;
+    const allTasksDone = e.done.length>0 && e.done.every((_,i)=>Number((e.plan[i]||{}).pct)===100);
+    const linkedIdx = lineId => e.done.map((_,i)=>i).filter(i=>planSupports(e.plan[i],lineId));
+    const supChips = (i,inLine) => {
+      if(!dodN) return '';
+      const ids=taskDodIds(e,e.plan[i]);
+      if(inLine){ const others=ids.filter(x=>x!==inLine); return others.length ? '<br><span class="sup-also">Also supports: </span>'+others.map(x=>`<span class="sup-chip" onclick="gotoDodLine('${x}',event)" title="${esc(dodTextById(e,x))}">→ ${esc(dodTextById(e,x))}</span>`).join('') : ''; }
+      if(!ids.length) return '<br><span class="sup-chip none">Not linked to a DoD line</span>';
+      return '<br>'+ids.map(x=>`<span class="sup-chip" onclick="gotoDodLine('${x}',event)" title="Supports: ${esc(dodTextById(e,x))}">→ ${esc(dodTextById(e,x))}</span>`).join('');
+    };
+    const taskRow=(d,i,inLine)=>{
       const p=e.plan[i]||{}; const tpct=Number(p.pct)||0;
       const od=isOverduePlan(p); const b=bumpInfo(p);
       return `
       <tr class="trow" onclick="openTaskModal('${e.id}',${i})" title="Click to edit this task">
         <td style="text-align:center;">${tickHTML(e.id,i,tpct)}</td>
-        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${jiraChipHTML(d)}${od?' <span class="badge b-risk">⚠ past due</span>':''}</td>
+        <td class="st-task tname">${d?esc(d):'<span style="color:var(--muted);font-weight:400;">Untitled task</span>'}${jiraChipHTML(d)}${od?' <span class="badge b-risk">⚠ past due</span>':''}${prioTaskGroup==='oc'?supChips(i,inLine||''):supChips(i,'')}</td>
         <td><span class="pv-tag contrib" title="Contributing department">${esc(taskDept(e,i)||'Unassigned')}</span></td>
         <td>${p.owner?esc(pmName(p.owner)):'<span style="color:var(--muted);">Unassigned</span>'}</td>
         <td class="tnum">${p.start?fmtShort(p.start):'—'}${(b&&p.origStart)?`<br><span class="was-dates">was ${fmtShort(p.origStart)}</span>`:''}</td>
@@ -7036,15 +7167,45 @@ Herd Life`;
     // completed tasks always list below the open ones (existing order kept within each half)
     const isDoneT=i=>Number((e.plan[i]||{}).pct)===100;
     const idxOrder=e.done.map((_,i)=>i).filter(i=>!isDoneT(i)).concat(e.done.map((_,i)=>i).filter(isDoneT));
+    const groupSub = ix => { const d=ix.filter(isDoneT).length, la=ix.filter(i=>isOverduePlan(e.plan[i])).length, bu=ix.filter(i=>bumpInfo(e.plan[i])).length;
+      const who={}; ix.forEach(i=>{ const o=(e.plan[i]||{}).owner; const k=o?pmName(o):'Unassigned'; who[k]=(who[k]||0)+1; });
+      return `${d}/${ix.length} done${la?' · ⚠ '+la+' past due':''}${bu?' · ↦ '+bu+' bumped':''} · ${esc(Object.entries(who).map(([k,n])=>k+' '+n).join(', '))}`; };
+    const deptSummary = () => {
+      const ds=[...new Set(e.done.map((_,i)=>taskDept(e,i)||'Unassigned'))]; const home=e.dept||'Unassigned';
+      const order=[...(ds.includes(home)?[home]:[]), ...ds.filter(dd=>dd!==home).sort()];
+      return '<div class="dept-sum">'+order.map(dd=>{
+        const ix=e.done.map((_,i)=>i).filter(i=>(taskDept(e,i)||'Unassigned')===dd);
+        const who={}; ix.forEach(i=>{ const o=(e.plan[i]||{}).owner||''; const w=who[o]=who[o]||{n:0,d:0,l:0}; w.n++; if(isDoneT(i)) w.d++; if(isOverduePlan(e.plan[i])) w.l++; });
+        const rows=Object.keys(who).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||who[b].n-who[a].n).map(o=>`<div class="ds-who"><span>${o?esc(pmName(o)):'<span style="color:var(--muted);">Unassigned</span>'}</span><span class="n ${who[o].l?'late':''}">${who[o].d}/${who[o].n}${who[o].l?' · ⚠ '+who[o].l:''}</span></div>`).join('');
+        return `<div class="ds-card"><div class="ds-hd">${esc(dd)}${dd===home?' · home':''}<span>${ix.filter(isDoneT).length}/${ix.length} done</span></div>${rows}</div>`;
+      }).join('')+'</div>';
+    };
     if(!e.done.length){
       doneRows='<tr><td colspan="9" class="empty">No tasks yet. Click “+ Add task” to start building the list.</td></tr>';
-    } else if(prioTaskGroup){
+    } else if(prioTaskGroup==='dept'){
       const ds=[...new Set(e.done.map((_,i)=>taskDept(e,i)||'Unassigned'))];
       const home=e.dept||'Unassigned';
       const order=[...(ds.includes(home)?[home]:[]), ...ds.filter(dd=>dd!==home).sort()];
       order.forEach(dd=>{
-        doneRows+=`<tr class="g-hd"><td colspan="9">${esc(dd)}${dd===home?' · home':''}</td></tr>`;
-        idxOrder.forEach(i=>{ if((taskDept(e,i)||'Unassigned')===dd) doneRows+=taskRow(e.done[i],i); });
+        const ix=idxOrder.filter(i=>(taskDept(e,i)||'Unassigned')===dd);
+        doneRows+=`<tr class="g-hd"><td colspan="9">${esc(dd)}${dd===home?' · home':''}<span class="g-sub">${groupSub(ix)}</span></td></tr>`;
+        ix.forEach(i=>{ doneRows+=taskRow(e.done[i],i); });
+      });
+    } else if(prioTaskGroup==='oc' && dodN){
+      dodIt.forEach(it=>{
+        const ix=idxOrder.filter(i=>planSupports(e.plan[i],it.id));
+        const flag=(!ix.length&&!it.met)?' · <span style="color:#9a6d14;">no tasks supporting this yet</span>':(!it.met&&ix.every(isDoneT)?' · <span style="color:#9a6d14;">tasks done · ready to tick?</span>':'');
+        doneRows+=`<tr class="g-hd oc-hd ${it.met?'met':''}" id="oc-grp-${it.id}"><td colspan="9"><span class="dod-chk sm ${it.met?'on':''}" role="button" tabindex="0" title="${it.met?'Untick this line':'Tick when this is met'}" onclick="toggleDodMet('${e.id}','${it.id}',event)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleDodMet('${e.id}','${it.id}',event);}">${it.met?'✓':''}</span><strong>${esc(it.text)}</strong><span class="g-sub">${ix.length?groupSub(ix):'0 tasks'}${flag}</span></td></tr>`;
+        ix.forEach(i=>{ doneRows+=taskRow(e.done[i],i,it.id); });
+      });
+      const un=idxOrder.filter(i=>!taskDodIds(e,e.plan[i]).length);
+      if(un.length){ doneRows+=`<tr class="g-hd oc-hd" id="oc-grp-none"><td colspan="9"><strong>Not linked to a Definition of Done line</strong><span class="g-sub">${groupSub(un)}</span></td></tr>`; un.forEach(i=>{ doneRows+=taskRow(e.done[i],i,'none'); }); }
+    } else if(prioTaskGroup==='owner'){
+      const by={}; idxOrder.forEach(i=>{ const k=(e.plan[i]||{}).owner||''; (by[k]=by[k]||[]).push(i); });
+      Object.keys(by).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||by[b].length-by[a].length||pmName(a).localeCompare(pmName(b))).forEach(k=>{
+        const ds=[...new Set(by[k].map(i=>taskDept(e,i)||'Unassigned'))].join(', ');
+        doneRows+=`<tr class="g-hd"><td colspan="9">${k?esc(pmName(k)):'Unassigned'}<span class="g-sub">${groupSub(by[k])} · ${esc(ds)}</span></td></tr>`;
+        by[k].forEach(i=>{ doneRows+=taskRow(e.done[i],i); });
       });
     } else {
       doneRows=idxOrder.map(i=>taskRow(e.done[i],i)).join('');
@@ -7075,7 +7236,8 @@ Herd Life`;
         <textarea onchange="setField('${e.id}','why',this.value)" style="width:100%;min-height:60px;">${esc(e.why||'')}</textarea>
         <div style="margin-top:12px;">
           <div class="pctbar"><div class="pctbar-fill" style="width:${pct}%"></div></div>
-          <div class="sched-summary"><strong>${pct}% complete</strong> overall · PM: ${e.pm?esc(pmName(e.pm)):'unassigned'} · Added by ${esc(e.by)}</div>
+          <div class="sched-summary"><strong>${pct}% complete</strong> overall${dodN?` · ✅ <strong>${dodMetN} of ${dodN}</strong> Definition of Done lines met`:''} · PM: ${e.pm?esc(pmName(e.pm)):'unassigned'} · Added by ${esc(e.by)}</div>
+          ${(dodN && allTasksDone && dodMetN<dodN)?`<div class="dod-flag">⚠ Every task is done, and ${dodN-dodMetN} Definition of Done line${dodN-dodMetN===1?' isn\'t':'s aren\'t'} ticked yet. Tick ${dodN-dodMetN===1?'it':'them'} when met, or add the work that's missing.</div>`:''}
         </div>
       </div>
 
@@ -7086,8 +7248,24 @@ Herd Life`;
       </div>
 
       <div class="card" style="margin-bottom:16px;">
-        <p class="done-label">✅ Definition of Done <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— what "done" means for this (one per line)</span></p>
-        <textarea onchange="setDod('${e.id}',this.value)" style="width:100%;min-height:80px;" placeholder="e.g. New installs scheduled within 5 business days">${esc(dodText)}</textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          <p class="done-label" style="margin:0;">✅ Definition of Done <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— what "done" means for this. Tick each line when it's met; the priority completes when every line is ticked.</span></p>
+          <span style="display:flex;gap:8px;align-items:center;">${dodN?`<span class="dod-count">${dodMetN} of ${dodN} met</span>`:''}${dodEditing===e.id?'':`<button class="btn sm ghost no-print" onclick="openDodEdit('${e.id}')">✏️ Edit lines</button>`}</span>
+        </div>
+        ${dodEditing===e.id ? `
+          <textarea id="dod-edit-area" style="width:100%;min-height:110px;margin-top:10px;" placeholder="One line per item, e.g. New installs scheduled within 5 business days">${esc(dodLines(e).join('\n'))}</textarea>
+          <div class="dod-add"><button class="btn sm" onclick="saveDodEdit('${e.id}')">Save lines</button><button class="btn sm ghost" onclick="cancelDodEdit()">Cancel</button><span style="font-size:12px;color:var(--muted);">One line per item. Ticks and task links stay with lines you keep.</span></div>`
+        : (dodN ? `<ul class="dod-list">${dodIt.map(it=>{
+            const ix=linkedIdx(it.id), dn=ix.filter(isDoneT).length;
+            const link = ix.length ? `<button class="dod-link no-print" onclick="gotoDodLine('${it.id}',event)" title="See the tasks supporting this line">${ix.length} task${ix.length===1?'':'s'} · ${dn} done</button>${(!it.met&&dn===ix.length)?'<span class="dod-ready">Tasks done · ready to tick?</span>':''}`
+                                   : (it.met ? '' : `<button class="dod-link warn no-print" onclick="gotoDodLine('${it.id}',event)">No tasks supporting this yet</button>`);
+            return `<li class="dod-li ${it.met?'met':''}">
+              <span class="dod-chk ${it.met?'on':''}" role="button" tabindex="0" title="${it.met?'Untick this line':'Tick when this is met'}" onclick="toggleDodMet('${e.id}','${it.id}',event)" onkeydown="if(event.key==='Enter'||event.key===' '){toggleDodMet('${e.id}','${it.id}',event);}">${it.met?'✓':''}</span>
+              <div class="dod-txt"><div class="dod-t">${esc(it.text)}</div><div class="dod-meta">${it.met?`<span class="dod-stamp">Met${it.at?' '+fmtShort(it.at):''}${it.by?' · '+esc(pmName(it.by)):''}</span>`:''}${link}</div></div>
+              <button class="x no-print" title="Remove this line" onclick="removeDodLine('${e.id}','${it.id}')">×</button>
+            </li>`; }).join('')}</ul>`
+          : `<p class="dod-empty">No Definition of Done yet. What has to be true for this to be done? Until there's at least one line, this priority completes the way it always has, when every task is done.${(e.dod===undefined && e.done.length)?` <button class="linklike no-print" onclick="startDodFromTasks('${e.id}')">Start from the task names</button>`:''}</p>`)
+          + `<div class="dod-add no-print"><input type="text" id="dod-new" placeholder="Add a line, e.g. New installs scheduled within 5 business days" onkeydown="if(event.key==='Enter')addDodLine('${e.id}')"><button class="btn sm" onclick="addDodLine('${e.id}')">Add line</button></div>`}
       </div>
 
       <div class="td-scope no-print" style="margin-bottom:14px;">
@@ -7101,17 +7279,28 @@ Herd Life`;
           <p class="done-label" style="margin:0;">🛠 Tasks <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— the pieces of work; these drive the timeline. Click a task to edit it in a popup.</span></p>
           <span style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
             <span class="td-scope no-print">
-              <button class="${prioTaskGroup?'':'on'}" onclick="setPrioTaskGroup(false)">List</button>
-              <button class="${prioTaskGroup?'on':''}" onclick="setPrioTaskGroup(true)">By department</button>
+              <button class="${prioTaskGroup==='dept'?'on':''}" onclick="setPrioTaskGroup('dept')">By department</button>
+              <button class="${prioTaskGroup==='oc'?'on':''}" onclick="setPrioTaskGroup('oc')" ${dodN?'':'title="Add Definition of Done lines to group tasks by them"'}>By outcome</button>
+              <button class="${prioTaskGroup==='owner'?'on':''}" onclick="setPrioTaskGroup('owner')">By owner</button>
+              <button class="${prioTaskGroup==='list'?'on':''}" onclick="setPrioTaskGroup('list')">List</button>
             </span>
             <button class="btn sm" onclick="openTaskModal('${e.id}')">+ Add task</button>
           </span>
         </div>
+        ${(prioTaskGroup==='dept' && e.done.length)?deptSummary():''}
+        ${(prioTaskGroup==='oc' && !dodN)?'<p class="dod-empty">Add Definition of Done lines above to group tasks under them. Until then, every task shows as not linked.</p>':''}
         <div style="overflow-x:auto;"><table class="sched-tbl" style="min-width:860px;"><thead><tr><th>✓</th><th>Task</th><th>Dept</th><th>Owner</th><th>Start</th><th>End</th><th>% done</th><th>Notes</th><th></th></tr></thead><tbody>${doneRows}</tbody></table></div>
       </div>` : `
       <div class="card" style="margin-bottom:16px;">
-        <p class="done-label">Timeline (Gantt) <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— grouped by contributing department</span></p>
-        ${ganttHTML(e,true)}
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+          <p class="done-label" style="margin:0;">Timeline (Gantt) <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0;">— grouped by ${prioGanttGroup==='oc'?'Definition of Done line':prioGanttGroup==='owner'?'owner':'contributing department'}</span></p>
+          <span class="td-scope no-print">
+            <button class="${prioGanttGroup==='dept'?'on':''}" onclick="setPrioGanttGroup('dept')">By department</button>
+            <button class="${prioGanttGroup==='oc'?'on':''}" onclick="setPrioGanttGroup('oc')">By outcome</button>
+            <button class="${prioGanttGroup==='owner'?'on':''}" onclick="setPrioGanttGroup('owner')">By owner</button>
+          </span>
+        </div>
+        ${ganttHTML(e,prioGanttGroup)}
         <p class="sched-summary">As things slip, edit the task's dates in the Tasks view — the timeline updates automatically and keeps a dashed ghost of the original plan.</p>
       </div>`}
 
@@ -7125,8 +7314,10 @@ Herd Life`;
   }
   let prioDetailView='tasks';
   function setPrioDetailView(v){ prioDetailView=v; renderPrioPage(); }
-  let prioTaskGroup=true;   // task list grouped by contributing department (same as the timeline)
+  let prioTaskGroup='dept';   // task list grouping: 'dept' (contributing department), 'oc' (Definition of Done line), 'owner' or 'list'
   function setPrioTaskGroup(v){ prioTaskGroup=v; renderPrioPage(); }
+  let prioGanttGroup='dept';  // timeline grouping: 'dept', 'oc' or 'owner'
+  function setPrioGanttGroup(v){ prioGanttGroup=v; renderPrioPage(); }
 
   /* ---------- add / edit task popup ---------- */
   let taskModalEntry=null, taskModalIdx=null;
@@ -7155,6 +7346,10 @@ Herd Life`;
     document.getElementById('tm-end').value=p.end||'';
     document.getElementById('tm-pct').value=Number(p.pct)||0;
     document.getElementById('tm-note').value=p.note||'';
+    { const box=document.getElementById('tm-ocs'); const its=dodItems(e); const mine=p.ocs||[];
+      box.className = its.length ? 'tm-ocs' : 'tm-ocs-hint';
+      box.innerHTML = its.length ? its.map(it=>`<label><input type="checkbox" value="${it.id}" ${mine.indexOf(it.id)>=0?'checked':''}><span>${it.met?'✓ ':''}${esc(it.text)}</span></label>`).join('')
+                                 : 'This priority has no Definition of Done lines yet. Add them on the priority page, then link tasks here.'; }
     document.getElementById('tm-remove').style.display = taskModalIdx!=null?'':'none';
     const bn=document.getElementById('taskModalBump'); const b=bumpInfo(p);
     if(b){ bn.style.display='block'; bn.textContent='↦ This task has been bumped'+(b.n>1?' ×'+b.n:'')+': originally '+b.was+'. If the end date moves out again, the chip updates on its own.'; }
@@ -7172,6 +7367,7 @@ Herd Life`;
     const nv={ start:document.getElementById('tm-start').value||'', end:document.getElementById('tm-end').value||'',
       pct:Math.max(0,Math.min(100,Number(document.getElementById('tm-pct').value)||0)),
       owner:document.getElementById('tm-owner').value||'', dept:dept||'', note:document.getElementById('tm-note').value.trim(),
+      ocs:[...document.querySelectorAll('#tm-ocs input[type=checkbox]:checked')].map(x=>x.value),
       origStart:'', origEnd:'', datesSetAt:0, bumps:0 };
     if(taskModalIdx!=null && e.plan[taskModalIdx]){
       const old=e.plan[taskModalIdx];
@@ -7230,8 +7426,19 @@ Herd Life`;
       return `<div class="gantt-row"><div class="g-label">${b?'↦ ':''}${od?'⚠ ':''}${esc(t.label)}</div><div class="g-track">${ghost}${todayMark}<div class="g-bar${od?' g-overdue':''}" style="left:${left}%;width:${width}%;" title="${t.start} → ${t.end} · ${t.pct}% done${od?' · OVERDUE':''}${b?' · was '+b.was:''}"><div class="g-fill" style="width:${t.pct}%"></div><span>${fmtShort(t.start)}–${fmtShort(t.end)} · ${t.pct}%</span></div></div></div>`;
     };
     let rows='';
+    const gmode = groupByDept===true ? 'dept' : (groupByDept||'');
     const distinctDepts=[...new Set(tasks.map(t=>t.dept))];
-    if(groupByDept && distinctDepts.length>1){
+    if(gmode==='oc' && dodLines(e).length){
+      dodItems(e).forEach(it=>{
+        const l=tasks.filter(t=>planSupports(t.p,it.id));
+        rows+=`<div class="g-depthd">${it.met?'✓ ':'○ '}${esc(it.text)} <span style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted);">· ${l.length} task${l.length===1?'':'s'}</span></div>`+(l.length?l.map(rowFor).join(''):(it.met?'':'<div class="g-none-line">No tasks supporting this yet</div>'));
+      });
+      const un=tasks.filter(t=>!taskDodIds(e,t.p).length);
+      if(un.length) rows+=`<div class="g-depthd">Not linked to a Definition of Done line</div>`+un.map(rowFor).join('');
+    } else if(gmode==='owner'){
+      const by={}; tasks.forEach(t=>{ const k=t.p.owner||''; (by[k]=by[k]||[]).push(t); });
+      Object.keys(by).sort((a,b)=>(a===''?1:0)-(b===''?1:0)||by[b].length-by[a].length).forEach(k=>{ rows+=`<div class="g-depthd">${k?esc(pmName(k)):'Unassigned'}</div>`+by[k].map(rowFor).join(''); });
+    } else if((gmode==='dept' || gmode==='oc') && distinctDepts.length>1){
       const home=e.dept||'Unassigned';
       const order=[...(distinctDepts.includes(home)?[home]:[]), ...distinctDepts.filter(d=>d!==home).sort()];
       order.forEach(d=>{
@@ -7240,6 +7447,7 @@ Herd Life`;
     } else {
       rows=tasks.map(rowFor).join('');
     }
+    overdue = tasks.filter(t=>t.start&&t.end&&parseD(t.start)&&parseD(t.end)&&parseD(t.end)>=parseD(t.start)&&isOverduePlan({end:t.end,pct:t.pct})).length;  // count each task once, even when it shows under several lines
     const flag = overdue ? `<span style="color:var(--red);font-weight:700;">⚠ ${overdue} task${overdue===1?'':'s'} past due</span>` : `<span style="color:var(--green);">On track</span>`;
     const legend = (todayIn ? ` &nbsp;·&nbsp; <span style="color:var(--red);">▏</span> today` : '') + (anyBumped ? ` &nbsp;·&nbsp; <span style="color:#9a6d14;">▨</span> original dates (bumped)` : '');
     return `<div class="gantt">${rows}<div class="gantt-axis"><span>${fmtShort(toISO(min))}</span><span>${flag}${legend}</span><span>${fmtShort(toISO(max))}</span></div></div>`;
