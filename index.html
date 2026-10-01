@@ -95,6 +95,56 @@
   .sb-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.95rem;font-weight:600;color:var(--muted);cursor:pointer;}
   .sb-item:hover{background:var(--lilac);color:var(--heading);}
   .sb-item.active{background:var(--lilac-2);color:var(--heading);}
+  /* ---- Quarterly Reviews ---- */
+  .rv-bar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:4px 0 16px;color:var(--muted);font-size:.9rem;}
+  .rv-bar select{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card,#fff);color:var(--heading);}
+  .rv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+  .rv-card{background:var(--card,#fff);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;transition:box-shadow .15s,border-color .15s;}
+  .rv-card:hover{border-color:var(--lilac-2);box-shadow:0 2px 10px rgba(80,40,120,.08);}
+  .rv-card-top{display:flex;align-items:center;gap:10px;}
+  .rv-card-top img,.rv-card-top .tm-initials{width:34px;height:34px;border-radius:50%;flex:none;}
+  .rv-card-id{flex:1;min-width:0;}
+  .rv-who{font-weight:700;color:var(--heading);}
+  .rv-who.big{font-size:1.15rem;}
+  .rv-sub{font-size:.8rem;color:var(--muted);}
+  .rv-count{font-size:.82rem;}
+  .rv-badge{font-size:.68rem;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .rv-badge.draft{background:var(--lilac,#efe7f7);color:var(--purple-dark,#6a2c8f);}
+  .rv-badge.done{background:#e3f5ec;color:#1c7a4e;}
+  .rv-del{border:none;background:none;color:var(--muted);cursor:pointer;font-size:.95rem;margin-left:4px;}
+  .rv-del:hover{color:#c9302c;}
+  .rv-detail{max-width:760px;}
+  .rv-dhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .rv-people{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .rv-people img,.rv-people .tm-initials{width:44px;height:44px;border-radius:50%;}
+  .rv-note{background:var(--lilac,#efe7f7);color:var(--purple-dark,#6a2c8f);border-radius:10px;padding:10px 14px;font-size:.88rem;margin-bottom:16px;}
+  .rv-stage{background:var(--card,#fff);border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin-bottom:16px;}
+  .rv-stage h3{margin:0 0 4px;color:var(--heading);font-size:1.08rem;}
+  .rv-help{margin:0 0 12px;color:var(--muted);font-size:.86rem;}
+  .rv-lbl{display:block;font-weight:600;color:var(--heading);font-size:.85rem;margin:14px 0 5px;}
+  .rv-ta{width:100%;min-height:72px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.92rem;line-height:1.5;resize:vertical;background:var(--card,#fff);color:var(--heading);}
+  .rv-ro{white-space:normal;background:var(--lilac,#f6f1fb);border-radius:9px;padding:9px 11px;font-size:.92rem;color:var(--heading);}
+  .rv-ro.inline{display:inline-block;padding:3px 10px;min-width:60px;}
+  .rv-empty{color:var(--muted);font-style:italic;}
+  .rv-metrics{display:flex;flex-direction:column;gap:6px;margin-bottom:6px;}
+  .rv-metric{display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;}
+  .rv-mname{font-weight:600;color:var(--heading);flex:1;font-size:.9rem;}
+  .rv-mdetail{font-size:.8rem;color:var(--muted);}
+  .rv-mchip{font-size:.68rem;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .rv-mchip.on{background:#e3f5ec;color:#1c7a4e;}
+  .rv-mchip.off{background:#fbe6e5;color:#c9302c;}
+  .rv-mchip.na{background:var(--lilac,#efe7f7);color:var(--muted);}
+  .rv-mnotes{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+  .rv-mnote label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:3px;}
+  .rv-goals{display:flex;flex-direction:column;gap:8px;}
+  .rv-goal{display:flex;align-items:center;gap:10px;}
+  .rv-goal .rv-mname{flex:1;}
+  .rv-goalin{width:120px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:.9rem;}
+  .rv-cq{margin-bottom:12px;}
+  .rv-cqq{width:calc(100% - 34px);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-weight:600;margin-bottom:6px;}
+  .rv-cq-row{display:flex;gap:6px;align-items:center;margin-top:6px;}
+  .rv-cq-input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;}
+  .rv-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
   .sb-ic{font-size:1.05rem;width:20px;text-align:center;flex:0 0 auto;}
   .sb-bottom{margin-top:auto;padding:10px 8px 14px;border-top:1px solid var(--line);position:relative;}
   .sb-add{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.92rem;font-weight:600;color:var(--muted);cursor:pointer;}
@@ -1221,6 +1271,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item manage-only" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
     <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
+    <button class="sb-item" data-sec="reviews" onclick="navTo('reviews')"><span class="sb-ic">📝</span>Quarterly Reviews</button>
   </nav>
   <div class="sb-bottom">
     <div class="theme-switch" role="group" aria-label="Theme">
@@ -2101,6 +2152,35 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   </div>
   <div id="spWrap" class="kb sp-kb"></div>
   <footer>Purple Cow Internet · Backend · <span id="footerThemeSp">The March to 100,000 Herd Members</span> 🐄</footer>
+</div>
+<div id="screen-reviews" style="display:none;">
+  <div class="sec-head" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div><h1>📝 Quarterly Reviews</h1><p>Each person does their own homework: how the quarter went, what to improve, and the goals and support they need next. Reviewers set it up; reviewees fill it in.</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button class="btn" onclick="openNewReviewModal()">➕ New review</button>
+      <button class="btn ghost sm" onclick="refreshReviews()" title="Reload from the shared database">↻</button>
+    </div>
+  </div>
+  <div id="reviewsWrap"></div>
+  <footer>Purple Cow Internet · Backend · <span>The March to 100,000 Herd Members</span> 🐄</footer>
+</div>
+<div class="modal-ov no-print" id="newReviewModal" onclick="if(event.target===this)closeNewReviewModal()">
+  <div class="modal modal-scroll" style="text-align:left;">
+    <h3 style="text-align:center;">📝 New quarterly review</h3>
+    <div class="pm-grid">
+      <div><label>Quarter</label><select id="rv-quarter" style="width:100%;"></select></div>
+      <div><label>Reviewee <span style="font-weight:400;color:var(--muted)">(fills it out)</span></label><select id="rv-reviewee" style="width:100%;"></select></div>
+      <div><label>Reviewer <span style="font-weight:400;color:var(--muted)">(sets it up)</span></label><select id="rv-reviewer" style="width:100%;"></select></div>
+    </div>
+    <label style="margin-top:12px;display:block;">Custom questions <span style="font-weight:400;color:var(--muted)">— optional; the reviewee answers these too</span></label>
+    <div id="rv-customList"></div>
+    <button type="button" class="btn ghost sm" style="margin-top:6px;" onclick="rvAddCustomRow()">➕ Add a question</button>
+    <div id="rv-err" style="color:#c9302c;font-size:.85rem;margin-top:10px;"></div>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
+      <button class="btn" onclick="createReview()">Create review</button>
+      <button class="btn ghost" onclick="closeNewReviewModal()">Cancel</button>
+    </div>
+  </div>
 </div>
 <div class="modal-ov no-print" id="newSpModal" onclick="if(event.target===this)closeNewSpModal()">
   <div class="modal modal-scroll" style="text-align:left;">
@@ -5995,9 +6075,9 @@ Herd Life`;
     if(b){ b.style.display = (screen==='login') ? 'none' : 'inline-block';
       b.innerHTML = !reviewUnlocked ? '🔒 Manager login' : (screen==='dash' ? '📝 Intake form' : '📊 Dashboard'); }
   }
-  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','swim','special'];
+  const APP_SCREENS=['dash','prio','home','vision','metrics','todos','issues','meetings','swim','special','reviews'];
   function showScreen(name){ screen=name;
-    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','swim','special'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
+    ['login','form','dash','prio','home','vision','metrics','todos','issues','meetings','swim','special','reviews'].forEach(id=>{ const el=document.getElementById('screen-'+id); if(el) el.style.display = (name===id)?'block':'none'; });
     document.body.classList.toggle('app-shell', reviewUnlocked && APP_SCREENS.indexOf(name)>=0);
     updateFab();
   }
@@ -6149,10 +6229,209 @@ Herd Life`;
     currentSection=sec; closeAcctMenu(); closeMobileNav();
     persistSection(sec);
     if(sec==='priorities'){ gotoDash(); }
-    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); if(sec==='special') renderSpSection(); window.scrollTo({top:0}); }
+    else { if(sec!=='meetings') stopMtgPolling(); showScreen(sec); if(sec==='home') renderHome(); if(sec==='vision'){ visionEditing=false; renderVision(); } if(sec==='metrics') ensureMetrics(); if(sec==='meetings') ensureMeetingsV2(); if(sec==='todos') renderTodosSection(); if(sec==='swim') renderSwimSection(); if(sec==='special') renderSpSection(); if(sec==='reviews') renderReviewsSection(); window.scrollTo({top:0}); }
     setActiveNav(sec);
   }
   function setActiveNav(sec){ document.querySelectorAll('#sbNav .sb-item').forEach(b=>b.classList.toggle('active', b.getAttribute('data-sec')===sec)); }
+
+  /* ================= QUARTERLY REVIEWS =================
+     Private, per-person quarterly self-reviews. One row per review in `reviews`
+     (see supabase-reviews.sql); row-level security means the database only ever
+     returns a review to its reviewer, its reviewee, or a super admin. The reviewee
+     does the homework in three stages, their metrics are shown with that quarter's
+     result, there can be custom questions, and stage-3 goals write straight onto the
+     metric's NEXT-quarter target. The reviewer only sets it up — fills nothing in. */
+  let reviews=[], reviewsLoaded=false, curReviewId=null, reviewQuarterView=null;
+  function loadReviewsLocal(){ try{ reviews=JSON.parse(localStorage.getItem(KEY+'_reviews')||'[]'); if(!Array.isArray(reviews)) reviews=[]; }catch(e){ reviews=[]; } }
+  function saveReviewsLocal(){ try{ localStorage.setItem(KEY+'_reviews', JSON.stringify(reviews)); }catch(e){} }
+  function dbUpsertReview(r){ if(!USE_DB) return; sb.from('reviews').upsert({id:r.id, reviewer_email:r.reviewer||'', reviewee_email:r.reviewee||'', quarter:r.quarter||'', data:r}).then(x=>{ if(x.error) console.warn('review save',x.error); }).catch(e=>console.warn('review save',e)); }
+  function dbDeleteReview(id){ if(!USE_DB) return; sb.from('reviews').delete().eq('id',id).then(()=>{}); }
+  async function dbLoadReviews(){ if(!USE_DB){ reviewsLoaded=true; return; }
+    try{ const r=await sbSelectAll('reviews','id,reviewer_email,reviewee_email,quarter,data','id'); if(r.error) throw r.error;
+      reviews=(r.data||[]).map(x=>x.data||{id:x.id,reviewer:x.reviewer_email,reviewee:x.reviewee_email,quarter:x.quarter}).filter(Boolean); saveReviewsLocal();
+    }catch(e){ console.warn('reviews load',e); loadReviewsLocal(); }
+    reviewsLoaded=true; }
+  async function ensureReviews(){ if(!reviewsLoaded){ loadReviewsLocal(); await dbLoadReviews(); }
+    if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB){ try{ await dbLoadMetrics(); }catch(e){} } }
+    if(USE_DB && !teamUsers.length){ try{ await loadTeamUsersCache(); }catch(e){} } }
+  function refreshReviews(){ reviewsLoaded=false; renderReviewsSection(); }
+  function persistReview(r){ r.updatedAt=Date.now(); saveReviewsLocal(); dbUpsertReview(r); }
+  function renderReviewsSection(){ ensureReviews().then(()=>{ if(curReviewId && reviews.some(x=>x.id===curReviewId)) renderReviewDetail(); else { curReviewId=null; renderReviewsList(); } }); }
+  /* A review is yours to see only if you're in it — or you're a super admin. (The
+     database enforces this too; this is the matching UI-side guard.) */
+  function reviewVisible(r){ return isSuperAdmin() || sameEmail(r.reviewer,myEmail) || sameEmail(r.reviewee,myEmail); }
+  function nextQuarterKey(k){ const p=String(k).split('-Q'); let y=Number(p[0]), q=Number(p[1])+1; if(q>4){q=1;y++;} return y+'-Q'+q; }
+  function reviewMetricsFor(email){ return (metricsStore||[]).filter(m=>m && !m.archived && sameEmail(m.owner,email)); }
+
+  function renderReviewsList(){
+    const box=document.getElementById('reviewsWrap'); if(!box) return;
+    if(!reviewQuarterView) reviewQuarterView=quarterKeyOf(new Date());
+    const mine=reviews.filter(reviewVisible);
+    const qs=quarterList(8,1).slice().reverse(); if(qs.indexOf(reviewQuarterView)<0) qs.unshift(reviewQuarterView);
+    const qsel='<select onchange="setReviewQuarter(this.value)" style="font-weight:600;">'+qs.map(k=>'<option value="'+k+'"'+(k===reviewQuarterView?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('')+'</select>';
+    const inQ=mine.filter(r=>r.quarter===reviewQuarterView)
+      .sort((a,b)=>String(pmName(resolvePerson(a.reviewee))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.reviewee))).toLowerCase()));
+    let cards;
+    if(!inQ.length){ cards='<div class="mtg-empty">No reviews for '+esc(quarterLabel(reviewQuarterView))+' yet'+(isSuperAdmin()?'':' that you’re part of')+'. Click ➕ New review to start one.</div>'; }
+    else { cards='<div class="rv-grid">'+inQ.map(r=>{ const done=(r.status==='submitted'); const del=(sameEmail(r.reviewer,myEmail)||isSuperAdmin())?'<button class="rv-del" title="Delete review" onclick="event.stopPropagation();deleteReview(\''+r.id+'\')">✕</button>':'';
+        return '<div class="rv-card" onclick="openReview(\''+r.id+'\')">'
+          +'<div class="rv-card-top">'+avatarHtml(resolvePerson(r.reviewee))
+          +'<div class="rv-card-id"><div class="rv-who">'+esc(pmName(resolvePerson(r.reviewee))||'—')+(sameEmail(r.reviewee,myEmail)?' (you)':'')+'</div>'
+          +'<div class="rv-sub">reviewer: '+esc(pmName(resolvePerson(r.reviewer))||'—')+'</div></div>'
+          +'<span class="rv-badge '+(done?'done':'draft')+'">'+(done?'Submitted':'Draft')+'</span>'+del+'</div></div>';
+      }).join('')+'</div>'; }
+    box.innerHTML='<div class="rv-bar"><span>Quarter: '+qsel+'</span><span class="rv-count">'+inQ.length+' review'+(inQ.length===1?'':'s')+(isSuperAdmin()?' · you see everyone’s':'')+'</span></div>'+cards;
+  }
+  function setReviewQuarter(k){ reviewQuarterView=k; renderReviewsList(); }
+  function openReview(id){ curReviewId=id; renderReviewDetail(); window.scrollTo({top:0}); }
+  function backToReviews(){ curReviewId=null; renderReviewsList(); }
+  function deleteReview(id){ const r=reviews.find(x=>x.id===id); if(!r) return;
+    confirmModal('Delete this quarterly review for '+esc(pmName(resolvePerson(r.reviewee))||'this person')+'? This can’t be undone.', ()=>{
+      reviews=reviews.filter(x=>x.id!==id); saveReviewsLocal(); dbDeleteReview(id); if(curReviewId===id) curReviewId=null; renderReviewsSection(); }, 'Delete'); }
+
+  function rvTA(id,value,ro,ph){ return ro
+    ? '<div class="rv-ro">'+(value?esc(value).replace(/\n/g,'<br>'):'<span class="rv-empty">— nothing entered —</span>')+'</div>'
+    : '<textarea id="'+id+'" class="rv-ta" placeholder="'+esc(ph||'')+'">'+esc(value||'')+'</textarea>'; }
+
+  function renderReviewDetail(){
+    const box=document.getElementById('reviewsWrap'); if(!box) return;
+    const r=reviews.find(x=>x.id===curReviewId); if(!r){ backToReviews(); return; }
+    const canFill = sameEmail(r.reviewee,myEmail) || isSuperAdmin();     // reviewee fills it in
+    const canSetup = sameEmail(r.reviewer,myEmail) || isSuperAdmin();    // reviewer manages the questions
+    const ro = !canFill;
+    r.stage1=r.stage1||{metricNotes:{}}; r.stage1.metricNotes=r.stage1.metricNotes||{};
+    r.stage2=r.stage2||{}; r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{}; r.custom=r.custom||[];
+    const qEnd=(mxQuarterRange(r.quarter)||{}).end||new Date();
+    const nextQ=nextQuarterKey(r.quarter);
+    const mets=reviewMetricsFor(r.reviewee);
+
+    // header
+    let h='<div class="rv-detail">'
+      +'<div class="rv-dhead"><button class="btn ghost sm" onclick="backToReviews()">← All reviews</button>'
+      +'<span class="rv-badge '+(r.status==='submitted'?'done':'draft')+'">'+(r.status==='submitted'?'Submitted':'Draft')+'</span></div>'
+      +'<div class="rv-people">'+avatarHtml(resolvePerson(r.reviewee))+'<div><div class="rv-who big">'+esc(pmName(resolvePerson(r.reviewee))||'—')+'</div>'
+      +'<div class="rv-sub">'+esc(quarterLabel(r.quarter))+' review · reviewer '+esc(pmName(resolvePerson(r.reviewer))||'—')+'</div></div></div>';
+    if(ro) h+='<div class="rv-note">You’re the reviewer here — this is '+esc(pmName(resolvePerson(r.reviewee))||'their')+'’s to fill in. '+(canSetup?'You can add or edit the custom questions below.':'It’s read-only for you.')+'</div>';
+
+    // metrics panel
+    let metHtml='';
+    if(mets.length){ metHtml=mets.map(m=>{ let status='<span class="rv-mchip na">no goal</span>', detail='';
+        try{ const qi=metricQuarterInfo(m,qEnd); if(qi){ status='<span class="rv-mchip '+(qi.onTrack?'on':'off')+'">'+(qi.onTrack?'On target':'Off target')+'</span>';
+          detail='<span class="rv-mdetail">'+esc(fmtVal(m,qi.cum))+' of '+esc(fmtVal(m,qi.G))+'</span>'; } }catch(e){}
+        return '<div class="rv-metric"><span class="rv-mname">'+esc(m.name||'Untitled metric')+'</span>'+detail+status+'</div>';
+      }).join(''); }
+    else metHtml='<div class="rv-empty">No metrics are owned by '+esc(pmName(resolvePerson(r.reviewee))||'this person')+' yet.</div>';
+
+    // Stage 1
+    h+='<div class="rv-stage"><h3>1 · How did '+esc(quarterLabel(r.quarter))+' go?</h3>'
+      +'<p class="rv-help">Talk through the quarter, and whether each target landed on or off.</p>'
+      +'<div class="rv-metrics">'+metHtml+'</div>';
+    if(mets.length && (!ro || mets.some(m=>r.stage1.metricNotes[m.id]))){
+      h+='<div class="rv-mnotes">'+mets.map(m=>'<div class="rv-mnote"><label>'+esc(m.name||'Metric')+'</label>'+rvTA('rvf-mnote-'+m.id, r.stage1.metricNotes[m.id]||'', ro, 'On/off, and why…')+'</div>').join('')+'</div>';
+    }
+    h+='<label class="rv-lbl">Overall, how the quarter went</label>'+rvTA('rvf-summary', r.stage1.summary||'', ro, 'A few sentences on the quarter as a whole…')+'</div>';
+
+    // Stage 2
+    h+='<div class="rv-stage"><h3>2 · What went well, and what could improve?</h3>'
+      +'<label class="rv-lbl">What went well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
+      +'<label class="rv-lbl">What I could improve</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
+
+    // Stage 3
+    h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>'
+      +'<p class="rv-help">Set the target for each of your metrics next quarter — saving this writes it straight onto the metric’s '+esc(quarterLabel(nextQ))+' target. Then say what you need to hit them.</p>';
+    if(mets.length){ h+='<div class="rv-goals">'+mets.map(m=>{ const cur=(r.stage3.goals[m.id]!==undefined&&r.stage3.goals[m.id]!=='')?r.stage3.goals[m.id]:(m.quarterGoals&&m.quarterGoals[nextQ]!==undefined?m.quarterGoals[nextQ]:'');
+        return '<div class="rv-goal"><span class="rv-mname">'+esc(m.name||'Metric')+'</span>'
+          +(ro?'<span class="rv-ro inline">'+(cur===''?'<span class="rv-empty">—</span>':esc(String(cur)))+'</span>'
+               :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" value="'+esc(String(cur))+'" placeholder="target">')+'</div>';
+      }).join('')+'</div>'; }
+    else h+='<div class="rv-empty">No metrics to set goals for.</div>';
+    h+='<label class="rv-lbl">What I need — resources or roadblocks to remove</label>'+rvTA('rvf-needs', r.stage3.needs||'', ro, 'Tools, people, decisions, blockers to clear…')+'</div>';
+
+    // Custom questions
+    if(r.custom.length || canSetup){
+      h+='<div class="rv-stage"><h3>Custom questions</h3>';
+      h+='<div id="rv-cqwrap">'+r.custom.map(c=>{
+        const qh = canSetup ? '<input id="rvf-cq-'+c.id+'" class="rv-cqq" value="'+esc(c.q||'')+'">'+'<button class="rv-del sm" title="Remove question" onclick="rvRemoveQuestion(\''+c.id+'\')">✕</button>'
+                            : '<label class="rv-lbl">'+esc(c.q||'')+'</label>';
+        return '<div class="rv-cq">'+qh+rvTA('rvf-ca-'+c.id, c.a||'', ro, 'Answer…')+'</div>';
+      }).join('')+'</div>';
+      if(canSetup) h+='<button class="btn ghost sm" style="margin-top:8px;" onclick="rvAddQuestionLive()">➕ Add a question</button>';
+      h+='</div>';
+    }
+
+    // actions
+    h+='<div class="rv-actions">';
+    if(canFill){ h+='<button class="btn" onclick="saveReview(false)">Save</button>';
+      h+='<button class="btn" style="background:var(--green,#2e9e6b);" onclick="saveReview(true)">'+(r.status==='submitted'?'Save &amp; keep submitted':'Submit review')+'</button>'; }
+    else if(canSetup){ h+='<button class="btn" onclick="saveReview(false)">Save questions</button>'; }
+    if(sameEmail(r.reviewer,myEmail)||isSuperAdmin()) h+='<button class="btn ghost" onclick="deleteReview(\''+r.id+'\')">Delete</button>';
+    h+='</div></div>';
+    box.innerHTML=h;
+  }
+  function rvAddQuestionLive(){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=r.custom||[]; r.custom.push({id:uid(),q:'',a:''}); persistReview(r); renderReviewDetail(); }
+  function rvRemoveQuestion(qid){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=(r.custom||[]).filter(c=>c.id!==qid); persistReview(r); renderReviewDetail(); }
+  function saveReview(submit, quiet){
+    const r=reviews.find(x=>x.id===curReviewId); if(!r) return;
+    const canFill = sameEmail(r.reviewee,myEmail) || isSuperAdmin();
+    const canSetup = sameEmail(r.reviewer,myEmail) || isSuperAdmin();
+    const V=id=>{ const el=document.getElementById(id); return el?el.value:undefined; };
+    if(canFill){
+      r.stage1=r.stage1||{metricNotes:{}}; r.stage1.metricNotes=r.stage1.metricNotes||{};
+      if(V('rvf-summary')!==undefined) r.stage1.summary=V('rvf-summary');
+      r.stage2=r.stage2||{}; if(V('rvf-well')!==undefined) r.stage2.wentWell=V('rvf-well'); if(V('rvf-improve')!==undefined) r.stage2.improve=V('rvf-improve');
+      r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{}; if(V('rvf-needs')!==undefined) r.stage3.needs=V('rvf-needs');
+      reviewMetricsFor(r.reviewee).forEach(m=>{ const n=V('rvf-mnote-'+m.id); if(n!==undefined) r.stage1.metricNotes[m.id]=n; const g=V('rvf-goal-'+m.id); if(g!==undefined) r.stage3.goals[m.id]=g; });
+      (r.custom||[]).forEach(c=>{ const a=V('rvf-ca-'+c.id); if(a!==undefined) c.a=a; });
+    }
+    if(canSetup){ (r.custom||[]).forEach(c=>{ const q=V('rvf-cq-'+c.id); if(q!==undefined) c.q=q; }); }
+    if(submit) r.status='submitted';
+    if(canFill) applyReviewGoals(r);
+    persistReview(r);
+    if(!quiet){ showToast(submit?'✅ Review submitted':'Saved'); renderReviewDetail(); }
+  }
+  /* Stage-3 targets become the metric's target for the NEXT quarter. Only the metric
+     owner (reviewee) or a super admin writes these. */
+  function applyReviewGoals(r){
+    const nextQ=nextQuarterKey(r.quarter); let touched=false;
+    reviewMetricsFor(r.reviewee).forEach(m=>{ const raw=(r.stage3.goals||{})[m.id];
+      if(raw===undefined || raw===null || String(raw).trim()==='') return;
+      const v=Number(raw); if(isNaN(v)) return;
+      m.quarterGoals=m.quarterGoals||{};
+      if(Number(m.quarterGoals[nextQ])!==v){ m.quarterGoals[nextQ]=v; dbUpsertMetric(m); touched=true; }
+    });
+    if(touched) saveMetricsLocal();
+  }
+
+  /* ---- new review modal ---- */
+  function openNewReviewModal(){ if(!isManager()) return;
+    ensureReviews().then(()=>{
+      const defQ=reviewQuarterView||quarterKeyOf(new Date());
+      const qs=quarterList(8,1).slice().reverse(); if(qs.indexOf(defQ)<0) qs.unshift(defQ);
+      document.getElementById('rv-quarter').innerHTML=qs.map(k=>'<option value="'+k+'"'+(k===defQ?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('');
+      document.getElementById('rv-reviewee').innerHTML=ownerOptions('');
+      document.getElementById('rv-reviewer').innerHTML=ownerOptions(myEmail);
+      document.getElementById('rv-customList').innerHTML='';
+      document.getElementById('rv-err').textContent='';
+      document.getElementById('newReviewModal').classList.add('show');
+    });
+  }
+  function closeNewReviewModal(){ document.getElementById('newReviewModal').classList.remove('show'); }
+  function rvAddCustomRow(){ const box=document.getElementById('rv-customList'); if(!box) return;
+    const row=document.createElement('div'); row.className='rv-cq-row';
+    row.innerHTML='<input class="rv-cq-input" placeholder="e.g. What’s one thing the team could do better?"><button type="button" class="rv-del sm" onclick="this.parentNode.remove()">✕</button>';
+    box.appendChild(row); const inp=row.querySelector('input'); if(inp) inp.focus(); }
+  function createReview(){
+    const err=document.getElementById('rv-err');
+    const quarter=(document.getElementById('rv-quarter')||{}).value||'';
+    const reviewee=(document.getElementById('rv-reviewee')||{}).value||'';
+    const reviewer=((document.getElementById('rv-reviewer')||{}).value)||myEmail;
+    if(!reviewee){ err.textContent='Pick who the review is for (the reviewee).'; return; }
+    if(!quarter){ err.textContent='Pick a quarter.'; return; }
+    const custom=[]; document.querySelectorAll('#rv-customList .rv-cq-input').forEach(inp=>{ const q=(inp.value||'').trim(); if(q) custom.push({id:uid(), q:q, a:''}); });
+    const r={ id:uid(), reviewer:reviewer, reviewee:reviewee, quarter:quarter, createdBy:myEmail, createdAt:Date.now(), updatedAt:Date.now(), status:'draft',
+      stage1:{summary:'',metricNotes:{}}, stage2:{wentWell:'',improve:''}, stage3:{goals:{},needs:''}, custom:custom };
+    reviews.push(r); persistReview(r); reviewQuarterView=quarter; closeNewReviewModal(); openReview(r.id);
+  }
   /* ================= HOME =================
      Lands here on login. Vision band up top, your own metrics on the left,
      and a switchable panel of to-dos / meetings / priorities on the right. */
