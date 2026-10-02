@@ -169,6 +169,7 @@
   .rv-cqq{width:calc(100% - 34px);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-weight:600;margin-bottom:6px;}
   .rv-cq-row{display:flex;gap:6px;align-items:center;margin-top:6px;}
   .rv-cq-input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;}
+  .rv-approved{background:#e3f5ec;color:#1c7a4e;border:1.5px solid #1c7a4e;border-radius:10px;padding:9px 13px;font-size:.85rem;font-weight:700;margin-bottom:12px;}
   .rv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;}
   .rv-savestate{font-size:.78rem;font-weight:700;margin-left:4px;}
   .rv-savestate.saved{color:#1c7a4e;}
@@ -6397,17 +6398,22 @@ Herd Life`;
       +'<label class="rv-lbl">What I did well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
       +'<label class="rv-lbl">Things I could have done better</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
 
-    // Stage 3
-    h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>'
-      +'<p class="rv-help">Set the target for each of your metrics next quarter — saving this writes it straight onto the metric’s '+esc(quarterLabel(nextQ))+' target. Then say what you need to hit them.</p>';
+    // Stage 3 — proposed goals, approved by the reviewer before they become live targets
+    const gApproved=!!(r.stage3&&r.stage3.approved);
+    const goalRO = !(canSetup || (canFill && !gApproved));   // reviewer always editable; reviewee until approved
+    h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>';
+    if(gApproved) h+='<div class="rv-approved">✓ Goals approved by '+esc(pmName(resolvePerson(r.stage3.approvedBy))||'reviewer')+' — set as '+esc(quarterLabel(nextQ))+' targets.'+(canSetup?' Adjust and re-approve to update them.':'')+'</div>';
+    else if(canSetup) h+='<p class="rv-help">These are '+esc(pmName(resolvePerson(r.reviewee))||'the reviewee')+'’s <b>proposed</b> targets for '+esc(quarterLabel(nextQ))+'. Adjust any if needed, then approve to set them as the live targets.</p>';
+    else h+='<p class="rv-help">Propose a target for each metric next quarter. These are proposals — your reviewer approves them before they become the live '+esc(quarterLabel(nextQ))+' targets. Then say what you need to hit them.</p>';
     if(mets.length){ const histQs=prevQuartersOf(nextQ,4);
       h+='<div class="rv-goals">'+mets.map(m=>{ const cur=(r.stage3.goals[m.id]!==undefined&&r.stage3.goals[m.id]!=='')?r.stage3.goals[m.id]:(m.quarterGoals&&m.quarterGoals[nextQ]!==undefined?m.quarterGoals[nextQ]:'');
         const hist=histQs.map(qk=>rvQuarterHist(m,qk)).join('');
         return '<div class="rv-goal"><div class="rv-goal-top"><span class="rv-mname">'+esc(m.name||'Metric')+'</span>'
-          +(ro?'<span class="rv-ro inline">'+(cur===''?'<span class="rv-empty">—</span>':esc(String(cur)))+'</span>'
+          +(goalRO?'<span class="rv-ro inline">'+(cur===''?'<span class="rv-empty">—</span>':esc(String(cur)))+'</span>'
                :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" oninput="reviewAutosave()" onblur="reviewAutosaveNow()" value="'+esc(String(cur))+'" placeholder="target">')+'</div>'
           +'<div class="rv-ghist"><span class="rv-ghist-lbl">Last 4 quarters <span class="rv-ghist-sub">— landed / target</span>:</span>'+hist+'</div></div>';
-      }).join('')+'</div>'; }
+      }).join('')+'</div>';
+      if(canSetup) h+='<button class="btn" style="margin-top:12px;background:var(--green,#2e9e6b);" onclick="approveReviewGoals()">'+(gApproved?'Re-approve &amp; update '+esc(quarterLabel(nextQ))+' targets':'Approve &amp; set '+esc(quarterLabel(nextQ))+' targets')+'</button>'; }
     else h+='<div class="rv-empty">No metrics to set goals for.</div>';
     h+='<label class="rv-lbl">What I need — resources or roadblocks to remove</label>'+rvTA('rvf-needs', r.stage3.needs||'', ro, 'Tools, people, decisions, blockers to clear…')+'</div>';
 
@@ -6457,23 +6463,39 @@ Herd Life`;
       reviewMetricsFor(r.reviewee).forEach(m=>{ const n=V('rvf-mnote-'+m.id); if(n!==undefined) r.stage1.metricNotes[m.id]=n; const g=V('rvf-goal-'+m.id); if(g!==undefined) r.stage3.goals[m.id]=g; });
       (r.custom||[]).forEach(c=>{ const a=V('rvf-ca-'+c.id); if(a!==undefined) c.a=a; });
     }
-    if(canSetup){ (r.custom||[]).forEach(c=>{ const q=V('rvf-cq-'+c.id); if(q!==undefined) c.q=q; }); }
+    if(canSetup){ (r.custom||[]).forEach(c=>{ const q=V('rvf-cq-'+c.id); if(q!==undefined) c.q=q; });
+      if(!canFill){ r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{};
+        reviewMetricsFor(r.reviewee).forEach(m=>{ const g=V('rvf-goal-'+m.id); if(g!==undefined) r.stage3.goals[m.id]=g; }); } }
     if(submit) r.status='submitted';
-    if(canFill && !skipGoals) applyReviewGoals(r);
+    // NOTE: goals are proposals here — they only reach the live metric targets when the
+    // reviewer approves them (approveReviewGoals). Submit no longer writes targets.
     persistReview(r);
     if(!quiet){ showToast(submit?'✅ Review submitted':'Saved'); renderReviewDetail(); }
   }
   /* Stage-3 targets become the metric's target for the NEXT quarter. Only the metric
      owner (reviewee) or a super admin writes these. */
-  function applyReviewGoals(r){
-    const nextQ=nextQuarterKey(r.quarter); let touched=false;
-    reviewMetricsFor(r.reviewee).forEach(m=>{ const raw=(r.stage3.goals||{})[m.id];
-      if(raw===undefined || raw===null || String(raw).trim()==='') return;
+  /* Reviewer approval: takes the proposed goals (as shown/adjusted in the inputs) and
+     writes them onto each metric's next-quarter target. Only the reviewer or a super
+     admin can do this. Nothing reaches the live targets until this runs. */
+  function approveReviewGoals(){
+    const r=reviews.find(x=>x.id===curReviewId); if(!r) return;
+    if(!(sameEmail(r.reviewer,myEmail)||isSuperAdmin())){ showToast('Only the reviewer can approve these'); return; }
+    const nextQ=nextQuarterKey(r.quarter);
+    r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{};
+    const approvedGoals={}; let n=0;
+    reviewMetricsFor(r.reviewee).forEach(m=>{
+      const el=document.getElementById('rvf-goal-'+m.id);
+      let raw = el ? el.value : r.stage3.goals[m.id];
+      if(raw===undefined||raw===null||String(raw).trim()==='') return;
       const v=Number(raw); if(isNaN(v)) return;
-      m.quarterGoals=m.quarterGoals||{};
-      if(Number(m.quarterGoals[nextQ])!==v){ m.quarterGoals[nextQ]=v; dbUpsertMetric(m); touched=true; }
+      r.stage3.goals[m.id]=String(raw);                 // keep the approved (possibly adjusted) number
+      m.quarterGoals=m.quarterGoals||{}; m.quarterGoals[nextQ]=v; dbUpsertMetric(m);
+      approvedGoals[m.id]=v; n++;
     });
-    if(touched) saveMetricsLocal();
+    saveMetricsLocal();
+    r.stage3.approved=true; r.stage3.approvedGoals=approvedGoals; r.stage3.approvedBy=myEmail; r.stage3.approvedAt=Date.now();
+    persistReview(r);
+    showToast('✅ Approved — set '+n+' '+quarterLabel(nextQ)+' target'+(n===1?'':'s')); renderReviewDetail();
   }
 
   /* ---- new review modal ---- */
