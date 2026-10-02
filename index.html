@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The March to 100,000 Herd Members — Quarterly Worksheet</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Cdefs%3E%3ClinearGradient%20id='g'%20x1='0'%20y1='0'%20x2='1'%20y2='1'%3E%3Cstop%20offset='0'%20stop-color='%236a2c8f'/%3E%3Cstop%20offset='1'%20stop-color='%234e1f6b'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect%20width='64'%20height='64'%20rx='15'%20fill='url(%23g)'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='27'%20font-weight='bold'%20fill='white'%20text-anchor='middle'%3ENM%3C/text%3E%3C/svg%3E">
 <script>
 // Apply the saved theme before first paint, to avoid a light-mode flash.
@@ -19,22 +22,32 @@
 <style>
   :root{
     color-scheme:light;
-    --purple:#6a2c8f; --purple-dark:#4e1f6b; --purple-light:#8e4fb8; --heading:#4e1f6b;
-    --lilac:#f3eafb; --lilac-2:#e9d9f7; --ink:#221531; --muted:#6b5e78;
-    --line:#e3d6ef; --green:#2e9e6b; --amber:#e0a32e; --red:#d8533b;
-    --bg:#faf7fd; --card:#ffffff; --shadow:0 2px 14px rgba(80,30,110,.08);
-    --gold-bg:#fdf6e6; --gold-line:#eadfc2;
+    /* Purple Cow brand (Customer Portal v5): purple + yellow accent on a light lilac page,
+       Anton display type, Manrope body, and the signature hard ink-shadow / outline look. */
+    --purple:#7421b5; --purple-dark:#5a1790; --purple-light:#8f3fd0; --heading:#1a1a1a;
+    --lilac:#f3eefd; --lilac-2:#e9ddf9; --ink:#1a1a1a; --muted:#6b6873;
+    --line:#e2dced; --green:#2e9e6b; --amber:#e0a32e; --red:#d8533b;
+    --bg:#faf7ff; --card:#ffffff; --shadow:3px 3px 0 var(--ink);
+    --gold-bg:#fff6da; --gold-line:#f0d98a; --accent:#fbc400;
+    --font-display:'Anton',Impact,'Arial Narrow Bold',sans-serif;
+    --font-body:'Manrope',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --hard:3px 3px 0 var(--ink); --hard-lg:4px 4px 0 var(--ink); --cardborder:var(--ink);
   }
   html[data-theme="dark"]{
     color-scheme:dark;
-    --purple:#b47fe0; --purple-light:#a26fce; --heading:#e2cdf2;
+    --purple:#b47fe0; --purple-light:#a26fce; --heading:#f0e6fb;
     --lilac:#2a2233; --lilac-2:#362b43; --ink:#eee6f5; --muted:#a996b9;
     --line:#3c3049; --green:#3ecf8e; --amber:#e8b347; --red:#e97462;
     --bg:#171019; --card:#221a2a; --shadow:0 2px 14px rgba(0,0,0,.45);
-    --gold-bg:#2c2617; --gold-line:#4d4326;
+    --gold-bg:#2c2617; --gold-line:#4d4326; --accent:#fbc400;
+    /* soften the hard look for night mode so it isn't harsh light shadows on dark */
+    --hard:0 3px 12px rgba(0,0,0,.5); --hard-lg:0 6px 18px rgba(0,0,0,.55); --cardborder:var(--line);
   }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.5;transition:background-color .15s,color .15s;}
+  body{margin:0;font-family:var(--font-body);color:var(--ink);background:var(--bg);line-height:1.5;transition:background-color .15s,color .15s;}
+  input,select,textarea,button{font-family:var(--font-body);}
+  /* Anton for display headings — big, condensed, on-brand */
+  h1,h2,h3,h4,.login-title,.sec-head h1,.rv-stage h3,.rv-who.big,.sb-org,.vz-strategy .big{font-family:var(--font-display);font-weight:400;letter-spacing:.015em;}
   a{color:var(--purple)}
   .wrap{max-width:1080px;margin:0 auto;padding:0 18px 80px;}
 
@@ -887,13 +900,20 @@
   .nav a:hover{background:var(--lilac-2);}
 
   /* Buttons */
-  .btn{cursor:pointer;border:none;border-radius:9px;padding:9px 15px;font-size:14px;font-weight:600;background:var(--purple);color:#fff;transition:.15s;}
-  .btn:hover{background:var(--purple-dark);}
-  .btn.ghost{background:var(--card);color:var(--heading);border:1px solid var(--line);}
+  .btn{cursor:pointer;border:1.5px solid var(--ink);border-radius:10px;padding:9px 15px;font-size:14px;font-weight:700;background:var(--purple);color:#fff;box-shadow:var(--hard);transition:transform .1s,box-shadow .1s,background .15s;}
+  .btn:hover{background:var(--purple-dark);transform:translate(-1px,-1px);box-shadow:4px 4px 0 var(--ink);}
+  .btn:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--ink);}
+  .btn.ghost{background:var(--card);color:var(--ink);border:1.5px solid var(--ink);box-shadow:var(--hard);}
   .btn.ghost:hover{background:var(--lilac);}
-  .btn.sm{padding:6px 11px;font-size:12.5px;}
-  .btn.danger{background:var(--card);color:var(--red);border:1px solid #f0cabf;}
-  .btn.danger:hover{background:#fde9e4;}
+  .btn.ghost:hover{background:var(--lilac);}
+  .btn.sm{padding:6px 11px;font-size:12.5px;box-shadow:2px 2px 0 var(--ink);}
+  .btn.sm:hover{box-shadow:3px 3px 0 var(--ink);}
+  .btn.danger{background:var(--card);color:var(--red);border:1.5px solid var(--red);box-shadow:2px 2px 0 var(--red);}
+  .btn.danger:hover{background:#fde9e4;box-shadow:3px 3px 0 var(--red);}
+  /* signature outlined + hard-shadow surfaces (night mode softens these via --hard-lg) */
+  .sc-card,.mtg-sec,.login-card,.rv-card,.rv-stage,.modal{border:1.5px solid var(--cardborder);box-shadow:var(--hard-lg);}
+  .sc-card{border-left:1.5px solid var(--cardborder);}
+  .sc-card:hover{transform:translate(-1px,-1px);box-shadow:var(--hard-lg);}
 
   /* Sections */
   section.block{margin-top:34px;}
