@@ -136,9 +136,19 @@
   .rv-mchip.na{background:var(--lilac,#efe7f7);color:var(--muted);}
   .rv-mnotes{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
   .rv-mnote label{display:block;font-size:.8rem;font-weight:600;color:var(--muted);margin-bottom:3px;}
-  .rv-goals{display:flex;flex-direction:column;gap:8px;}
-  .rv-goal{display:flex;align-items:center;gap:10px;}
-  .rv-goal .rv-mname{flex:1;}
+  .rv-goals{display:flex;flex-direction:column;gap:14px;}
+  .rv-goal{display:flex;flex-direction:column;gap:5px;}
+  .rv-goal-top{display:flex;align-items:center;gap:10px;}
+  .rv-goal-top .rv-mname{flex:1;}
+  .rv-ghist{display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;font-size:.75rem;color:var(--muted);padding-left:2px;}
+  .rv-ghist-lbl{font-weight:700;}
+  .rv-ghist-sub{font-weight:400;opacity:.8;}
+  .rv-hq{display:inline-flex;gap:5px;align-items:baseline;}
+  .rv-hq .l{opacity:.85;}
+  .rv-hq .v{color:var(--heading);}
+  .rv-hq .act{font-weight:700;}
+  .rv-hq .act.on{color:#1c7a4e;}
+  .rv-hq .act.off{color:#c9302c;}
   .rv-goalin{width:120px;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-size:.9rem;}
   .rv-cq{margin-bottom:12px;}
   .rv-cqq{width:calc(100% - 34px);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-weight:600;margin-bottom:6px;}
@@ -6261,6 +6271,24 @@ Herd Life`;
      database enforces this too; this is the matching UI-side guard.) */
   function reviewVisible(r){ return isSuperAdmin() || sameEmail(r.reviewer,myEmail) || sameEmail(r.reviewee,myEmail); }
   function nextQuarterKey(k){ const p=String(k).split('-Q'); let y=Number(p[0]), q=Number(p[1])+1; if(q>4){q=1;y++;} return y+'-Q'+q; }
+  function prevQuarterKey(k){ const p=String(k).split('-Q'); let y=Number(p[0]), q=Number(p[1])-1; if(q<1){q=4;y--;} return y+'-Q'+q; }
+  function prevQuartersOf(k,n){ const out=[]; let cur=k; for(let i=0;i<n;i++){ cur=prevQuarterKey(cur); out.push(cur); } return out.reverse(); }
+  /* the target that applied to a metric in a given quarter: the quarter-specific one if
+     set, else the metric's default target. null when neither is a number. */
+  function metricTargetForQuarter(m,qk){ const qg=(m&&m.quarterGoals)||{}; let v=qg[qk];
+    if(v===undefined||v===null||v==='') v=(m&&(m.goal===''||m.goal==null))?'':(m?m.goal:'');
+    return (v===''||v===null||isNaN(Number(v)))?null:Number(v); }
+  /* one quarter's history chip for a metric: where it landed vs the target, coloured
+     green/red by whether the target was hit. */
+  function rvQuarterHist(m,qk){
+    let target=null, actual=null, ok=null;
+    try{ const qi=metricQuarterInfo(m,(mxQuarterRange(qk)||{}).end||new Date()); if(qi){ target=qi.G; actual=qi.any?qi.cum:null; ok=(actual===null)?null:qi.onTrack; } }catch(e){}
+    if(target===null) target=metricTargetForQuarter(m,qk);
+    const tStr=(target===null)?'—':fmtVal(m,target);
+    const aStr=(actual===null)?'—':fmtVal(m,actual);
+    const cls=(ok===null)?'':(ok?'on':'off');
+    return '<span class="rv-hq"><span class="l">'+esc(quarterLabel(qk))+'</span><span class="v"><span class="act '+cls+'">'+esc(aStr)+'</span> / '+esc(tStr)+'</span></span>';
+  }
   function reviewMetricsFor(email){ return (metricsStore||[]).filter(m=>m && !m.archived && sameEmail(m.owner,email)); }
 
   function renderReviewsList(){
@@ -6332,17 +6360,20 @@ Herd Life`;
     h+='<label class="rv-lbl">Overall, how the quarter went</label>'+rvTA('rvf-summary', r.stage1.summary||'', ro, 'A few sentences on the quarter as a whole…')+'</div>';
 
     // Stage 2
-    h+='<div class="rv-stage"><h3>2 · What went well, and what could improve?</h3>'
-      +'<label class="rv-lbl">What went well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
-      +'<label class="rv-lbl">What I could improve</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
+    h+='<div class="rv-stage"><h3>2 · What did I do well, and how can I improve?</h3>'
+      +'<label class="rv-lbl">What I did well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
+      +'<label class="rv-lbl">How I can improve</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
 
     // Stage 3
     h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>'
       +'<p class="rv-help">Set the target for each of your metrics next quarter — saving this writes it straight onto the metric’s '+esc(quarterLabel(nextQ))+' target. Then say what you need to hit them.</p>';
-    if(mets.length){ h+='<div class="rv-goals">'+mets.map(m=>{ const cur=(r.stage3.goals[m.id]!==undefined&&r.stage3.goals[m.id]!=='')?r.stage3.goals[m.id]:(m.quarterGoals&&m.quarterGoals[nextQ]!==undefined?m.quarterGoals[nextQ]:'');
-        return '<div class="rv-goal"><span class="rv-mname">'+esc(m.name||'Metric')+'</span>'
+    if(mets.length){ const histQs=prevQuartersOf(nextQ,4);
+      h+='<div class="rv-goals">'+mets.map(m=>{ const cur=(r.stage3.goals[m.id]!==undefined&&r.stage3.goals[m.id]!=='')?r.stage3.goals[m.id]:(m.quarterGoals&&m.quarterGoals[nextQ]!==undefined?m.quarterGoals[nextQ]:'');
+        const hist=histQs.map(qk=>rvQuarterHist(m,qk)).join('');
+        return '<div class="rv-goal"><div class="rv-goal-top"><span class="rv-mname">'+esc(m.name||'Metric')+'</span>'
           +(ro?'<span class="rv-ro inline">'+(cur===''?'<span class="rv-empty">—</span>':esc(String(cur)))+'</span>'
-               :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" value="'+esc(String(cur))+'" placeholder="target">')+'</div>';
+               :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" value="'+esc(String(cur))+'" placeholder="target">')+'</div>'
+          +'<div class="rv-ghist"><span class="rv-ghist-lbl">Last 4 quarters <span class="rv-ghist-sub">— landed / target</span>:</span>'+hist+'</div></div>';
       }).join('')+'</div>'; }
     else h+='<div class="rv-empty">No metrics to set goals for.</div>';
     h+='<label class="rv-lbl">What I need — resources or roadblocks to remove</label>'+rvTA('rvf-needs', r.stage3.needs||'', ro, 'Tools, people, decisions, blockers to clear…')+'</div>';
