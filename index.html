@@ -1302,8 +1302,8 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     <button class="sb-item" data-sec="todos" onclick="navTo('todos')"><span class="sb-ic">✅</span>To-Dos</button>
     <button class="sb-item" data-sec="issues" onclick="navTo('issues')"><span class="sb-ic">⚠️</span>Issues</button>
     <button class="sb-item manage-only" data-sec="swim" onclick="navTo('swim')"><span class="sb-ic">🏊</span>Swimlanes</button>
-    <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
     <button class="sb-item" data-sec="reviews" onclick="navTo('reviews')"><span class="sb-ic">📝</span>Quarterly Reviews</button>
+    <button class="sb-item" data-sec="meetings" onclick="navTo('meetings')"><span class="sb-ic">🗓️</span>Meetings</button>
   </nav>
   <div class="sb-bottom">
     <div class="theme-switch" role="group" aria-label="Theme">
@@ -6317,7 +6317,7 @@ Herd Life`;
     const box=document.getElementById('reviewsWrap'); if(!box) return;
     if(!reviewQuarterView) reviewQuarterView=quarterKeyOf(new Date());
     const mine=reviews.filter(reviewVisible);
-    const qs=quarterList(8,1).slice().reverse(); if(qs.indexOf(reviewQuarterView)<0) qs.unshift(reviewQuarterView);
+    const qs=quarterList(8,6).slice().reverse(); if(qs.indexOf(reviewQuarterView)<0) qs.unshift(reviewQuarterView);
     const qsel='<select onchange="setReviewQuarter(this.value)" style="font-weight:600;">'+qs.map(k=>'<option value="'+k+'"'+(k===reviewQuarterView?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('')+'</select>';
     const inQ=mine.filter(r=>r.quarter===reviewQuarterView)
       .sort((a,b)=>String(pmName(resolvePerson(a.reviewee))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.reviewee))).toLowerCase()));
@@ -6459,7 +6459,7 @@ Herd Life`;
   function openNewReviewModal(){ if(!isManager()) return;
     ensureReviews().then(()=>{
       const defQ=reviewQuarterView||quarterKeyOf(new Date());
-      const qs=quarterList(8,1).slice().reverse(); if(qs.indexOf(defQ)<0) qs.unshift(defQ);
+      const qs=quarterList(8,6).slice().reverse(); if(qs.indexOf(defQ)<0) qs.unshift(defQ);
       document.getElementById('rv-quarter').innerHTML=qs.map(k=>'<option value="'+k+'"'+(k===defQ?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('');
       document.getElementById('rv-reviewee').innerHTML=ownerOptions('');
       document.getElementById('rv-reviewer').innerHTML=ownerOptions(myEmail);
