@@ -1291,6 +1291,12 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     h1{font-size:1.4rem;}
     .btn{padding:9px 13px;}
   }
+  /* iOS Safari zooms in on any focused field under 16px and never zooms back out,
+     leaving the page wider than the screen. Keep fields at 16px on touch devices. */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  @media (hover:none) and (pointer:coarse){
+    input,select,textarea,[contenteditable="true"]{font-size:16px !important;}
+  }
 </style>
 </head>
 <body>
