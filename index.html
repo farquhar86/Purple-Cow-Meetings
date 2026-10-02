@@ -169,7 +169,11 @@
   .rv-cqq{width:calc(100% - 34px);border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;font-weight:600;margin-bottom:6px;}
   .rv-cq-row{display:flex;gap:6px;align-items:center;margin-top:6px;}
   .rv-cq-input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font-family:inherit;}
-  .rv-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+  .rv-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px;}
+  .rv-savestate{font-size:.78rem;font-weight:700;margin-left:4px;}
+  .rv-savestate.saved{color:#1c7a4e;}
+  .rv-savestate.saving{color:var(--muted);}
+  .rv-savestate.err{color:#c9302c;}
   .sb-ic{font-size:1.05rem;width:20px;text-align:center;flex:0 0 auto;}
   .sb-bottom{margin-top:auto;padding:10px 8px 14px;border-top:1px solid var(--line);position:relative;}
   .sb-add{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.92rem;font-weight:600;color:var(--muted);cursor:pointer;}
@@ -6279,8 +6283,15 @@ Herd Life`;
   function dbUpsertReview(r){ if(!USE_DB) return; sb.from('reviews').upsert({id:r.id, reviewer_email:r.reviewer||'', reviewee_email:r.reviewee||'', quarter:r.quarter||'', data:r}).then(x=>{ if(x.error) console.warn('review save',x.error); }).catch(e=>console.warn('review save',e)); }
   function dbDeleteReview(id){ if(!USE_DB) return; sb.from('reviews').delete().eq('id',id).then(()=>{}); }
   async function dbLoadReviews(){ if(!USE_DB){ reviewsLoaded=true; return; }
+    let localPrev=[]; try{ localPrev=JSON.parse(localStorage.getItem(KEY+'_reviews')||'[]')||[]; }catch(e){}
     try{ const r=await sbSelectAll('reviews','id,reviewer_email,reviewee_email,quarter,data','id'); if(r.error) throw r.error;
-      reviews=(r.data||[]).map(x=>x.data||{id:x.id,reviewer:x.reviewer_email,reviewee:x.reviewee_email,quarter:x.quarter}).filter(Boolean); saveReviewsLocal();
+      const map=new Map();
+      (r.data||[]).forEach(x=>{ const d=x.data||{id:x.id,reviewer:x.reviewer_email,reviewee:x.reviewee_email,quarter:x.quarter}; if(d&&d.id) map.set(d.id,d); });
+      /* keep any local edit the server hasn't caught up on yet (autosave still in flight,
+         offline, or created locally) so a refresh mid-edit never loses progress */
+      (localPrev||[]).forEach(lr=>{ if(!lr||!lr.id) return; const sv=map.get(lr.id);
+        if(!sv || (Number(lr.updatedAt)||0) > (Number(sv.updatedAt)||0)){ map.set(lr.id,lr); dbUpsertReview(lr); } });
+      reviews=Array.from(map.values()); saveReviewsLocal();
     }catch(e){ console.warn('reviews load',e); loadReviewsLocal(); }
     reviewsLoaded=true; }
   async function ensureReviews(){ if(!reviewsLoaded){ loadReviewsLocal(); await dbLoadReviews(); }
@@ -6341,7 +6352,7 @@ Herd Life`;
 
   function rvTA(id,value,ro,ph){ return ro
     ? '<div class="rv-ro">'+(value?esc(value).replace(/\n/g,'<br>'):'<span class="rv-empty">— nothing entered —</span>')+'</div>'
-    : '<textarea id="'+id+'" class="rv-ta" placeholder="'+esc(ph||'')+'">'+esc(value||'')+'</textarea>'; }
+    : '<textarea id="'+id+'" class="rv-ta" oninput="reviewAutosave()" onblur="reviewAutosaveNow()" placeholder="'+esc(ph||'')+'">'+esc(value||'')+'</textarea>'; }
 
   function renderReviewDetail(){
     const box=document.getElementById('reviewsWrap'); if(!box) return;
@@ -6379,12 +6390,12 @@ Herd Life`;
     if(mets.length && (!ro || mets.some(m=>r.stage1.metricNotes[m.id]))){
       h+='<div class="rv-mnotes">'+mets.map(m=>'<div class="rv-mnote"><label>'+esc(m.name||'Metric')+'</label>'+rvTA('rvf-mnote-'+m.id, r.stage1.metricNotes[m.id]||'', ro, 'On/off, and why…')+'</div>').join('')+'</div>';
     }
-    h+='<label class="rv-lbl">Overall, how the quarter went</label>'+rvTA('rvf-summary', r.stage1.summary||'', ro, 'A few sentences on the quarter as a whole…')+'</div>';
+    h+='<label class="rv-lbl">Overall, how did the quarter go and what was accomplished?</label>'+rvTA('rvf-summary', r.stage1.summary||'', ro, 'A few sentences on the quarter as a whole…')+'</div>';
 
     // Stage 2
-    h+='<div class="rv-stage"><h3>2 · What did I do well, and how can I improve?</h3>'
+    h+='<div class="rv-stage"><h3>2 · Thoughts on the Quarter</h3>'
       +'<label class="rv-lbl">What I did well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
-      +'<label class="rv-lbl">How I can improve</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
+      +'<label class="rv-lbl">Things I could have done better</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
 
     // Stage 3
     h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>'
@@ -6394,7 +6405,7 @@ Herd Life`;
         const hist=histQs.map(qk=>rvQuarterHist(m,qk)).join('');
         return '<div class="rv-goal"><div class="rv-goal-top"><span class="rv-mname">'+esc(m.name||'Metric')+'</span>'
           +(ro?'<span class="rv-ro inline">'+(cur===''?'<span class="rv-empty">—</span>':esc(String(cur)))+'</span>'
-               :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" value="'+esc(String(cur))+'" placeholder="target">')+'</div>'
+               :'<input type="number" step="any" id="rvf-goal-'+m.id+'" class="rv-goalin" oninput="reviewAutosave()" onblur="reviewAutosaveNow()" value="'+esc(String(cur))+'" placeholder="target">')+'</div>'
           +'<div class="rv-ghist"><span class="rv-ghist-lbl">Last 4 quarters <span class="rv-ghist-sub">— landed / target</span>:</span>'+hist+'</div></div>';
       }).join('')+'</div>'; }
     else h+='<div class="rv-empty">No metrics to set goals for.</div>';
@@ -6404,7 +6415,7 @@ Herd Life`;
     if(r.custom.length || canSetup){
       h+='<div class="rv-stage"><h3>Custom questions</h3>';
       h+='<div id="rv-cqwrap">'+r.custom.map(c=>{
-        const qh = canSetup ? '<input id="rvf-cq-'+c.id+'" class="rv-cqq" value="'+esc(c.q||'')+'">'+'<button class="rv-del sm" title="Remove question" onclick="rvRemoveQuestion(\''+c.id+'\')">✕</button>'
+        const qh = canSetup ? '<input id="rvf-cq-'+c.id+'" class="rv-cqq" oninput="reviewAutosave()" onblur="reviewAutosaveNow()" value="'+esc(c.q||'')+'">'+'<button class="rv-del sm" title="Remove question" onclick="rvRemoveQuestion(\''+c.id+'\')">✕</button>'
                             : '<label class="rv-lbl">'+esc(c.q||'')+'</label>';
         return '<div class="rv-cq">'+qh+rvTA('rvf-ca-'+c.id, c.a||'', ro, 'Answer…')+'</div>';
       }).join('')+'</div>';
@@ -6418,12 +6429,22 @@ Herd Life`;
       h+='<button class="btn" style="background:var(--green,#2e9e6b);" onclick="saveReview(true)">'+(r.status==='submitted'?'Save &amp; keep submitted':'Submit review')+'</button>'; }
     else if(canSetup){ h+='<button class="btn" onclick="saveReview(false)">Save questions</button>'; }
     if(sameEmail(r.reviewer,myEmail)||isSuperAdmin()) h+='<button class="btn ghost" onclick="deleteReview(\''+r.id+'\')">Delete</button>';
+    if(canFill||canSetup) h+='<span id="rv-savestate" class="rv-savestate saved">All changes saved automatically</span>';
     h+='</div></div>';
     box.innerHTML=h;
   }
   function rvAddQuestionLive(){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=r.custom||[]; r.custom.push({id:uid(),q:'',a:''}); persistReview(r); renderReviewDetail(); }
   function rvRemoveQuestion(qid){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=(r.custom||[]).filter(c=>c.id!==qid); persistReview(r); renderReviewDetail(); }
-  function saveReview(submit, quiet){
+  /* Autosave: every keystroke schedules a quiet save ~1s later, and leaving a field
+     saves immediately — so progress is never lost across refreshes or days. Goal
+     write-through to the metrics only happens on an explicit Save/Submit, not on autosave. */
+  let rvAutosaveTimer=null;
+  function rvSetSaveState(txt,cls){ const el=document.getElementById('rv-savestate'); if(el){ el.textContent=txt; el.className='rv-savestate '+(cls||''); } }
+  function reviewAutosave(){ rvSetSaveState('Saving…','saving'); clearTimeout(rvAutosaveTimer);
+    rvAutosaveTimer=setTimeout(()=>{ try{ saveReview(false,true,true); rvSetSaveState('All changes saved','saved'); }catch(e){ rvSetSaveState('Save failed — retrying…','err'); } }, 900); }
+  function reviewAutosaveNow(){ clearTimeout(rvAutosaveTimer); try{ saveReview(false,true,true); rvSetSaveState('All changes saved','saved'); }catch(e){} }
+  if(typeof window!=='undefined') window.addEventListener('beforeunload',()=>{ if(rvAutosaveTimer){ clearTimeout(rvAutosaveTimer); try{ saveReview(false,true,true); }catch(e){} } });
+  function saveReview(submit, quiet, skipGoals){
     const r=reviews.find(x=>x.id===curReviewId); if(!r) return;
     const canFill = sameEmail(r.reviewee,myEmail) || isSuperAdmin();
     const canSetup = sameEmail(r.reviewer,myEmail) || isSuperAdmin();
@@ -6438,7 +6459,7 @@ Herd Life`;
     }
     if(canSetup){ (r.custom||[]).forEach(c=>{ const q=V('rvf-cq-'+c.id); if(q!==undefined) c.q=q; }); }
     if(submit) r.status='submitted';
-    if(canFill) applyReviewGoals(r);
+    if(canFill && !skipGoals) applyReviewGoals(r);
     persistReview(r);
     if(!quiet){ showToast(submit?'✅ Review submitted':'Saved'); renderReviewDetail(); }
   }
