@@ -72,10 +72,12 @@ with check (
   or lower(reviewee_email) = lower(coalesce(auth.jwt() ->> 'email',''))
 );
 
--- Only the reviewer who owns it, or a super admin, can delete a review.
+-- The reviewer, the person who created the review (data.createdBy, e.g. someone who set
+-- up their own review with their manager as reviewer), or a super admin can delete it.
 drop policy if exists "reviews_delete" on reviews;
 create policy "reviews_delete" on reviews for delete to authenticated
 using (
   (auth.jwt() -> 'app_metadata' ->> 'role') = 'superadmin'
   or lower(reviewer_email) = lower(coalesce(auth.jwt() ->> 'email',''))
+  or lower(coalesce(data ->> 'createdBy','')) = lower(coalesce(auth.jwt() ->> 'email',''))
 );
