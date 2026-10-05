@@ -13,7 +13,10 @@
 --     stage1:{ summary, metricNotes:{metricId:note} },
 --     stage2:{ wentWell, improve },
 --     stage3:{ goals:{metricId:target}, needs },   -- goals apply to the NEXT quarter
---     custom:[ {id, q, a} ] }
+--     custom:[ {id, q, a} ],
+--     depts:[ 'Operations', … ],                     -- department(s) the reviewee leads (optional)
+--     prio:{ notes:{priorityId:note}, overall } }    -- stage 2 Priorities answers
+-- (depts/prio live inside data, so no table change is needed for them.)
 -- reviewer_email / reviewee_email / quarter are mirrored into columns so the RLS
 -- policies (and quarter filtering) can read them without cracking open the JSON.
 
