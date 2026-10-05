@@ -15,7 +15,9 @@
 --     stage3:{ goals:{metricId:target}, needs },   -- goals apply to the NEXT quarter
 --     custom:[ {id, q, a} ],
 --     depts:[ 'Operations', … ],                     -- department(s) the reviewee leads (optional)
---     prio:{ notes:{priorityId:note}, overall } }    -- stage 2 Priorities answers
+--     prio:{ notes:{priorityId:note}, overall },     -- stage 2 Priorities answers
+--     deleted, deletedBy, deletedAt }                 -- set when the creator deletes their own
+--                                                     -- review but isn't its reviewer; hidden everywhere
 -- (depts/prio live inside data, so no table change is needed for them.)
 -- reviewer_email / reviewee_email / quarter are mirrored into columns so the RLS
 -- policies (and quarter filtering) can read them without cracking open the JSON.
@@ -72,12 +74,12 @@ with check (
   or lower(reviewee_email) = lower(coalesce(auth.jwt() ->> 'email',''))
 );
 
--- The reviewer, the person who created the review (data.createdBy, e.g. someone who set
--- up their own review with their manager as reviewer), or a super admin can delete it.
+-- Only the reviewer who owns it, or a super admin, can delete a review row. (In the app,
+-- whoever created a review can also delete it; when they aren't the reviewer the app marks
+-- it deleted instead, which the update policy above allows.)
 drop policy if exists "reviews_delete" on reviews;
 create policy "reviews_delete" on reviews for delete to authenticated
 using (
   (auth.jwt() -> 'app_metadata' ->> 'role') = 'superadmin'
   or lower(reviewer_email) = lower(coalesce(auth.jwt() ->> 'email',''))
-  or lower(coalesce(data ->> 'createdBy','')) = lower(coalesce(auth.jwt() ->> 'email',''))
 );
