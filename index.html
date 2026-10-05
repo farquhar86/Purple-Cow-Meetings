@@ -175,6 +175,53 @@
   .rv-savestate.saved{color:#1c7a4e;}
   .rv-savestate.saving{color:var(--muted);}
   .rv-savestate.err{color:#c9302c;}
+  /* review: department heads' Priorities section (stage 2) */
+  .rv-depts{display:inline-flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:4px;}
+  .rv-dchip{font-size:.7rem;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--lilac-2);color:var(--heading);white-space:nowrap;}
+  .rv-dedit{border:none;background:none;color:var(--purple);font-size:.78rem;font-weight:700;cursor:pointer;padding:0 2px;text-decoration:underline;}
+  .rv-dpick{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .rv-dpick button{border:1px solid var(--line);background:var(--card,#fff);color:var(--muted);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:700;cursor:pointer;}
+  .rv-dpick button.on{background:var(--purple);border-color:var(--purple);color:#fff;}
+  .rv-dbox{background:var(--lilac);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;}
+  .rv-dbox .rv-help{margin:6px 0 0;}
+  .rv-ptabs{display:inline-flex;flex-wrap:wrap;background:var(--lilac);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px;margin-bottom:4px;}
+  .rv-ptabs button{border:none;background:transparent;padding:6px 11px;border-radius:7px;font-size:.8rem;font-weight:700;color:var(--muted);cursor:pointer;}
+  .rv-ptabs button.on{background:var(--purple);color:#fff;}
+  .rv-ptiles{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:12px 0 4px;}
+  @media(max-width:640px){ .rv-ptiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  .rv-ptile{border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0;}
+  .rv-ptile .n{font-family:var(--font-display);font-size:1.45rem;line-height:1.1;color:var(--heading);font-variant-numeric:tabular-nums;}
+  .rv-ptile .n small{font-family:var(--font-body);font-size:.76rem;font-weight:700;color:var(--muted);}
+  .rv-ptile .l{font-size:.64rem;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:2px;}
+  .rv-ptile .s{font-size:.7rem;font-weight:700;color:#9a6d14;margin-top:2px;}
+  .rv-pgrp{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin:16px 0 7px;}
+  .rv-pgrp b{font-size:.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);}
+  .rv-pgrp span{font-size:.78rem;color:var(--muted);}
+  .rv-prows{display:flex;flex-direction:column;gap:7px;}
+  .rv-prow{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:14px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;}
+  @media(max-width:640px){ .rv-prow{grid-template-columns:minmax(0,1fr);gap:8px;} }
+  .rv-pt{font-weight:700;color:var(--heading);font-size:.9rem;line-height:1.38;overflow-wrap:anywhere;cursor:pointer;}
+  .rv-pt:hover{color:var(--purple);text-decoration:underline;}
+  .rv-pt .go{color:var(--purple);font-size:.78rem;margin-left:4px;}
+  .rv-pmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px;font-size:.75rem;color:var(--muted);}
+  .rv-pmeta .badge{font-size:10px;padding:2px 8px;}
+  .rv-needpm{font-size:.68rem;font-weight:700;border-radius:999px;padding:1px 8px;color:#c9302c;border:1px solid #c9302c;}
+  .rv-pside{display:flex;flex-direction:column;gap:5px;justify-content:center;}
+  .rv-pside .rv-mchip{align-self:flex-start;}
+  .rv-pbar{height:7px;background:var(--lilac-2);border-radius:99px;overflow:hidden;}
+  .rv-pbar i{display:block;height:100%;background:var(--purple);border-radius:99px;}
+  .rv-pbar.full i{background:var(--green,#2e9e6b);}
+  .rv-ppct{font-size:.73rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .rv-ptk{margin-top:7px;}
+  .rv-ptk summary{cursor:pointer;font-size:.76rem;font-weight:700;color:var(--purple);}
+  .rv-ptk ul{list-style:none;margin:7px 0 0;padding:0;display:flex;flex-direction:column;gap:4px;}
+  .rv-ptk li{display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:8px;font-size:.78rem;align-items:baseline;color:var(--heading);}
+  .rv-ptk .ck{color:var(--green,#2e9e6b);font-weight:800;} .rv-ptk .op{color:var(--muted);}
+  .rv-ptk .tm{color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .rv-pnotes{border-top:1px dashed var(--line);margin-top:16px;}
+  .rv-pnotes .rv-mnote{margin-top:10px;}
+  .rv-dfield{margin-top:12px;border:1.5px solid var(--purple);border-radius:10px;padding:10px 12px;background:var(--lilac);}
+  .rv-dfield .rv-help{margin:6px 0 0;font-size:.78rem;}
   .sb-ic{font-size:1.05rem;width:20px;text-align:center;flex:0 0 auto;}
   .sb-bottom{margin-top:auto;padding:10px 8px 14px;border-top:1px solid var(--line);position:relative;}
   .sb-add{display:flex;align-items:center;gap:11px;width:100%;background:none;border:none;padding:10px 12px;border-radius:9px;font-size:.92rem;font-weight:600;color:var(--muted);cursor:pointer;}
@@ -2214,6 +2261,11 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       <div><label>Quarter</label><select id="rv-quarter" style="width:100%;"></select></div>
       <div><label>Reviewee <span style="font-weight:400;color:var(--muted)">(fills it out)</span></label><select id="rv-reviewee" style="width:100%;"></select></div>
       <div><label>Reviewer <span style="font-weight:400;color:var(--muted)">(sets it up)</span></label><select id="rv-reviewer" style="width:100%;"></select></div>
+    </div>
+    <div class="rv-dfield">
+      <label style="margin:0;">Head of department <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <div class="rv-dpick" id="rv-depts"></div>
+      <p class="rv-help">If the reviewee leads a department, pick it here to add that department's priorities for the quarter to the review. Anyone who PM'd a priority that quarter sees their PM'd list either way.</p>
     </div>
     <label style="margin-top:12px;display:block;">Custom questions <span style="font-weight:400;color:var(--muted)">— optional; the reviewee answers these too</span></label>
     <div id="rv-customList"></div>
@@ -6287,29 +6339,61 @@ Herd Life`;
   let reviews=[], reviewsLoaded=false, curReviewId=null, reviewQuarterView=null;
   function loadReviewsLocal(){ try{ reviews=JSON.parse(localStorage.getItem(KEY+'_reviews')||'[]'); if(!Array.isArray(reviews)) reviews=[]; }catch(e){ reviews=[]; } }
   function saveReviewsLocal(){ try{ localStorage.setItem(KEY+'_reviews', JSON.stringify(reviews)); }catch(e){} }
-  function dbUpsertReview(r){ if(!USE_DB) return; sb.from('reviews').upsert({id:r.id, reviewer_email:r.reviewer||'', reviewee_email:r.reviewee||'', quarter:r.quarter||'', data:r}).then(x=>{ if(x.error) console.warn('review save',x.error); }).catch(e=>console.warn('review save',e)); }
-  function dbDeleteReview(id){ if(!USE_DB) return; sb.from('reviews').delete().eq('id',id).then(()=>{}); }
+  /* reviews saved here but not yet confirmed by the database, {id: updatedAt}. Only these
+     get re-sent on load when the server doesn't have them; anything else missing from the
+     server was deleted, so it's dropped instead of quietly re-created. */
+  function rvPendingGet(){ try{ return JSON.parse(localStorage.getItem(KEY+'_reviews_pending')||'{}')||{}; }catch(e){ return {}; } }
+  function rvPendingSet(m){ try{ localStorage.setItem(KEY+'_reviews_pending', JSON.stringify(m)); }catch(e){} }
+  function rvPendingMark(r){ const m=rvPendingGet(); m[r.id]=Number(r.updatedAt)||Date.now(); rvPendingSet(m); }
+  function rvPendingClear(id,upTo){ const m=rvPendingGet(); if(m[id]!==undefined && (upTo===undefined || m[id]<=upTo)){ delete m[id]; rvPendingSet(m); } }
+  function dbUpsertReview(r){ if(!USE_DB) return; const sentAt=Number(r.updatedAt)||0;
+    sb.from('reviews').upsert({id:r.id, reviewer_email:r.reviewer||'', reviewee_email:r.reviewee||'', quarter:r.quarter||'', data:r})
+      .then(x=>{ if(x.error) console.warn('review save',x.error); else rvPendingClear(r.id,sentAt); }).catch(e=>console.warn('review save',e)); }
+  /* resolves true when the row is gone. Row-level security doesn't error when it blocks a
+     delete, it just deletes nothing, so ask for the deleted row back to know for sure. */
+  function dbDeleteReview(id){ if(!USE_DB) return Promise.resolve(true);
+    return sb.from('reviews').delete().eq('id',id).select('id')
+      .then(x=>{ if(x.error){ console.warn('review delete',x.error); return false; } return (x.data||[]).length>0; })
+      .catch(e=>{ console.warn('review delete',e); return false; }); }
+  /* the database only lets a review's reviewer or a super admin remove the row. When the
+     person who created it is the reviewee (their own review, with their manager as
+     reviewer), mark it deleted instead: they're allowed to edit it, and deleted reviews
+     are hidden from everyone. */
+  function dbSoftDeleteReview(r){ if(!USE_DB) return Promise.resolve(true);
+    const d=Object.assign({}, r, {deleted:true, deletedBy:myEmail, deletedAt:Date.now(), updatedAt:Date.now()});
+    return sb.from('reviews').update({data:d, updated_at:new Date().toISOString()}).eq('id',r.id).select('id')
+      .then(x=>{ if(x.error){ console.warn('review soft delete',x.error); return false; } return (x.data||[]).length>0; })
+      .catch(e=>{ console.warn('review soft delete',e); return false; }); }
   async function dbLoadReviews(){ if(!USE_DB){ reviewsLoaded=true; return; }
     let localPrev=[]; try{ localPrev=JSON.parse(localStorage.getItem(KEY+'_reviews')||'[]')||[]; }catch(e){}
     try{ const r=await sbSelectAll('reviews','id,reviewer_email,reviewee_email,quarter,data','id'); if(r.error) throw r.error;
       const map=new Map();
       (r.data||[]).forEach(x=>{ const d=x.data||{id:x.id,reviewer:x.reviewer_email,reviewee:x.reviewee_email,quarter:x.quarter}; if(d&&d.id) map.set(d.id,d); });
       /* keep any local edit the server hasn't caught up on yet (autosave still in flight,
-         offline, or created locally) so a refresh mid-edit never loses progress */
+         offline, or created locally) so a refresh mid-edit never loses progress. A review
+         the server doesn't have at all only comes back if it's still waiting to be saved;
+         otherwise someone deleted it, and re-sending it would undo the delete. */
+      const pending=rvPendingGet();
       (localPrev||[]).forEach(lr=>{ if(!lr||!lr.id) return; const sv=map.get(lr.id);
-        if(!sv || (Number(lr.updatedAt)||0) > (Number(sv.updatedAt)||0)){ map.set(lr.id,lr); dbUpsertReview(lr); } });
-      reviews=Array.from(map.values()); saveReviewsLocal();
+        if(!sv){ if(pending[lr.id]!==undefined){ map.set(lr.id,lr); dbUpsertReview(lr); } return; }
+        if(sv.deleted) return;
+        if((Number(lr.updatedAt)||0) > (Number(sv.updatedAt)||0)){ map.set(lr.id,lr); dbUpsertReview(lr); } });
+      Object.keys(pending).forEach(id=>{ if(!map.has(id) || (map.get(id)||{}).deleted) rvPendingClear(id); });
+      reviews=Array.from(map.values()).filter(x=>!x.deleted); saveReviewsLocal();
     }catch(e){ console.warn('reviews load',e); loadReviewsLocal(); }
     reviewsLoaded=true; }
   async function ensureReviews(){ if(!reviewsLoaded){ loadReviewsLocal(); await dbLoadReviews(); }
     if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB){ try{ await dbLoadMetrics(); }catch(e){} } }
     if(USE_DB && !teamUsers.length){ try{ await loadTeamUsersCache(); }catch(e){} } }
   function refreshReviews(){ reviewsLoaded=false; renderReviewsSection(); }
-  function persistReview(r){ r.updatedAt=Date.now(); saveReviewsLocal(); dbUpsertReview(r); }
+  function persistReview(r){ r.updatedAt=Date.now(); saveReviewsLocal(); rvPendingMark(r); dbUpsertReview(r); }
   function renderReviewsSection(){ ensureReviews().then(()=>{ if(curReviewId && reviews.some(x=>x.id===curReviewId)) renderReviewDetail(); else { curReviewId=null; renderReviewsList(); } }); }
   /* A review is yours to see only if you're in it — or you're a super admin. (The
      database enforces this too; this is the matching UI-side guard.) */
-  function reviewVisible(r){ return isSuperAdmin() || sameEmail(r.reviewer,myEmail) || sameEmail(r.reviewee,myEmail); }
+  function reviewVisible(r){ return !!r && !r.deleted && (isSuperAdmin() || sameEmail(r.reviewer,myEmail) || sameEmail(r.reviewee,myEmail)); }
+  /* who can delete: the reviewer, whoever created it (e.g. set up their own review with
+     someone else as reviewer), or a super admin. Matches the reviews_delete policy. */
+  function reviewCanDelete(r){ return !!r && (isSuperAdmin() || sameEmail(r.reviewer,myEmail) || sameEmail(r.createdBy,myEmail)); }
   function nextQuarterKey(k){ const p=String(k).split('-Q'); let y=Number(p[0]), q=Number(p[1])+1; if(q>4){q=1;y++;} return y+'-Q'+q; }
   function prevQuarterKey(k){ const p=String(k).split('-Q'); let y=Number(p[0]), q=Number(p[1])-1; if(q<1){q=4;y--;} return y+'-Q'+q; }
   function prevQuartersOf(k,n){ const out=[]; let cur=k; for(let i=0;i<n;i++){ cur=prevQuarterKey(cur); out.push(cur); } return out.reverse(); }
@@ -6331,6 +6415,167 @@ Herd Life`;
   }
   function reviewMetricsFor(email){ return (metricsStore||[]).filter(m=>m && !m.archived && sameEmail(m.owner,email)); }
 
+  /* ---- Priorities section (stage 2): department heads ----
+     A review can name the department(s) the reviewee leads (r.depts). Stage 2 then
+     shows, live from that quarter's committed priorities:
+       - each department: the priorities it owns, plus the tasks it owns on other
+         departments' priorities (a task's department defaults to its priority's)
+       - "PM'd": every priority the reviewee PM'd, whatever the department
+     The reviewee writes a note on anything that didn't finish (r.prio.notes, keyed by
+     priority id) and one overall answer (r.prio.overall). The section only appears
+     when there is something to show, so reviews for people with neither are unchanged. */
+  let rvPrioTab=null, rvPrioTabFor=null, rvDeptEditing=false, rvDeptChoices=[], rvPrioReturn=null, rvPrioPending=null;
+  function rvQuarterMeeting(qk){
+    const lbl=String(quarterLabel(qk)).toLowerCase(); const p=String(qk).split('-Q');
+    const ms=(store&&store.meetings)||[];
+    return ms.find(m=>String(m.name||'').trim().toLowerCase()===lbl)
+        || ms.find(m=>{ const n=String(m.name||'').toLowerCase(); return n.indexOf('q'+p[1])>=0 && n.indexOf(p[0])>=0; }) || null;
+  }
+  /* priority PMs are stored as a first name ("Holly") or an email; match either */
+  function rvIsPerson(v,email){
+    if(!v||!email) return false; if(sameEmail(v,email)) return true;
+    if(String(v).indexOf('@')>=0) return false;
+    const n=String(v).trim().toLowerCase(), local=String(pmName(resolvePerson(email))).toLowerCase();
+    return !!n && (local.split(/[._-]/)[0]===n || (n.length>3 && local.slice(-n.length)===n));
+  }
+  function rvAllDepts(){ const extra=[];
+    ((store&&store.meetings)||[]).forEach(m=>(m.entries||[]).forEach(e=>{ if(e&&e.type==='priority'&&e.dept&&DEPARTMENTS.indexOf(e.dept)<0&&extra.indexOf(e.dept)<0) extra.push(e.dept); }));
+    return DEPARTMENTS.concat(extra.sort()); }
+  function rvTaskIdx(e){ return (e.done||[]).map((t,i)=>i); }
+  function rvTaskDone(e,i){ const p=(e.plan||[])[i]; return (Number(p&&p.pct)||0)>=100; }
+  function rvTaskDept(e,i){ const p=(e.plan||[])[i]; return (p&&p.dept)||e.dept||''; }
+  function rvPrioStats(e){ const ix=rvTaskIdx(e); const done=ix.filter(i=>rvTaskDone(e,i)).length;
+    const bumped=ix.filter(i=>{ try{ return !!bumpInfo((e.plan||[])[i]); }catch(x){ return false; } }).length;
+    const complete=isComplete(e); const open=ix.length-done;
+    return { n:ix.length, done:done, open:open, bumped:bumped, complete:complete, pct:prioPct(e), flag: complete && open>0 && !dodLines(e).length }; }
+  function rvPrioData(r){
+    const m=rvQuarterMeeting(r.quarter);
+    const depts=(Array.isArray(r.depts)?r.depts:[]).filter(Boolean);
+    const all=m ? (m.entries||[]).filter(e=>e&&e.type==='priority'&&stageRank(stageOf(e))>=stageRank('committed')) : [];
+    const byDept={};
+    depts.forEach(d=>{ byDept[d]={
+      owned: all.filter(e=>(e.dept||'')===d),
+      contrib: all.filter(e=>(e.dept||'')!==d && rvTaskIdx(e).some(i=>rvTaskDept(e,i)===d)) }; });
+    const pmd=all.filter(e=>rvIsPerson(e.pm,r.reviewee));
+    return { meeting:m, depts:depts, byDept:byDept, pmd:pmd };
+  }
+  function rvSortPrios(list){ const imp={High:0,Medium:1,Low:2};
+    const rank=e=>{ const st=rvPrioStats(e); return !st.complete?0:(st.flag?1:2); };
+    return list.slice().sort((a,b)=>rank(a)-rank(b) || ((imp[a.impact]??3)-(imp[b.impact]??3))); }
+  function rvQuarterOver(qk){ const rg=mxQuarterRange(qk); return !!(rg&&rg.end&&rg.end<new Date()); }
+  function rvStatusChip(st,over){ return st.complete?'<span class="rv-mchip on">Complete</span>':(over?'<span class="rv-mchip off">Not finished</span>':'<span class="rv-mchip na">In progress</span>'); }
+  function rvPTile(n,l,s){ return '<div class="rv-ptile"><div class="n">'+n+'</div><div class="l">'+l+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div>'; }
+  function rvPlural(n,w,ws){ return n+' '+(n===1?w:(ws||w+'s')); }
+  function rvPrioRow(e,mode,mid,over){
+    const st=rvPrioStats(e);
+    const contrib=[]; rvTaskIdx(e).forEach(i=>{ const d=rvTaskDept(e,i); if(d && d!==(e.dept||'') && contrib.indexOf(d)<0) contrib.push(d); });
+    let meta='';
+    if(e.kind) meta+='<span class="badge b-'+(e.kind==='innovation'?'innovation':'bottleneck')+'">'+esc(e.kind)+'</span>';
+    if(e.impact) meta+='<span>'+esc(e.impact)+' impact</span>';
+    if(mode==='dept') meta+= e.pm ? '<span class="rv-dchip">PM '+esc(pmName(resolvePerson(e.pm)))+'</span>' : '<span class="rv-needpm">Needs a PM</span>';
+    else meta+='<span class="rv-dchip">'+esc(e.dept||'No department')+'</span>';
+    if(st.bumped) meta+='<span class="badge b-bump">↦ '+rvPlural(st.bumped,'task')+' bumped</span>';
+    if(st.flag) meta+='<span class="badge b-bump">⚠ Marked complete with '+rvPlural(st.open,'task')+' open</span>';
+    if(contrib.length) meta+='<span>with '+contrib.map(esc).join(', ')+'</span>';
+    return '<div class="rv-prow"><div style="min-width:0"><div class="rv-pt" role="button" tabindex="0" onclick="rvOpenPrio(\''+mid+'\',\''+e.id+'\')" onkeydown="if(event.key===\'Enter\')rvOpenPrio(\''+mid+'\',\''+e.id+'\')">'+esc(e.title||'(untitled priority)')+'<span class="go">↗</span></div>'
+      +'<div class="rv-pmeta">'+meta+'</div></div>'
+      +'<div class="rv-pside">'+rvStatusChip(st,over)+'<div class="rv-pbar'+(st.complete?' full':'')+'"><i style="width:'+Math.max(0,Math.min(100,st.pct))+'%"></i></div>'
+      +'<div class="rv-ppct">'+st.pct+'% · '+st.done+' of '+rvPlural(st.n,'task')+'</div></div></div>';
+  }
+  function rvContribRow(e,d,mid){
+    const ix=rvTaskIdx(e).filter(i=>rvTaskDept(e,i)===d); const dn=ix.filter(i=>rvTaskDone(e,i)).length;
+    const pct=ix.length?Math.round(dn/ix.length*100):0; const st=rvPrioStats(e);
+    const list='<ul>'+ix.map(i=>{ const p=(e.plan||[])[i]||{}; const ok=rvTaskDone(e,i);
+      return '<li><span class="'+(ok?'ck':'op')+'">'+(ok?'✓':'○')+'</span><span>'+esc(e.done[i]||'')+'</span><span class="tm">'+esc(p.owner?pmName(p.owner):'No owner')+' · '+(Number(p.pct)||0)+'%</span></li>'; }).join('')+'</ul>';
+    return '<div class="rv-prow"><div style="min-width:0"><div class="rv-pt" role="button" tabindex="0" onclick="rvOpenPrio(\''+mid+'\',\''+e.id+'\')" onkeydown="if(event.key===\'Enter\')rvOpenPrio(\''+mid+'\',\''+e.id+'\')">'+esc(e.title||'(untitled priority)')+'<span class="go">↗</span></div>'
+      +'<div class="rv-pmeta"><span class="rv-dchip">'+esc(e.dept||'No department')+' priority</span>'+(e.pm?'<span>PM '+esc(pmName(resolvePerson(e.pm)))+'</span>':'')
+      +(st.complete?'<span class="rv-mchip on">Priority complete</span>':'<span class="rv-mchip na">Priority not finished</span>')+'</div>'
+      +'<details class="rv-ptk"><summary>'+esc(d)+'’s '+rvPlural(ix.length,'task')+'</summary>'+list+'</details></div>'
+      +'<div class="rv-pside"><span class="rv-ppct" style="font-weight:700;color:var(--heading);">'+esc(d)+'’s part</span><div class="rv-pbar'+(dn===ix.length?' full':'')+'"><i style="width:'+pct+'%"></i></div>'
+      +'<div class="rv-ppct">'+dn+' of '+rvPlural(ix.length,'task')+' done</div></div></div>';
+  }
+  /* the header line naming the department(s) the reviewee leads; the reviewer can edit it */
+  function rvDeptLineHtml(r,canEdit){ const canSetup=canEdit;
+    const depts=(Array.isArray(r.depts)?r.depts:[]).filter(Boolean);
+    let h='<div class="rv-depts">'+depts.map(d=>'<span class="rv-dchip">Head of '+esc(d)+'</span>').join('');
+    if(canSetup && !rvDeptEditing) h+='<button class="rv-dedit" onclick="rvEditDepts(true)">'+(depts.length?'Edit departments':'➕ Head of a department? Add it')+'</button>';
+    h+='</div>';
+    if(canSetup && rvDeptEditing){ rvDeptChoices=rvAllDepts(); depts.forEach(d=>{ if(rvDeptChoices.indexOf(d)<0) rvDeptChoices.push(d); });
+      h+='<div class="rv-dbox"><b style="font-size:.82rem;color:var(--heading);">Head of department: pick the department(s) '+esc(pmName(resolvePerson(r.reviewee))||'they')+' leads</b>'
+        +'<div class="rv-dpick">'+rvDeptChoices.map((d,i)=>'<button type="button" class="'+(depts.indexOf(d)>=0?'on':'')+'" aria-pressed="'+(depts.indexOf(d)>=0)+'" onclick="rvToggleDept('+i+')">'+esc(d)+'</button>').join('')+'</div>'
+        +'<p class="rv-help">Adds each department’s '+esc(quarterLabel(r.quarter))+' priorities to the review. <button class="rv-dedit" onclick="rvEditDepts(false)">Done</button></p></div>'; }
+    return h;
+  }
+  function rvEditDepts(on){ saveReview(false,true,true); rvDeptEditing=!!on; renderReviewDetail(); }
+  function rvToggleDept(i){ const r=reviews.find(x=>x.id===curReviewId); const d=rvDeptChoices[i]; if(!r||!d) return;
+    if(!(sameEmail(r.reviewer,myEmail)||sameEmail(r.reviewee,myEmail)||isSuperAdmin())) return;
+    saveReview(false,true,true);
+    const cur=(Array.isArray(r.depts)?r.depts:[]).filter(Boolean); const at=cur.indexOf(d);
+    if(at>=0) cur.splice(at,1); else cur.push(d);
+    r.depts=cur; persistReview(r); renderReviewDetail(); }
+  function rvSetPrioTab(k){ saveReview(false,true,true); rvPrioTab=k; renderReviewDetail(); }
+  /* the stage-2 Priorities section, or '' when there's nothing to show */
+  function rvPrioSectionHtml(r,ro,stageNo){
+    const pd=rvPrioData(r);
+    if(!pd.depts.length && !pd.pmd.length) return '';
+    const who=pmName(resolvePerson(r.reviewee))||'this person';
+    const first=(String(who).split(/[._ -]/)[0]||who); const First=first.charAt(0).toUpperCase()+first.slice(1);
+    const qL=quarterLabel(r.quarter), over=rvQuarterOver(r.quarter), mid=pd.meeting?pd.meeting.id:'';
+    const tabs=pd.depts.map(d=>({k:'dept:'+d, label:d+' · '+pd.byDept[d].owned.length}));
+    if(pd.pmd.length) tabs.push({k:'pm', label:First+' PM’d · '+pd.pmd.length});
+    if(rvPrioTabFor!==r.id || !tabs.some(t=>t.k===rvPrioTab)){ rvPrioTab=tabs[0].k; rvPrioTabFor=r.id; }
+    r.prio=r.prio||{notes:{}}; r.prio.notes=r.prio.notes||{};
+    let h='<div class="rv-stage"><h3>'+stageNo+' · Priorities</h3>'
+      +'<p class="rv-help">Every committed '+esc(qL)+' priority '+(pd.depts.length?esc(pd.depts.join(' and '))+' owned or worked on, and everything '+esc(First)+' PM’d':'that '+esc(First)+' PM’d')+'. It updates as the priorities do. '+(over?'Talk through anything that didn’t land.':'Flag anything at risk.')+'</p>';
+    if(!pd.meeting){ return h+'<div class="rv-empty">There’s no '+esc(qL)+' quarter in Priorities yet, so there’s nothing to pull in.</div></div>'; }
+    if(tabs.length>1) h+='<div class="rv-ptabs" role="tablist">'+tabs.map((t,i)=>'<button type="button" role="tab" aria-selected="'+(t.k===rvPrioTab)+'" class="'+(t.k===rvPrioTab?'on':'')+'" onclick="rvSetPrioTab(rvPrioTabKeys['+i+'])">'+esc(t.label)+'</button>').join('')+'</div>';
+    window.rvPrioTabKeys=tabs.map(t=>t.k);
+    let list;
+    if(rvPrioTab.indexOf('dept:')===0){
+      const d=rvPrioTab.slice(5), owned=pd.byDept[d].owned, contrib=pd.byDept[d].contrib;
+      const sts=owned.map(rvPrioStats), dn=sts.filter(x=>x.complete).length, flagged=sts.filter(x=>x.flag).length;
+      const ctk=[]; contrib.forEach(e=>rvTaskIdx(e).forEach(i=>{ if(rvTaskDept(e,i)===d) ctk.push(rvTaskDone(e,i)); }));
+      const pmdHere=owned.filter(e=>rvIsPerson(e.pm,r.reviewee)).length;
+      h+='<div class="rv-ptiles">'+rvPTile(owned.length,'Priorities owned')+rvPTile(dn,'Complete',flagged?flagged+' with open tasks':'')
+        +rvPTile(owned.length-dn,over?'Not finished':'In progress')
+        +rvPTile(sts.reduce((a,x)=>a+x.done,0)+'<small> / '+sts.reduce((a,x)=>a+x.n,0)+'</small>','Tasks done')
+        +rvPTile(ctk.length?ctk.filter(Boolean).length+'<small> / '+ctk.length+'</small>':'0','Tasks on other teams’ priorities')+'</div>';
+      h+='<div class="rv-pgrp"><b>'+esc(d)+'’s priorities</b><span>'+esc(First)+' PM’d '+pmdHere+' of '+owned.length+'</span></div>'
+        +'<div class="rv-prows">'+(owned.length?rvSortPrios(owned).map(e=>rvPrioRow(e,'dept',mid,over)).join(''):'<div class="rv-empty">'+esc(d)+' didn’t own any committed priorities in '+esc(qL)+'.</div>')+'</div>';
+      h+='<div class="rv-pgrp"><b>Work on other departments’ priorities</b><span>Tasks '+esc(d)+' owned</span></div>'
+        +'<div class="rv-prows">'+(contrib.length?contrib.map(e=>rvContribRow(e,d,mid)).join(''):'<div class="rv-empty">'+esc(d)+' didn’t own tasks on other departments’ priorities in '+esc(qL)+'.</div>')+'</div>';
+      list=owned;
+    } else {
+      const sts=pd.pmd.map(rvPrioStats), dn=sts.filter(x=>x.complete).length, flagged=sts.filter(x=>x.flag).length;
+      const outside=pd.pmd.filter(e=>pd.depts.indexOf(e.dept||'')<0).length;
+      h+='<div class="rv-ptiles">'+rvPTile(pd.pmd.length,'Priorities PM’d')+rvPTile(dn,'Complete',flagged?flagged+' with open tasks':'')
+        +rvPTile(pd.pmd.length-dn,over?'Not finished':'In progress')
+        +rvPTile(sts.reduce((a,x)=>a+x.done,0)+'<small> / '+sts.reduce((a,x)=>a+x.n,0)+'</small>','Tasks done')
+        +rvPTile(sts.reduce((a,x)=>a+x.bumped,0),'Tasks bumped')+'</div>';
+      h+='<div class="rv-pgrp"><b>Priorities '+esc(First)+' PM’d</b><span>'+(pd.depts.length?(outside?rvPlural(outside,'priority','priorities')+' outside '+esc(pd.depts.join(' and ')):'All in '+esc(pd.depts.join(' and '))):'Across all departments')+'</span></div>'
+        +'<div class="rv-prows">'+rvSortPrios(pd.pmd).map(e=>rvPrioRow(e,'pm',mid,over)).join('')+'</div>';
+      list=pd.pmd;
+    }
+    const nf=rvSortPrios(list).filter(e=>!isComplete(e));
+    if(nf.length && (!ro || nf.some(e=>r.prio.notes[e.id]))){
+      h+='<div class="rv-pnotes"><label class="rv-lbl">'+(over?'What didn’t land, and where it goes next':'What’s at risk, and what would help')+'</label>'
+        +nf.filter(e=>!ro || r.prio.notes[e.id]).map(e=>'<div class="rv-mnote"><label>'+esc(e.title||'(untitled priority)')+'</label>'+rvTA('rvf-pnote-'+e.id, r.prio.notes[e.id]||'', ro, over?'What got in the way, and is it carrying into next quarter?':'What’s in the way, and what would help?')+'</div>').join('')+'</div>';
+    }
+    h+='<label class="rv-lbl">Overall, how did your priorities go this quarter?</label>'+rvTA('rvf-poverall', r.prio.overall||'', ro, 'Wins, misses, and what you’d change about how the work was planned…')+'</div>';
+    return h;
+  }
+  /* open a priority from a review: switch to its quarter if needed, and come back here after */
+  function rvOpenPrio(mid,id){ if(!mid||!id) return;
+    saveReview(false,true,true);
+    const prev=store.activeId;
+    if(prev!==mid){ store.activeId=mid; save(); try{ applyTheme(); renderMeetingSel(); }catch(e){} }
+    rvPrioPending={restore:(prev!==mid)?prev:null};
+    openPrio(id);
+    rvPrioPending=null;
+    if(screen!=='prio'){ rvPrioReturn=null;   // couldn't open it (e.g. not visible to a team user): put the quarter back
+      if(prev!==mid){ store.activeId=prev; save(); try{ applyTheme(); renderMeetingSel(); }catch(e){} } }
+  }
+
   function renderReviewsList(){
     const box=document.getElementById('reviewsWrap'); if(!box) return;
     if(!reviewQuarterView) reviewQuarterView=quarterKeyOf(new Date());
@@ -6341,21 +6586,28 @@ Herd Life`;
       .sort((a,b)=>String(pmName(resolvePerson(a.reviewee))).toLowerCase().localeCompare(String(pmName(resolvePerson(b.reviewee))).toLowerCase()));
     let cards;
     if(!inQ.length){ cards='<div class="mtg-empty">No reviews for '+esc(quarterLabel(reviewQuarterView))+' yet'+(isSuperAdmin()?'':' that you’re part of')+'. Click ➕ New review to start one.</div>'; }
-    else { cards='<div class="rv-grid">'+inQ.map(r=>{ const done=(r.status==='submitted'); const del=(sameEmail(r.reviewer,myEmail)||isSuperAdmin())?'<button class="rv-del" title="Delete review" onclick="event.stopPropagation();deleteReview(\''+r.id+'\')">✕</button>':'';
+    else { cards='<div class="rv-grid">'+inQ.map(r=>{ const done=(r.status==='submitted'); const del=reviewCanDelete(r)?'<button class="rv-del" title="Delete review" onclick="event.stopPropagation();deleteReview(\''+r.id+'\')">✕</button>':'';
         return '<div class="rv-card" onclick="openReview(\''+r.id+'\')">'
           +'<div class="rv-card-top">'+avatarHtml(resolvePerson(r.reviewee))
           +'<div class="rv-card-id"><div class="rv-who">'+esc(pmName(resolvePerson(r.reviewee))||'—')+(sameEmail(r.reviewee,myEmail)?' (you)':'')+'</div>'
-          +'<div class="rv-sub">reviewer: '+esc(pmName(resolvePerson(r.reviewer))||'—')+'</div></div>'
+          +'<div class="rv-sub">reviewer: '+esc(pmName(resolvePerson(r.reviewer))||'—')+((Array.isArray(r.depts)&&r.depts.length)?' · '+esc(r.depts.join(', ')):'')+'</div></div>'
           +'<span class="rv-badge '+(done?'done':'draft')+'">'+(done?'Submitted':'Draft')+'</span>'+del+'</div></div>';
       }).join('')+'</div>'; }
     box.innerHTML='<div class="rv-bar"><span>Quarter: '+qsel+'</span><span class="rv-count">'+inQ.length+' review'+(inQ.length===1?'':'s')+(isSuperAdmin()?' · you see everyone’s':'')+'</span></div>'+cards;
   }
   function setReviewQuarter(k){ reviewQuarterView=k; renderReviewsList(); }
-  function openReview(id){ curReviewId=id; renderReviewDetail(); window.scrollTo({top:0}); }
-  function backToReviews(){ curReviewId=null; renderReviewsList(); }
+  function openReview(id){ curReviewId=id; rvDeptEditing=false; renderReviewDetail(); window.scrollTo({top:0}); }
+  function backToReviews(){ curReviewId=null; rvDeptEditing=false; renderReviewsList(); }
   function deleteReview(id){ const r=reviews.find(x=>x.id===id); if(!r) return;
+    if(!reviewCanDelete(r)){ infoModal('Only the reviewer, the person who created this review, or a super admin can delete it.'); return; }
     confirmModal('Delete this quarterly review for '+esc(pmName(resolvePerson(r.reviewee))||'this person')+'? This can’t be undone.', ()=>{
-      reviews=reviews.filter(x=>x.id!==id); saveReviewsLocal(); dbDeleteReview(id); if(curReviewId===id) curReviewId=null; renderReviewsSection(); }, 'Delete'); }
+      reviews=reviews.filter(x=>x.id!==id); saveReviewsLocal(); if(curReviewId===id) curReviewId=null; renderReviewsSection();
+      dbDeleteReview(id).then(ok=>ok?true:dbSoftDeleteReview(r)).then(ok=>{
+        if(ok){ rvPendingClear(id); showToast('Review deleted'); return; }
+        if(!reviews.some(x=>x.id===id)){ reviews.push(r); saveReviewsLocal(); }
+        renderReviewsSection();
+        infoModal('That review couldn’t be deleted, so it’s been put back. Check your connection and try again.');
+      }); }, 'Delete'); }
 
   function rvTA(id,value,ro,ph){ return ro
     ? '<div class="rv-ro">'+(value?esc(value).replace(/\n/g,'<br>'):'<span class="rv-empty">— nothing entered —</span>')+'</div>'
@@ -6378,7 +6630,8 @@ Herd Life`;
       +'<div class="rv-dhead"><button class="btn ghost sm" onclick="backToReviews()">← All reviews</button>'
       +'<span class="rv-badge '+(r.status==='submitted'?'done':'draft')+'">'+(r.status==='submitted'?'Submitted':'Draft')+'</span></div>'
       +'<div class="rv-people">'+avatarHtml(resolvePerson(r.reviewee))+'<div><div class="rv-who big">'+esc(pmName(resolvePerson(r.reviewee))||'—')+'</div>'
-      +'<div class="rv-sub">'+esc(quarterLabel(r.quarter))+' review · reviewer '+esc(pmName(resolvePerson(r.reviewer))||'—')+'</div></div></div>';
+      +'<div class="rv-sub">'+esc(quarterLabel(r.quarter))+' review · reviewer '+esc(pmName(resolvePerson(r.reviewer))||'—')+'</div>'
+      +rvDeptLineHtml(r,canSetup||canFill)+'</div></div>';
     if(ro) h+='<div class="rv-note">You’re the reviewer here — this is '+esc(pmName(resolvePerson(r.reviewee))||'their')+'’s to fill in. '+(canSetup?'You can add or edit the custom questions below.':'It’s read-only for you.')+'</div>';
 
     // metrics panel
@@ -6399,15 +6652,20 @@ Herd Life`;
     }
     h+='<label class="rv-lbl">Overall, how did the quarter go and what was accomplished?</label>'+rvTA('rvf-summary', r.stage1.summary||'', ro, 'A few sentences on the quarter as a whole…')+'</div>';
 
-    // Stage 2
-    h+='<div class="rv-stage"><h3>2 · Thoughts on the Quarter</h3>'
+    // Stage 2 — Priorities (department heads and PMs); absent when there's nothing to show
+    const prioHtml=rvPrioSectionHtml(r,ro,2);
+    const sOff=prioHtml?1:0;
+    h+=prioHtml;
+
+    // Thoughts on the quarter
+    h+='<div class="rv-stage"><h3>'+(2+sOff)+' · Thoughts on the Quarter</h3>'
       +'<label class="rv-lbl">What I did well</label>'+rvTA('rvf-well', r.stage2.wentWell||'', ro, 'Wins, things that worked…')
       +'<label class="rv-lbl">Things I could have done better</label>'+rvTA('rvf-improve', r.stage2.improve||'', ro, 'Where there’s room to grow…')+'</div>';
 
     // Stage 3 — proposed goals, approved by the reviewer before they become live targets
     const gApproved=!!(r.stage3&&r.stage3.approved);
     const goalRO = !(canSetup || (canFill && !gApproved));   // reviewer always editable; reviewee until approved
-    h+='<div class="rv-stage"><h3>3 · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>';
+    h+='<div class="rv-stage"><h3>'+(3+sOff)+' · Goals &amp; support for '+esc(quarterLabel(nextQ))+'</h3>';
     if(gApproved) h+='<div class="rv-approved">✓ Goals approved by '+esc(pmName(resolvePerson(r.stage3.approvedBy))||'reviewer')+' — set as '+esc(quarterLabel(nextQ))+' targets.'+(canSetup?' Adjust and re-approve to update them.':'')+'</div>';
     else if(canSetup) h+='<p class="rv-help">These are '+esc(pmName(resolvePerson(r.reviewee))||'the reviewee')+'’s <b>proposed</b> targets for '+esc(quarterLabel(nextQ))+'. Adjust any if needed, then approve to set them as the live targets.</p>';
     else h+='<p class="rv-help">Propose a target for each metric next quarter. These are proposals — your reviewer approves them before they become the live '+esc(quarterLabel(nextQ))+' targets. Then say what you need to hit them.</p>';
@@ -6440,7 +6698,7 @@ Herd Life`;
     if(canFill){ h+='<button class="btn" onclick="saveReview(false)">Save</button>';
       h+='<button class="btn" style="background:var(--green,#2e9e6b);" onclick="saveReview(true)">'+(r.status==='submitted'?'Save &amp; keep submitted':'Submit review')+'</button>'; }
     else if(canSetup){ h+='<button class="btn" onclick="saveReview(false)">Save questions</button>'; }
-    if(sameEmail(r.reviewer,myEmail)||isSuperAdmin()) h+='<button class="btn ghost" onclick="deleteReview(\''+r.id+'\')">Delete</button>';
+    if(reviewCanDelete(r)) h+='<button class="btn ghost" onclick="deleteReview(\''+r.id+'\')">Delete review</button>';
     if(canFill||canSetup) h+='<span id="rv-savestate" class="rv-savestate saved">All changes saved automatically</span>';
     h+='</div></div>';
     box.innerHTML=h;
@@ -6468,6 +6726,9 @@ Herd Life`;
       r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{}; if(V('rvf-needs')!==undefined) r.stage3.needs=V('rvf-needs');
       reviewMetricsFor(r.reviewee).forEach(m=>{ const n=V('rvf-mnote-'+m.id); if(n!==undefined) r.stage1.metricNotes[m.id]=n; const g=V('rvf-goal-'+m.id); if(g!==undefined) r.stage3.goals[m.id]=g; });
       (r.custom||[]).forEach(c=>{ const a=V('rvf-ca-'+c.id); if(a!==undefined) c.a=a; });
+      r.prio=r.prio||{notes:{}}; r.prio.notes=r.prio.notes||{};
+      if(V('rvf-poverall')!==undefined) r.prio.overall=V('rvf-poverall');
+      document.querySelectorAll('#reviewsWrap textarea[id^="rvf-pnote-"]').forEach(el=>{ r.prio.notes[el.id.slice(10)]=el.value; });
     }
     if(canSetup){ (r.custom||[]).forEach(c=>{ const q=V('rvf-cq-'+c.id); if(q!==undefined) c.q=q; });
       if(!canFill){ r.stage3=r.stage3||{goals:{}}; r.stage3.goals=r.stage3.goals||{};
@@ -6512,12 +6773,23 @@ Herd Life`;
       document.getElementById('rv-quarter').innerHTML=qs.map(k=>'<option value="'+k+'"'+(k===defQ?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('');
       document.getElementById('rv-reviewee').innerHTML=ownerOptions('');
       document.getElementById('rv-reviewer').innerHTML=ownerOptions(myEmail);
+      rvNewDepts=[]; rvRenderNewDepts();
+      document.getElementById('rv-reviewee').onchange=rvPrefillNewDepts;
       document.getElementById('rv-customList').innerHTML='';
       document.getElementById('rv-err').textContent='';
       document.getElementById('newReviewModal').classList.add('show');
     });
   }
   function closeNewReviewModal(){ document.getElementById('newReviewModal').classList.remove('show'); }
+  let rvNewDepts=[], rvNewDeptChoices=[];
+  function rvRenderNewDepts(){ const box=document.getElementById('rv-depts'); if(!box) return;
+    rvNewDeptChoices=rvAllDepts(); rvNewDepts.forEach(d=>{ if(rvNewDeptChoices.indexOf(d)<0) rvNewDeptChoices.push(d); });
+    box.innerHTML=rvNewDeptChoices.map((d,i)=>'<button type="button" class="'+(rvNewDepts.indexOf(d)>=0?'on':'')+'" aria-pressed="'+(rvNewDepts.indexOf(d)>=0)+'" onclick="rvToggleNewDept('+i+')">'+esc(d)+'</button>').join(''); }
+  function rvToggleNewDept(i){ const d=rvNewDeptChoices[i]; if(!d) return; const at=rvNewDepts.indexOf(d); if(at>=0) rvNewDepts.splice(at,1); else rvNewDepts.push(d); rvRenderNewDepts(); }
+  /* picking a reviewee carries over the departments from their most recent review */
+  function rvPrefillNewDepts(){ const em=(document.getElementById('rv-reviewee')||{}).value||'';
+    const last=reviews.filter(x=>sameEmail(x.reviewee,em) && Array.isArray(x.depts) && x.depts.length).sort((a,b)=>(Number(b.createdAt)||0)-(Number(a.createdAt)||0))[0];
+    rvNewDepts=last?last.depts.slice():[]; rvRenderNewDepts(); }
   function rvAddCustomRow(){ const box=document.getElementById('rv-customList'); if(!box) return;
     const row=document.createElement('div'); row.className='rv-cq-row';
     row.innerHTML='<input class="rv-cq-input" placeholder="e.g. What’s one thing the team could do better?"><button type="button" class="rv-del sm" onclick="this.parentNode.remove()">✕</button>';
@@ -6531,6 +6803,7 @@ Herd Life`;
     if(!quarter){ err.textContent='Pick a quarter.'; return; }
     const custom=[]; document.querySelectorAll('#rv-customList .rv-cq-input').forEach(inp=>{ const q=(inp.value||'').trim(); if(q) custom.push({id:uid(), q:q, a:''}); });
     const r={ id:uid(), reviewer:reviewer, reviewee:reviewee, quarter:quarter, createdBy:myEmail, createdAt:Date.now(), updatedAt:Date.now(), status:'draft',
+      depts:rvNewDepts.slice(), prio:{notes:{},overall:''},
       stage1:{summary:'',metricNotes:{}}, stage2:{wentWell:'',improve:''}, stage3:{goals:{},needs:''}, custom:custom };
     reviews.push(r); persistReview(r); reviewQuarterView=quarter; closeNewReviewModal(); openReview(r.id);
   }
@@ -7367,11 +7640,15 @@ Herd Life`;
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  function openPrio(id){ if(!reviewUnlocked) return; rvPrioReturn=rvPrioPending; rvPrioPending=null; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
   /* a priority may live in the active quarter or on the Special Projects board */
   function findEntry(id){ return cur().entries.find(x=>x.id===id) || spProjects.find(x=>x.id===id); }
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special){ if(screen==='special') renderSpBoard(); } else renderDashBody(); }
-  function prioBack(){ const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special) navTo('special'); else gotoDash(); }
+  function prioBack(){
+    if(rvPrioReturn){ const ret=rvPrioReturn; rvPrioReturn=null;
+      if(ret.restore && store.meetings.some(m=>m.id===ret.restore)){ store.activeId=ret.restore; save(); try{ applyTheme(); renderMeetingSel(); }catch(e){} }
+      navTo('reviews'); return; }
+    const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special) navTo('special'); else gotoDash(); }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
     e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0,ocs:Array.isArray(old[i].ocs)?old[i].ocs.slice():[]} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0,ocs:[]}); });
@@ -7510,7 +7787,7 @@ Herd Life`;
     const e=findEntry(prioOpenId);
     const body=document.getElementById('prio-body');
     document.getElementById('prioCrumb').textContent = (e&&e.special) ? ('Special Projects · '+spStatusLabel(e.status)) : (cur().name+' · '+(cur().theme||''));
-    { const bb=document.getElementById('prioBackBtn'); if(bb) bb.textContent = (e&&e.special)?'← Back to special projects':'← Back to priorities'; }
+    { const bb=document.getElementById('prioBackBtn'); if(bb) bb.textContent = rvPrioReturn?'← Back to the review':((e&&e.special)?'← Back to special projects':'← Back to priorities'); }
     if(!e){ body.innerHTML='<div class="card"><p class="empty">This priority no longer exists.</p><button class="btn" onclick="gotoDash()">← Back to priorities</button></div>'; return; }
     syncPlan(e);
     const extraDepts=[...new Set(cur().entries.map(x=>x.dept).filter(dd=>dd&&!DEPARTMENTS.includes(dd)))];
@@ -7687,7 +7964,7 @@ Herd Life`;
 
       <div class="card">
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          <button class="btn ghost" onclick="prioBack()">← Back to ${e.special?'special projects':'priorities'}</button>
+          <button class="btn ghost" onclick="prioBack()">← Back to ${rvPrioReturn?'the review':(e.special?'special projects':'priorities')}</button>
           <button class="btn danger" onclick="confirmRemovePriority('${e.id}')">${e.special?'Remove project':'Remove priority'}</button>
         </div>
       </div>
