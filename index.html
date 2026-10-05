@@ -6339,22 +6339,32 @@ Herd Life`;
   let reviews=[], reviewsLoaded=false, curReviewId=null, reviewQuarterView=null;
   function loadReviewsLocal(){ try{ reviews=JSON.parse(localStorage.getItem(KEY+'_reviews')||'[]'); if(!Array.isArray(reviews)) reviews=[]; }catch(e){ reviews=[]; } }
   function saveReviewsLocal(){ try{ localStorage.setItem(KEY+'_reviews', JSON.stringify(reviews)); }catch(e){} }
-  /* reviews saved here but not yet confirmed by the database, {id: updatedAt}. Only these
-     get re-sent on load when the server doesn't have them; anything else missing from the
-     server was deleted, so it's dropped instead of quietly re-created. */
-  function rvPendingGet(){ try{ return JSON.parse(localStorage.getItem(KEY+'_reviews_pending')||'{}')||{}; }catch(e){ return {}; } }
-  function rvPendingSet(m){ try{ localStorage.setItem(KEY+'_reviews_pending', JSON.stringify(m)); }catch(e){} }
-  function rvPendingMark(r){ const m=rvPendingGet(); m[r.id]=Number(r.updatedAt)||Date.now(); rvPendingSet(m); }
-  function rvPendingClear(id,upTo){ const m=rvPendingGet(); if(m[id]!==undefined && (upTo===undefined || m[id]<=upTo)){ delete m[id]; rvPendingSet(m); } }
-  function dbUpsertReview(r){ if(!USE_DB) return; const sentAt=Number(r.updatedAt)||0;
+  /* reviews this browser knows the database has had ({id:true}): seen in a load, or a save
+     that succeeded. On load, a local review the server doesn't have is uploaded if the
+     server never had it (made here, not saved yet) and dropped if it did (deleted since),
+     so a delete isn't undone by someone else's cached copy. */
+  function rvSyncedGet(){ try{ return JSON.parse(localStorage.getItem(KEY+'_reviews_synced')||'{}')||{}; }catch(e){ return {}; } }
+  function rvSyncedSet(m){ try{ localStorage.setItem(KEY+'_reviews_synced', JSON.stringify(m)); }catch(e){} }
+  function rvSyncedAdd(ids){ const m=rvSyncedGet(); (Array.isArray(ids)?ids:[ids]).forEach(id=>{ if(id) m[id]=true; }); rvSyncedSet(m); }
+  function rvSyncedRemove(id){ const m=rvSyncedGet(); if(m[id]){ delete m[id]; rvSyncedSet(m); } }
+  function dbUpsertReview(r){ if(!USE_DB) return;
     sb.from('reviews').upsert({id:r.id, reviewer_email:r.reviewer||'', reviewee_email:r.reviewee||'', quarter:r.quarter||'', data:r})
-      .then(x=>{ if(x.error) console.warn('review save',x.error); else rvPendingClear(r.id,sentAt); }).catch(e=>console.warn('review save',e)); }
-  /* resolves true when the row is gone. Row-level security doesn't error when it blocks a
-     delete, it just deletes nothing, so ask for the deleted row back to know for sure. */
-  function dbDeleteReview(id){ if(!USE_DB) return Promise.resolve(true);
+      .then(x=>{ if(x.error) console.warn('review save',x.error); else rvSyncedAdd(r.id); }).catch(e=>console.warn('review save',e)); }
+  /* 'deleted' when the row is gone, 'absent' when the database never had it (only saved in
+     this browser, or the reviews table isn't set up), 'blocked' when it's there but this
+     person can't remove the row, 'error' otherwise. Row-level security doesn't error when it
+     blocks a delete, it just deletes nothing, so ask for the deleted row back. */
+  const RV_NO_TABLE='PGRST205';
+  function dbDeleteReview(id){ if(!USE_DB) return Promise.resolve('absent');
     return sb.from('reviews').delete().eq('id',id).select('id')
-      .then(x=>{ if(x.error){ console.warn('review delete',x.error); return false; } return (x.data||[]).length>0; })
-      .catch(e=>{ console.warn('review delete',e); return false; }); }
+      .then(x=>{
+        if(x.error){ if(x.error.code===RV_NO_TABLE) return 'absent'; console.warn('review delete',x.error); return 'error'; }
+        if((x.data||[]).length) return 'deleted';
+        return sb.from('reviews').select('id').eq('id',id).then(y=>{
+          if(y.error){ if(y.error.code===RV_NO_TABLE) return 'absent'; console.warn('review delete check',y.error); return 'error'; }
+          return (y.data||[]).length ? 'blocked' : 'absent'; });
+      })
+      .catch(e=>{ console.warn('review delete',e); return 'error'; }); }
   /* the database only lets a review's reviewer or a super admin remove the row. When the
      person who created it is the reviewee (their own review, with their manager as
      reviewer), mark it deleted instead: they're allowed to edit it, and deleted reviews
@@ -6371,14 +6381,14 @@ Herd Life`;
       (r.data||[]).forEach(x=>{ const d=x.data||{id:x.id,reviewer:x.reviewer_email,reviewee:x.reviewee_email,quarter:x.quarter}; if(d&&d.id) map.set(d.id,d); });
       /* keep any local edit the server hasn't caught up on yet (autosave still in flight,
          offline, or created locally) so a refresh mid-edit never loses progress. A review
-         the server doesn't have at all only comes back if it's still waiting to be saved;
-         otherwise someone deleted it, and re-sending it would undo the delete. */
-      const pending=rvPendingGet();
+         the server doesn't have is uploaded only if the server never had it; if it did,
+         someone deleted it, and re-sending it would undo the delete. */
+      const synced=rvSyncedGet();
       (localPrev||[]).forEach(lr=>{ if(!lr||!lr.id) return; const sv=map.get(lr.id);
-        if(!sv){ if(pending[lr.id]!==undefined){ map.set(lr.id,lr); dbUpsertReview(lr); } return; }
+        if(!sv){ if(synced[lr.id]) rvSyncedRemove(lr.id); else { map.set(lr.id,lr); dbUpsertReview(lr); } return; }
         if(sv.deleted) return;
         if((Number(lr.updatedAt)||0) > (Number(sv.updatedAt)||0)){ map.set(lr.id,lr); dbUpsertReview(lr); } });
-      Object.keys(pending).forEach(id=>{ if(!map.has(id) || (map.get(id)||{}).deleted) rvPendingClear(id); });
+      rvSyncedAdd((r.data||[]).map(x=>x.id));
       reviews=Array.from(map.values()).filter(x=>!x.deleted); saveReviewsLocal();
     }catch(e){ console.warn('reviews load',e); loadReviewsLocal(); }
     reviewsLoaded=true; }
@@ -6386,7 +6396,7 @@ Herd Life`;
     if(!metricsLoaded){ loadMetricsLocal(); if(USE_DB){ try{ await dbLoadMetrics(); }catch(e){} } }
     if(USE_DB && !teamUsers.length){ try{ await loadTeamUsersCache(); }catch(e){} } }
   function refreshReviews(){ reviewsLoaded=false; renderReviewsSection(); }
-  function persistReview(r){ r.updatedAt=Date.now(); saveReviewsLocal(); rvPendingMark(r); dbUpsertReview(r); }
+  function persistReview(r){ r.updatedAt=Date.now(); saveReviewsLocal(); dbUpsertReview(r); }
   function renderReviewsSection(){ ensureReviews().then(()=>{ if(curReviewId && reviews.some(x=>x.id===curReviewId)) renderReviewDetail(); else { curReviewId=null; renderReviewsList(); } }); }
   /* A review is yours to see only if you're in it — or you're a super admin. (The
      database enforces this too; this is the matching UI-side guard.) */
@@ -6602,8 +6612,8 @@ Herd Life`;
     if(!reviewCanDelete(r)){ infoModal('Only the reviewer, the person who created this review, or a super admin can delete it.'); return; }
     confirmModal('Delete this quarterly review for '+esc(pmName(resolvePerson(r.reviewee))||'this person')+'? This can’t be undone.', ()=>{
       reviews=reviews.filter(x=>x.id!==id); saveReviewsLocal(); if(curReviewId===id) curReviewId=null; renderReviewsSection();
-      dbDeleteReview(id).then(ok=>ok?true:dbSoftDeleteReview(r)).then(ok=>{
-        if(ok){ rvPendingClear(id); showToast('Review deleted'); return; }
+      dbDeleteReview(id).then(res=>(res==='deleted'||res==='absent')?true:(res==='blocked'?dbSoftDeleteReview(r):false)).then(ok=>{
+        if(ok){ rvSyncedRemove(id); showToast('Review deleted'); return; }
         if(!reviews.some(x=>x.id===id)){ reviews.push(r); saveReviewsLocal(); }
         renderReviewsSection();
         infoModal('That review couldn’t be deleted, so it’s been put back. Check your connection and try again.');
