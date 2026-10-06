@@ -754,6 +754,27 @@
   .mtg-addrow textarea{flex:1;min-height:40px;max-height:160px;resize:vertical;font-family:inherit;font-size:14px;border:1px solid var(--line);border-radius:8px;padding:8px 10px;line-height:1.45;}
   .mtg-addrow{display:flex;gap:8px;margin-top:10px;}
   .mtg-addrow input{flex:1;}
+  /* topics with bullet points (discussion items): one clean list, no bubble per note */
+  .tp-topic{padding:8px 4px 8px;border-bottom:1px solid var(--line);}
+  .tp-topic:last-child{border-bottom:none;}
+  .tp-head{display:flex;align-items:flex-start;gap:8px;}
+  .tp-title{flex:1;font-weight:800;color:var(--heading);font-size:.96rem;line-height:1.4;white-space:pre-wrap;}
+  .tp-tools{display:inline-flex;gap:10px;color:var(--muted);font-size:.82rem;opacity:0;flex:0 0 auto;font-weight:400;}
+  .tp-tools span{cursor:pointer;}
+  .tp-tools span:hover{color:var(--heading);}
+  .tp-head:hover>.tp-tools,.tp-b:hover>.tp-tools{opacity:1;}
+  .tp-bullets{margin:4px 0 0;padding-left:24px;list-style:disc;}
+  .tp-b{font-size:.92rem;line-height:1.45;color:var(--ink);padding:2px 0;}
+  .tp-b .tp-btxt{white-space:pre-wrap;}
+  .tp-b>.tp-tools{margin-left:10px;}
+  .tp-b.tp-add{list-style:none;opacity:0;transition:opacity .12s;}
+  .tp-topic:hover .tp-add,.tp-add:focus-within,.tp-add:has(input:not(:placeholder-shown)){opacity:1;}
+  @media (hover:none){ .tp-b.tp-add{opacity:1;} }
+  .tp-add input{width:100%;border:none;border-bottom:1px solid transparent;border-radius:0;background:transparent;font-size:.88rem;color:var(--ink);padding:2px 0;outline:none;}
+  .tp-add input::placeholder{color:var(--muted);opacity:.75;}
+  .tp-add input:focus{border-bottom-color:var(--purple);}
+  .tp-img{margin-top:4px;}
+  .tp-editta{min-height:36px;margin-top:0;}
   /* "copy an answer you already gave in another meeting" picker */
   .cpa-row{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);}
   .cpa-row:last-child{border-bottom:none;}
@@ -1680,6 +1701,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       <option value="vision">Core Values &amp; Vision (from the Core Values tab)</option>
       <option value="text">Editable text (shared across every meeting)</option>
       <option value="notes">Notes everyone adds (like Good News)</option>
+      <option value="topics">Topics with bullet points (like discussion items)</option>
       <option value="priorities">Priorities — a to-do list carried to the next meeting</option>
       <option value="prioritiesPrev">Last meeting's priorities (check done / not done)</option>
       <option value="issues">Issues list</option>
@@ -5002,6 +5024,8 @@ Herd Life`;
         +'<button class="btn ghost sm" title="Attach an image" onclick="document.getElementById(\'imgin-'+sec.id+'\').click()">📎</button>'
         +cpaBtn(m,sec)
         +'<button class="btn sm" onclick="addNote(\''+sec.id+'\')">Add</button></div>';
+    } else if(sec.type==='topics'){
+      body = renderTopics(m,sec,canEdit);
     } else if(sec.type==='priorities'){
       const rows=itemsFor(sec.id,instKey());
       // Show every person in the meeting as their own group (with avatar) so you can
@@ -5909,6 +5933,70 @@ Herd Life`;
   function saveImgWidth(id,w){ const it=mtgItems.find(x=>x.id===id); if(!it) return; it.data.imgW=Math.round(w); saveMtgLocal(); dbUpsertItem(it); }
   function mtgNoteKey(ev,section){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addNote(section); } }
   function addNote(section){ const el=document.getElementById('in-'+section); const v=(el.value||'').trim(); if(!v) return; el.value=''; addItem(section,instKey(),{type:'note',text:v}); renderMeetingView(); focusAdd(section); }
+
+  /* ── Topics with bullet points (discussion items) ─────────────────────────
+     Add a topic, then bullet points under it, instead of a chat bubble per note.
+     Topics and bullets are separate mtg_items rows (a bullet carries parent=<topic id>),
+     so two people typing at once never overwrite each other. Notes already in the
+     section (from before it was switched to this type) simply show up as topics.
+     Keys: Enter on a topic jumps to its "Add a point" line; Enter there adds a bullet;
+     Enter on an empty point goes back to the topic box. Extra lines (Shift+Enter or a
+     pasted list) become bullets. */
+  function renderTopics(m,sec,canEdit){
+    const all=itemsFor(sec.id,instKey());
+    const topics=all.filter(it=>!(it.data&&it.data.type==='bullet'));
+    const ids=new Set(topics.map(t=>t.id)); const kids={};
+    all.forEach(it=>{ const d=it.data||{}; if(d.type==='bullet' && ids.has(d.parent)) (kids[d.parent]=kids[d.parent]||[]).push(it); });
+    let h = topics.length
+      ? '<div class="tp-list">'+topics.map(t=>topicHtml(t,kids[t.id]||[],canEdit)).join('')+'</div>'
+      : '<div class="mtg-empty">No topics yet. Add one below.</div>';
+    if(canEdit) h+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add a topic…  (Enter to add · extra lines become bullets · paste an image)" onkeydown="topicKey(event,\''+sec.id+'\')" onpaste="mtgNotePaste(event,\''+sec.id+'\')"></textarea>'
+      +'<button class="btn sm" onclick="addTopic(\''+sec.id+'\')">Add</button></div>';
+    return h; }
+  function tpEditHtml(it){
+    return '<textarea id="edit-'+it.id+'" class="mtg-editta tp-editta" onkeydown="mtgEditKey(event,\''+it.id+'\')">'+esc(it.data.text||'')+'</textarea>'
+      +'<div class="mtg-editbtns"><button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
+  function topicHtml(t,bullets,canEdit){
+    const head = t.id===mtgEditItemId
+      ? '<div>'+tpEditHtml(t)+'</div>'
+      : '<div class="tp-head" title="Added by '+esc(pmName(t.data.author))+'"><span class="tp-title">'+esc(t.data.text||'')+'</span>'
+        +(canEditItem(t)?'<span class="tp-tools"><span title="Edit topic" onclick="editItem(\''+t.id+'\')">✎</span><span title="Delete topic" onclick="delTopic(\''+t.id+'\')">✕</span></span>':'')
+        +'</div>';
+    const img = t.data.img
+      ? '<div class="tp-img"><span class="mtg-imgbox" style="width:'+(Number(t.data.imgW)||380)+'px;">'
+        + '<img src="'+esc(t.data.img)+'" alt="" onclick="if(!window.__imgResizing)window.open(this.src,\'_blank\')">'
+        + (canEditItem(t)?'<span class="rsz" title="Drag to resize" onpointerdown="startImgResize(event,\''+t.id+'\')"></span>':'')
+        + '</span></div>'
+      : '';
+    const lis=bullets.map(b=> b.id===mtgEditItemId
+      ? '<li class="tp-b">'+tpEditHtml(b)+'</li>'
+      : '<li class="tp-b" title="Added by '+esc(pmName(b.data.author))+'"><span class="tp-btxt">'+esc(b.data.text||'')+'</span>'
+        +(canEditItem(b)?'<span class="tp-tools"><span title="Edit" onclick="editItem(\''+b.id+'\')">✎</span><span title="Delete" onclick="delItem(\''+b.id+'\');renderMeetingView()">✕</span></span>':'')
+        +'</li>').join('');
+    const add = canEdit ? '<li class="tp-b tp-add"><input id="in-b-'+t.id+'" placeholder="+ Add a point" onkeydown="bulletKey(event,\''+t.id+'\')" onpaste="bulletPaste(event,\''+t.id+'\')"></li>' : '';
+    return '<div class="tp-topic">'+head+img+((lis||add)?'<ul class="tp-bullets">'+lis+add+'</ul>':'')+'</div>'; }
+  function tpClean(s){ return String(s||'').replace(/^\s*(?:[-*•‣◦·▪]|\d+[.)])\s+/,'').trim(); }
+  function tpFocusBullet(tid){ const el=document.getElementById('in-b-'+tid); if(el) el.focus(); }
+  function topicKey(ev,secId){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addTopic(secId); } }
+  function addTopic(secId){ const el=document.getElementById('in-'+secId); if(!el) return;
+    const lines=String(el.value||'').split(/\r?\n/).map(tpClean).filter(Boolean); if(!lines.length) return; el.value='';
+    const t=addItem(secId,instKey(),{type:'topic',text:lines[0]}); const base=Date.now();
+    lines.slice(1).forEach((v,i)=>addItem(secId,t.inst,{type:'bullet',parent:t.id,text:v,t:base+i+1}));
+    renderMeetingView(); tpFocusBullet(t.id); }
+  function addBullets(tid,lines){ const t=mtgItems.find(x=>x.id===tid); if(!t||!lines.length) return; const base=Date.now();
+    lines.forEach((v,i)=>addItem(t.section,t.inst,{type:'bullet',parent:tid,text:v,t:base+i}));
+    const el=document.getElementById('in-b-'+tid); if(el) el.value='';
+    renderMeetingView(); tpFocusBullet(tid); }
+  function bulletKey(ev,tid){ const el=ev.currentTarget;
+    if(ev.key==='Enter'){ ev.preventDefault(); const v=tpClean(el.value);
+      if(v){ addBullets(tid,[v]); return; }
+      const t=mtgItems.find(x=>x.id===tid); if(t) focusAdd(t.section); }
+    else if(ev.key==='Escape'){ ev.preventDefault(); el.value=''; el.blur(); } }
+  function bulletPaste(ev,tid){ const txt=(ev.clipboardData&&ev.clipboardData.getData('text'))||''; if(!/[\r\n]/.test(txt)) return;
+    ev.preventDefault(); const lines=(String(ev.currentTarget.value||'')+txt).split(/\r?\n/).map(tpClean).filter(Boolean); addBullets(tid,lines); }
+  function delTopic(tid){ const kids=mtgItems.filter(x=>x.data && x.data.type==='bullet' && x.data.parent===tid);
+    const go=()=>{ kids.forEach(k=>delItem(k.id)); delItem(tid); renderMeetingView(); };
+    if(kids.length) confirmModal('Delete this topic and its '+kids.length+' bullet point'+(kids.length===1?'':'s')+'?', go, 'Delete'); else go(); }
   /* the date key of this meeting's NEXT occurrence — the default due date, shared with the badge logic */
   function mtgNextKey(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m||!curMtgDate) return ''; const nd=(m.type&&m.type!=='once')?occStep(m,curMtgDate,1):new Date(curMtgDate.getTime()+7*86400000); return wkKey(nd); }
   function toggleDueInput(section){ const el=document.getElementById('due-'+section); if(!el) return; const show=el.style.display==='none'; el.style.display=show?'':'none'; if(show){ el.focus(); if(el.showPicker){ try{ el.showPicker(); }catch(_){} } } }
