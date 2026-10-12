@@ -1,5 +1,5 @@
 // Supabase Edge Function: claude-connector
-// Lets Claude read Not Metronome: quarterly priorities and their tasks, the weekly
+// Lets Claude read Round Up: quarterly priorities and their tasks, the weekly
 // metrics scorecard, to-dos, issues, special projects and the core values page.
 //
 // Stage 1 is READ-ONLY. Nothing in this file writes to the database.
@@ -34,11 +34,11 @@ const AUTH_SERVER = `${SUPABASE_URL}/auth/v1`;
 const APP_URL = "https://farquhar86.github.io/Purple-Cow-Meetings/";
 const TZ = "America/Halifax";
 
-const SERVER_INFO = { name: "not-metronome", title: "Not Metronome", version: "0.1.0" };
+const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.1.0" };
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS = [
-  "Not Metronome is Purple Cow Internet's planning app (" + APP_URL + ").",
+  "Round Up is Purple Cow Internet's planning app (" + APP_URL + ").",
   "It holds quarterly priorities (also called rocks) with their tasks, the weekly metrics scorecard,",
   "to-dos from meetings, the issues board, special projects and the core values page.",
   "This connector is read-only. 'me' means the person who connected it.",
@@ -728,7 +728,7 @@ const personArg = {
 const TOOLS: Tool[] = [
   {
     name: "who_am_i",
-    title: "Who am I in Not Metronome",
+    title: "Who am I in Round Up",
     description: "The signed-in person's email and app role, and what that role can see.",
     inputSchema: { type: "object", properties: {} },
     run: (_a, ctx) => Promise.resolve({
@@ -1215,7 +1215,7 @@ function json(body: Json, status = 200, extra: Record<string, string> = {}) {
 function unauthorized(hadToken: boolean) {
   const challenge = `Bearer resource_metadata="${RESOURCE_METADATA_URL}"` +
     (hadToken ? `, error="invalid_token", error_description="Sign in again"` : "");
-  return json({ error: "unauthorized", message: "Connect Not Metronome in Claude to sign in." }, 401, { "WWW-Authenticate": challenge });
+  return json({ error: "unauthorized", message: "Connect Round Up in Claude to sign in." }, 401, { "WWW-Authenticate": challenge });
 }
 
 export async function handler(req: Request): Promise<Response> {
@@ -1226,7 +1226,7 @@ export async function handler(req: Request): Promise<Response> {
   if (path.endsWith("/.well-known/oauth-protected-resource")) {
     return json({
       resource: RESOURCE,
-      resource_name: "Not Metronome",
+      resource_name: "Round Up",
       authorization_servers: [AUTH_SERVER],
       bearer_methods_supported: ["header"],
     });

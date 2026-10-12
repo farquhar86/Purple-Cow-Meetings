@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
-<title>Connect Claude — Not Metronome</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%236a2c8f'/%3E%3Ctext%20x='32'%20y='42'%20font-family='Arial'%20font-size='26'%20font-weight='700'%20fill='white'%20text-anchor='middle'%3ENM%3C/text%3E%3C/svg%3E">
+<title>Connect Claude — Round Up</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%236a2c8f'/%3E%3Ctext%20x='32'%20y='42'%20font-family='Arial'%20font-size='26'%20font-weight='700'%20fill='white'%20text-anchor='middle'%3ERU%3C/text%3E%3C/svg%3E">
 <!--
-  Not Metronome — sign-in approval page for the Claude connector.
+  Round Up — sign-in approval page for the Claude connector.
 
   Supabase's OAuth 2.1 Server sends people here when they click Connect in Claude
   (Authentication ▸ OAuth Server ▸ Authorization Path = /oauth-consent.html).
@@ -53,7 +53,7 @@
 </head>
 <body>
 <main class="card" aria-live="polite">
-  <div class="brand"><span class="logo">NM</span> Not Metronome</div>
+  <div class="brand"><span class="logo">RU</span> Round Up</div>
 
   <section id="v-loading"><p>Loading…</p></section>
 
@@ -64,7 +64,7 @@
 
   <section id="v-login" hidden>
     <h1>Sign in to connect Claude</h1>
-    <p>Use your Not Metronome login.</p>
+    <p>Use your Round Up login.</p>
     <form id="login-form">
       <label for="email">Email</label>
       <input id="email" type="email" autocomplete="username" required>
@@ -77,7 +77,7 @@
   </section>
 
   <section id="v-consent" hidden>
-    <h1><span id="client-name">Claude</span> wants to read Not Metronome</h1>
+    <h1><span id="client-name">Claude</span> wants to read Round Up</h1>
     <div class="who">Signed in as <b id="who-email"></b><a id="switch">Not you?</a></div>
     <span class="ro">READ-ONLY</span>
     <p style="color:var(--ink);margin-bottom:2px">It will be able to see, as you:</p>
@@ -132,7 +132,7 @@
 
   async function start(){
     if (!authId){
-      message('Nothing to approve here', 'This page opens when you connect Not Metronome in Claude. Start from Claude\'s connector settings.');
+      message('Nothing to approve here', 'This page opens when you connect Round Up in Claude. Start from Claude\'s connector settings.');
       return;
     }
     const { data: { session } } = await sb.auth.getSession();

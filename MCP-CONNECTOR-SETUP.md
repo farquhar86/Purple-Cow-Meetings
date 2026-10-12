@@ -1,6 +1,6 @@
 # Claude connector — setup
 
-Connects Claude to Not Metronome so you can ask things like:
+Connects Claude to Round Up so you can ask things like:
 
 - "What's off track in Q4?"
 - "What tasks does Operations owe other departments' priorities?"
@@ -10,7 +10,7 @@ Connects Claude to Not Metronome so you can ask things like:
 **Stage 1 is read-only.** Claude can look things up but can't change anything in the app.
 Updates (stage 2) and filling in weekly metrics (stage 3) come later.
 
-Each person connects with their own Not Metronome login, and Claude sees only what that
+Each person connects with their own Round Up login, and Claude sees only what that
 person sees in the app. A Team-role user gets only the priorities they PM or have a task on,
 the metrics they own, and their own to-dos. A Super Admin sees every meeting.
 
@@ -26,7 +26,7 @@ Claude ──► claude-connector (Supabase Edge Function) ──► the app's t
 
 - `claude-connector-function.ts`: the connector itself. It holds no keys and no
   passwords. It only uses the token of whoever signed in.
-- `oauth-consent.html`: the "Allow Claude to read Not Metronome?" page. It's on the
+- `oauth-consent.html`: the "Allow Claude to read Round Up?" page. It's on the
   app's site, so anyone already logged in to the app just clicks **Allow**. It only
   approves requests that come back to Claude (claude.ai / claude.com).
 
@@ -90,12 +90,12 @@ You should see a short block of text that includes
 ### 5. Add it in Claude
 
 **Your own Claude account:** in Claude's Connectors settings, choose **Add custom connector**.
-- Name: `Not Metronome`
+- Name: `Round Up`
 - URL: `https://pabuedfwiinvlhvmrslm.supabase.co/functions/v1/claude-connector`
 - Open **Advanced settings** and paste the **OAuth Client ID** and **OAuth Client Secret**
   from step 2b.
 
-Click **Connect**. You'll land on the Not Metronome approval page. Sign in if asked, then
+Click **Connect**. You'll land on the Round Up approval page. Sign in if asked, then
 click **Allow**.
 
 **A company Team account:** an Owner adds it once with the same name, URL, Client ID and
@@ -104,7 +104,7 @@ Client Secret, and then each person clicks **Connect** and signs in.
 ### 6. Test it
 
 In a new chat with the connector turned on, ask:
-1. "Who am I in Not Metronome?" It should show your email and role.
+1. "Who am I in Round Up?" It should show your email and role.
 2. "List the Q4 priorities that are off track." Compare the answer with the Priorities screen.
 3. "Which metrics are missing a number this week?"
 
