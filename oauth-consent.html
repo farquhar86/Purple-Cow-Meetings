@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex">
 <title>Connect Claude — Round Up</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Crect%20width='64'%20height='64'%20rx='14'%20fill='%236a2c8f'/%3E%3Ctext%20x='32'%20y='42'%20font-family='Arial'%20font-size='26'%20font-weight='700'%20fill='white'%20text-anchor='middle'%3ERU%3C/text%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="round-up-logo.png">
 <!--
   Round Up — sign-in approval page for the Claude connector.
 
@@ -27,7 +27,7 @@
     min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(78,31,107,.10);width:100%;max-width:440px;padding:28px 26px}
   .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--purple-dark);font-weight:700}
-  .logo{width:34px;height:34px;border-radius:9px;background:var(--purple);color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;letter-spacing:.02em}
+  .logo{width:34px;height:34px;border-radius:9px;background:url('round-up-logo.png') center/cover no-repeat;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;letter-spacing:.02em}
   h1{font-size:1.3rem;margin:0 0 6px}
   p{margin:0 0 12px;color:var(--muted)}
   .who{background:var(--lilac);border-radius:10px;padding:10px 12px;margin:14px 0;font-size:.92rem;color:var(--ink)}
@@ -53,7 +53,7 @@
 </head>
 <body>
 <main class="card" aria-live="polite">
-  <div class="brand"><span class="logo">RU</span> Round Up</div>
+  <div class="brand"><span class="logo" aria-hidden="true"></span> Round Up</div>
 
   <section id="v-loading"><p>Loading…</p></section>
 
