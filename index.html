@@ -3507,8 +3507,9 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     }
     if(cgIsLevel(m)){
       /* a rate read over more than one week is the average of those weeks; a plain
-         level keeps its latest reading, exactly as before */
-      if(m.unit==='percent'){
+         level keeps its latest reading, exactly as before. Scores that aren't
+         percentages (NPS) opt in to averaging with levelAgg:'avg'. */
+      if(m.unit==='percent' || m.levelAgg==='avg'){
         const V=metricValues(m); let sum=0,cnt=0;
         Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return;
           const n=Number(V[k]); if(isNaN(n)) return; sum+=n; cnt++; });
