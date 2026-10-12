@@ -546,9 +546,21 @@ const isCalc = (m: Json) => !!(m && m.source === "calc" && m.calc && m.calc.a &&
 const isRollup = (m: Json) => !!(m && m.source === "rollup");
 const rollupKids = (m: Json, all: Json[]) => all.filter((x) => x.parent === m.id && x.id !== m.id);
 
+// A week's typed number. The app's week start is a per-browser setting, so people whose
+// browser starts the week on Monday save their numbers under that Monday's date. Those still
+// belong to the Sunday-to-Saturday week that contains them; an exact Sunday entry wins.
 function typedValue(m: Json, wk: string): Json {
-  const v = m.values?.[wk];
-  return v === undefined || v === null || v === "" ? null : v;
+  const vals = m.values || {};
+  const empty = (v: Json) => v === undefined || v === null || v === "";
+  if (!empty(vals[wk])) return vals[wk];
+  const end = addDays(wk, 6);
+  const inWeek = Object.keys(vals)
+    .filter((k) => {
+      const d = ymd(k);
+      return d !== null && k.length === 10 && d > wk && d <= end && !empty(vals[k]);
+    })
+    .sort();
+  return inWeek.length ? vals[inWeek[inWeek.length - 1]] : null;
 }
 
 function effValue(m: Json, wk: string, all: Json[], depth = 0): number | string | null {
@@ -584,7 +596,7 @@ function effValue(m: Json, wk: string, all: Json[], depth = 0): number | string 
 }
 
 function weekKeys(m: Json, all: Json[], depth = 0): Set<string> {
-  const keys = new Set(Object.keys(m.values || {}).filter((k) => ymd(k)));
+  const keys = new Set(Object.keys(m.values || {}).filter((k) => ymd(k)).map((k) => weekStartOf(ymd(k)!)));
   if (depth > 4) return keys;
   const inputs = isRollup(m) ? rollupKids(m, all) : isCalc(m) ? all.filter((x) => x.id === m.calc.a || x.id === m.calc.b) : [];
   inputs.forEach((k) => weekKeys(k, all, depth + 1).forEach((x) => keys.add(x)));

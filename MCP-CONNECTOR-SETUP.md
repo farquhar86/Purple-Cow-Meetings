@@ -47,13 +47,27 @@ Supabase ▸ Authentication ▸ **OAuth Server** (marked Beta):
 
 1. **Enable** the OAuth server.
 2. **Authorization Path:** `/oauth-consent.html`
-   Supabase adds this to the Site URL (`https://farquhar86.github.io/Purple-Cow-Meetings/`).
-3. **Allow dynamic client registration: ON.** This is how Claude registers itself the
-   first time someone clicks Connect.
+   Supabase adds this to the Site URL, so the preview shows a double slash
+   (`…/Purple-Cow-Meetings//oauth-consent.html`). That's fine: GitHub Pages serves it.
+3. **Allow Dynamic OAuth Apps: OFF.** Leaving it on would let anyone register an app and try
+   to trick staff into approving it. Claude is registered by hand instead (next step).
 4. Save.
 
 There's no extra charge for this on the Pro plan. People who sign in this way count toward
 monthly active users, but they're people who already use the app.
+
+### 2b. Register Claude as an OAuth app
+
+Supabase ▸ Authentication ▸ **OAuth Apps** ▸ **New OAuth App**:
+
+- Name: `Claude`
+- Redirect URIs: `https://claude.ai/api/mcp/auth_callback` and
+  `https://claude.com/api/mcp/auth_callback`
+- Public Client: off. Token Endpoint Auth Method: `client_secret_basic`.
+
+Create it, then copy the **Client ID** and **Client Secret** into a password manager.
+Supabase shows the secret only once. If it's lost, generate a new one from the same page and
+update the connector in Claude.
 
 ### 3. Deploy the function
 
@@ -78,12 +92,14 @@ You should see a short block of text that includes
 **Your own Claude account:** in Claude's Connectors settings, choose **Add custom connector**.
 - Name: `Not Metronome`
 - URL: `https://pabuedfwiinvlhvmrslm.supabase.co/functions/v1/claude-connector`
+- Open **Advanced settings** and paste the **OAuth Client ID** and **OAuth Client Secret**
+  from step 2b.
 
 Click **Connect**. You'll land on the Not Metronome approval page. Sign in if asked, then
 click **Allow**.
 
-**A company Team account:** an Owner adds it once with the same name and URL, and then each
-person clicks **Connect** and signs in.
+**A company Team account:** an Owner adds it once with the same name, URL, Client ID and
+Client Secret, and then each person clicks **Connect** and signs in.
 
 ### 6. Test it
 
@@ -100,7 +116,8 @@ Then have a Team-role person run the same three and check that they only see the
 
 | What you see | Likely cause |
 |---|---|
-| Claude says it can't connect, or the approval page never shows | OAuth Server not enabled, dynamic client registration off, or the function's **Verify JWT** is still on. |
+| Claude says it can't connect, or the approval page never shows | OAuth Server not enabled, the Client ID/Secret weren't entered in Advanced settings, or the function's **Verify JWT** is still on. |
+| You click **Allow**, land back in Claude, and it still says it couldn't connect | The Client Secret was mistyped, or Claude sends it differently. Re-paste it. If that doesn't fix it, change the Claude app's Token Endpoint Auth Method in Supabase to `client_secret_post`. |
 | The approval page shows "Page not found" | The Authorization Path doesn't match the file name, or `oauth-consent.html` isn't pushed yet. Check the address bar: it should end in `/Purple-Cow-Meetings/oauth-consent.html?authorization_id=…`. |
 | "This sign-in request has expired" | The approval code only lasts 10 minutes. Go back to Claude and click Connect again. |
 | "This request isn't coming from Claude" | Something other than Claude tried to get access. Close the page. |

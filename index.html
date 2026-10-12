@@ -2192,13 +2192,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     <button class="btn ghost sm admin-only" onclick="openFnModal()" title="Add or organize functions and sub-functions">⚙ Functions</button>
     <button class="btn ghost sm" onclick="ensureMetrics()" title="Pull the latest numbers everyone has entered">↻ Refresh</button>
     <p class="mx-hint">Type this week's number on each card. Click a card to see the full history and trend graph.</p>
-    <span class="mx-wkbar">Week starts
-      <select id="mx-weekstart" onchange="setWeekStart(this.value)">
-        <option value="0">Sunday</option><option value="1">Monday</option><option value="2">Tuesday</option>
-        <option value="3">Wednesday</option><option value="4">Thursday</option><option value="5">Friday</option>
-        <option value="6">Saturday</option>
-      </select>
-    </span>
+    <span class="mx-wkbar">Weeks run Sunday to Saturday</span>
   </div>
   <div class="cg-outer" id="companyTargets"></div>
   <div class="mx-wrap" id="metricsWrap"></div>
@@ -3045,9 +3039,10 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     :(isRollup(m)?'<span class="mx-src roll" title="'+esc(rollupLabel(m))+'">ROLL-UP · '+rollupKids(m).length+'</span>':''))); }
   /* week columns — start day is configurable, defaults to Sunday */
   let weekStartDay=0;
-  function loadWeekStart(){ try{ const v=localStorage.getItem(KEY+'_weekstart'); weekStartDay = (v===null)?0:(Number(v)||0); }catch(e){ weekStartDay=0; }
-    const sel=document.getElementById('mx-weekstart'); if(sel) sel.value=String(weekStartDay); }
-  function setWeekStart(v){ weekStartDay=Number(v)||0; try{ localStorage.setItem(KEY+'_weekstart', String(weekStartDay)); }catch(e){} renderMetrics(); }
+  /* The company week runs Sunday to Saturday for everyone. It used to be a per-browser setting,
+     which filed some people's numbers under Mondays where everyone else couldn't see them. */
+  function loadWeekStart(){ weekStartDay=0; try{ localStorage.removeItem(KEY+'_weekstart'); }catch(e){} }
+  function setWeekStart(){ weekStartDay=0; renderMetrics(); }
   function wkKey(d){ const p=n=>String(n).length<2?'0'+n:''+n; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); }
   function wkLabel(d){ return d.toLocaleDateString(undefined,{month:'long',day:'numeric'}); }
   function weekStarts(n,startDay){ const sd=Number(startDay)||0; const t=new Date(); t.setHours(0,0,0,0);
