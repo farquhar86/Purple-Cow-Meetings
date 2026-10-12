@@ -6502,9 +6502,21 @@ Herd Life`;
     return (v===''||v===null||isNaN(Number(v)))?null:Number(v); }
   /* one quarter's history chip for a metric: where it landed vs the target, coloured
      green/red by whether the target was hit. */
+  /* A metric's result for a quarter in a review. Rates (breakage %, NPS) are read the
+     way the scorecard reads them (cgActual: the average of the weeks for a percent,
+     the latest reading otherwise), not as a running total of every weekly entry. */
+  function rvQuarterActual(m,qk){
+    const qi=metricQuarterInfo(m,(mxQuarterRange(qk)||{}).end||new Date()); if(!qi) return null;
+    if(cgIsLevel(m) && !isCumulative(m)){
+      const a=cgActual(m,mxRangeFor('q',qk));
+      if(a===null||a===undefined||isNaN(a)) return { G:qi.G, actual:null, onTrack:null };
+      return { G:qi.G, actual:a, onTrack:(m.direction==='lower')?(a<=qi.G):(a>=qi.G) };
+    }
+    return { G:qi.G, actual:qi.any?qi.cum:null, onTrack:qi.any?qi.onTrack:null };
+  }
   function rvQuarterHist(m,qk){
     let target=null, actual=null, ok=null;
-    try{ const qi=metricQuarterInfo(m,(mxQuarterRange(qk)||{}).end||new Date()); if(qi){ target=qi.G; actual=qi.any?qi.cum:null; ok=(actual===null)?null:qi.onTrack; } }catch(e){}
+    try{ const qa=rvQuarterActual(m,qk); if(qa){ target=qa.G; actual=qa.actual; ok=(actual===null)?null:qa.onTrack; } }catch(e){}
     if(target===null) target=metricTargetForQuarter(m,qk);
     const tStr=(target===null)?'—':fmtVal(m,target);
     const aStr=(actual===null)?'—':fmtVal(m,actual);
@@ -6735,8 +6747,8 @@ Herd Life`;
     // metrics panel
     let metHtml='';
     if(mets.length){ metHtml=mets.map(m=>{ let status='<span class="rv-mchip na">no goal</span>', detail='';
-        try{ const qi=metricQuarterInfo(m,qEnd); if(qi){ status='<span class="rv-mchip '+(qi.onTrack?'on':'off')+'">'+(qi.onTrack?'On target':'Off target')+'</span>';
-          detail='<span class="rv-mdetail">'+esc(fmtVal(m,qi.cum))+' of '+esc(fmtVal(m,qi.G))+'</span>'; } }catch(e){}
+        try{ const qa=rvQuarterActual(m,r.quarter); if(qa && qa.actual!==null){ status='<span class="rv-mchip '+(qa.onTrack?'on':'off')+'">'+(qa.onTrack?'On target':'Off target')+'</span>';
+          detail='<span class="rv-mdetail">'+esc(fmtVal(m,qa.actual))+' of '+esc(fmtVal(m,qa.G))+'</span>'; } }catch(e){}
         return '<div class="rv-metric"><span class="rv-mname">'+esc(m.name||'Untitled metric')+'</span>'+detail+status+'</div>';
       }).join(''); }
     else metHtml='<div class="rv-empty">No metrics are owned by '+esc(pmName(resolvePerson(r.reviewee))||'this person')+' yet.</div>';
