@@ -1,6 +1,6 @@
 # Purple Cow Planning App — Project Handoff / Reference
 
-A single reference for the internal planning app ("Not Metronome") — an in-house,
+A single reference for the internal planning app ("Round Up", formerly "Not Metronome") — an in-house,
 Ninety.io / EOS-style operating system for Purple Cow Internet. Use this to brief a
 new conversation or as the knowledge-base entry for the project.
 
@@ -29,6 +29,8 @@ Browser (any teammate)  ─►  index.html on GitHub Pages (the whole app: HTML+
                                    ├─►  Supabase Edge Function "jira-status" ─► Jira Cloud (ticket statuses)
                                    └─►  Supabase Storage    ("meeting-uploads" bucket, note images)
 
+Claude  ─►  Supabase Edge Function "claude-connector" (read-only, signs in via Supabase OAuth Server ─► oauth-consent.html)
+
 Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset emails from @purplecowinternet.com
 ```
 
@@ -53,6 +55,8 @@ Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset
 | `herd-100k-worksheet.html` | Same content, working copy. |
 | `manage-users-function.ts` | Supabase Edge Function code (paste into Supabase to deploy). |
 | `jira-status-function.ts` | Supabase Edge Function that looks up Jira ticket statuses (see `JIRA-SYNC-SETUP.md`). |
+| `claude-connector-function.ts` | Supabase Edge Function that lets Claude read the app (MCP connector, read-only). See `MCP-CONNECTOR-SETUP.md`. |
+| `oauth-consent.html` | The "Allow Claude to read Round Up?" page the connector's sign-in sends people to. |
 | `supabase-setup.sql` | Original quarters tables (`meetings`, `entries`). |
 | `supabase-lockdown.sql` | RLS policies for those tables. |
 | `supabase-metrics.sql` | Metrics tables (`metrics` + `metric_values`). |

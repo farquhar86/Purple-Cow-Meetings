@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Connect Claude — Round Up</title>
+<link rel="icon" type="image/png" href="round-up-logo.png">
+<!--
+  Round Up — sign-in approval page for the Claude connector.
+
+  Supabase's OAuth 2.1 Server sends people here when they click Connect in Claude
+  (Authentication ▸ OAuth Server ▸ Authorization Path = /oauth-consent.html).
+  It uses the same login as the app, so anyone already signed in to the app just clicks Allow.
+  The connector is read-only, so the page says exactly that.
+
+  Only Claude's own addresses can be approved here (ALLOWED_REDIRECT_HOSTS), so the page
+  can't be used to hand someone's access to some other app.
+-->
+<style>
+  :root{
+    --purple:#6a2c8f; --purple-dark:#4e1f6b; --lilac:#f3eafb; --ink:#221531; --muted:#6b5e78;
+    --line:#e3d6ef; --green:#2e9e6b; --red:#d8533b; --bg:#faf7fd; --card:#fff;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.5;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px rgba(78,31,107,.10);width:100%;max-width:440px;padding:28px 26px}
+  .brand{display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--purple-dark);font-weight:700}
+  .logo{width:34px;height:34px;border-radius:9px;background:url('round-up-logo.png') center/cover no-repeat;color:#fff;display:flex;align-items:center;justify-content:center;font-size:.85rem;font-weight:800;letter-spacing:.02em}
+  h1{font-size:1.3rem;margin:0 0 6px}
+  p{margin:0 0 12px;color:var(--muted)}
+  .who{background:var(--lilac);border-radius:10px;padding:10px 12px;margin:14px 0;font-size:.92rem;color:var(--ink)}
+  .who a{color:var(--purple);cursor:pointer;margin-left:6px}
+  ul{margin:6px 0 16px;padding-left:20px;color:var(--ink);font-size:.93rem}
+  li{margin:3px 0}
+  .ro{display:inline-block;background:#e7f6ef;color:#1f7a50;border-radius:999px;padding:2px 10px;font-size:.78rem;font-weight:700;margin-bottom:6px}
+  label{display:block;font-size:.85rem;font-weight:600;margin:10px 0 4px}
+  input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:9px;font-size:1rem;color:var(--ink);background:#fff}
+  input:focus{outline:2px solid var(--purple);outline-offset:1px;border-color:var(--purple)}
+  .row{display:flex;gap:10px;margin-top:18px}
+  button{flex:1;border:0;border-radius:10px;padding:11px 14px;font-size:1rem;font-weight:700;cursor:pointer}
+  .primary{background:var(--purple);color:#fff}
+  .primary:hover{background:var(--purple-dark)}
+  .secondary{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button:disabled{opacity:.6;cursor:default}
+  .err{color:var(--red);font-size:.9rem;margin-top:10px;min-height:1.2em}
+  .warn{background:#fdecea;color:#8a2a1c;border-radius:10px;padding:10px 12px;font-size:.92rem;margin:12px 0}
+  .small{font-size:.8rem;color:var(--muted);margin-top:16px}
+  .small a{color:var(--purple)}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main class="card" aria-live="polite">
+  <div class="brand"><span class="logo" aria-hidden="true"></span> Round Up</div>
+
+  <section id="v-loading"><p>Loading…</p></section>
+
+  <section id="v-message" hidden>
+    <h1 id="msg-title"></h1>
+    <p id="msg-body"></p>
+  </section>
+
+  <section id="v-login" hidden>
+    <h1>Sign in to connect Claude</h1>
+    <p>Use your Round Up login.</p>
+    <form id="login-form">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <div class="row"><button class="primary" type="submit" id="login-btn">Sign in</button></div>
+      <div class="err" id="login-err"></div>
+    </form>
+    <p class="small">Forgot your password? Reset it from the <a id="app-link-1" href="./">app's sign-in page</a>, then come back to Claude and click Connect again.</p>
+  </section>
+
+  <section id="v-consent" hidden>
+    <h1><span id="client-name">Claude</span> wants to read Round Up</h1>
+    <div class="who">Signed in as <b id="who-email"></b><a id="switch">Not you?</a></div>
+    <span class="ro">READ-ONLY</span>
+    <p style="color:var(--ink);margin-bottom:2px">It will be able to see, as you:</p>
+    <ul>
+      <li>Quarterly priorities and their tasks</li>
+      <li>Scorecard metrics and their weekly numbers</li>
+      <li>To-dos, issues and special projects</li>
+      <li>The core values page</li>
+    </ul>
+    <p>It sees only what you can already see in the app, and it can't change anything.</p>
+    <div class="warn" id="bad-client" hidden>This request isn't coming from Claude, so it can't be approved here. Close this page.</div>
+    <div class="row">
+      <button class="secondary" id="deny-btn" type="button">Cancel</button>
+      <button class="primary" id="allow-btn" type="button">Allow</button>
+    </div>
+    <div class="err" id="consent-err"></div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  // Same project and public key as index.html (safe to expose; the database rules protect the data).
+  const SUPABASE_URL = 'https://pabuedfwiinvlhvmrslm.supabase.co';
+  const SUPABASE_ANON_KEY = 'sb_publishable_OVguZFResdKPD8Un4E9j3w_RH3WFlZS';
+  // Claude's sign-in return addresses. Anything else is refused.
+  const ALLOWED_REDIRECT_HOSTS = ['claude.ai', 'claude.com'];
+
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const $ = (id) => document.getElementById(id);
+  const views = ['v-loading','v-message','v-login','v-consent'];
+  const show = (id) => views.forEach(v => { $(v).hidden = (v !== id); });
+  const message = (title, body) => { $('msg-title').textContent = title; $('msg-body').textContent = body; show('v-message'); };
+
+  const appUrl = new URL('./', location.href).href;
+  $('app-link-1').href = appUrl;
+
+  const authId = new URLSearchParams(location.search).get('authorization_id');
+
+  function hostAllowed(uri){
+    try{
+      const h = new URL(uri).hostname.toLowerCase();
+      return ALLOWED_REDIRECT_HOSTS.some(a => h === a || h.endsWith('.' + a));
+    }catch(_){ return false; }
+  }
+
+  function friendlyError(err){
+    const m = String((err && (err.message || err.msg)) || err || '');
+    if (/expired|not found|invalid/i.test(m)) return 'This sign-in request has expired. Go back to Claude and click Connect again.';
+    return m || 'Something went wrong. Go back to Claude and click Connect again.';
+  }
+
+  async function start(){
+    if (!authId){
+      message('Nothing to approve here', 'This page opens when you connect Round Up in Claude. Start from Claude\'s connector settings.');
+      return;
+    }
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session){ show('v-login'); $('email').focus(); return; }
+    await loadRequest(session);
+  }
+
+  async function loadRequest(session){
+    show('v-loading');
+    const { data, error } = await sb.auth.oauth.getAuthorizationDetails(authId);
+    if (error){ message('Couldn\'t continue', friendlyError(error)); return; }
+    if (!data){ message('Couldn\'t continue', 'Go back to Claude and click Connect again.'); return; }
+    if (!('authorization_id' in data)){
+      // Already approved before: send them straight back, but only to Claude.
+      if (data.redirect_url && hostAllowed(data.redirect_url)) { location.href = data.redirect_url; return; }
+      message('Couldn\'t continue', 'This request isn\'t coming from Claude.');
+      return;
+    }
+    $('client-name').textContent = (data.client && data.client.name) || 'Claude';
+    $('who-email').textContent = (data.user && data.user.email) || (session.user && session.user.email) || '';
+    const ok = hostAllowed(data.redirect_uri);
+    $('bad-client').hidden = ok;
+    $('allow-btn').disabled = !ok;
+    show('v-consent');
+  }
+
+  $('login-form').addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    $('login-err').textContent = '';
+    $('login-btn').disabled = true;
+    const { data, error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value });
+    $('login-btn').disabled = false;
+    if (error || !data.session){ $('login-err').textContent = 'That email and password didn\'t work.'; return; }
+    await loadRequest(data.session);
+  });
+
+  $('switch').addEventListener('click', async () => {
+    await sb.auth.signOut();
+    show('v-login');
+  });
+
+  async function decide(approve){
+    $('consent-err').textContent = '';
+    $('allow-btn').disabled = $('deny-btn').disabled = true;
+    const fn = approve ? sb.auth.oauth.approveAuthorization : sb.auth.oauth.denyAuthorization;
+    const { data, error } = await fn.call(sb.auth.oauth, authId, { skipBrowserRedirect: true });
+    if (error || !data || !data.redirect_url){
+      $('consent-err').textContent = friendlyError(error);
+      $('deny-btn').disabled = false;
+      return;
+    }
+    if (!hostAllowed(data.redirect_url)){ message('Couldn\'t continue', 'This request isn\'t coming from Claude.'); return; }
+    location.href = data.redirect_url;
+  }
+  $('allow-btn').addEventListener('click', () => decide(true));
+  $('deny-btn').addEventListener('click', () => decide(false));
+
+  start().catch((e) => message('Couldn\'t continue', friendlyError(e)));
+})();
+</script>
+</body>
+</html>
