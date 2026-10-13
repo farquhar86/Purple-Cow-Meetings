@@ -137,7 +137,7 @@
   .rv-stage h3{margin:0 0 4px;color:var(--heading);font-size:1.08rem;}
   .rv-help{margin:0 0 12px;color:var(--muted);font-size:.86rem;}
   .rv-lbl{display:block;font-weight:600;color:var(--heading);font-size:.85rem;margin:14px 0 5px;}
-  .rv-ta{width:100%;min-height:72px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.92rem;line-height:1.5;resize:vertical;background:var(--card,#fff);color:var(--heading);}
+  .rv-ta{width:100%;min-height:72px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:inherit;font-size:.92rem;line-height:1.5;resize:none;overflow:hidden;background:var(--card,#fff);color:var(--heading);}
   .rv-ro{white-space:normal;background:var(--lilac,#f6f1fb);border-radius:9px;padding:9px 11px;font-size:.92rem;color:var(--heading);}
   .rv-ro.inline{display:inline-block;padding:3px 10px;min-width:60px;}
   .rv-empty{color:var(--muted);font-style:italic;}
@@ -6621,7 +6621,10 @@ Herd Life`;
 
   function rvTA(id,value,ro,ph){ return ro
     ? '<div class="rv-ro">'+(value?esc(value).replace(/\n/g,'<br>'):'<span class="rv-empty">— nothing entered —</span>')+'</div>'
-    : '<textarea id="'+id+'" class="rv-ta" oninput="reviewAutosave()" onblur="reviewAutosaveNow()" placeholder="'+esc(ph||'')+'">'+esc(value||'')+'</textarea>'; }
+    : '<textarea id="'+id+'" class="rv-ta" oninput="rvAutoGrow(this);reviewAutosave()" onblur="reviewAutosaveNow()" placeholder="'+esc(ph||'')+'">'+esc(value||'')+'</textarea>'; }
+  /* grow a review textarea to fit its content so nothing has to be scrolled inside it */
+  function rvAutoGrow(el){ if(!el) return; el.style.height='auto'; el.style.height=(el.scrollHeight+2)+'px'; }
+  function rvSizeAllTextareas(){ try{ document.querySelectorAll('#reviewsWrap .rv-ta').forEach(rvAutoGrow); }catch(e){} }
 
   function renderReviewDetail(){
     const box=document.getElementById('reviewsWrap'); if(!box) return;
@@ -6712,6 +6715,7 @@ Herd Life`;
     if(canFill||canSetup) h+='<span id="rv-savestate" class="rv-savestate saved">All changes saved automatically</span>';
     h+='</div></div>';
     box.innerHTML=h;
+    rvSizeAllTextareas();
   }
   function rvAddQuestionLive(){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=r.custom||[]; r.custom.push({id:uid(),q:'',a:''}); persistReview(r); renderReviewDetail(); }
   function rvRemoveQuestion(qid){ const r=reviews.find(x=>x.id===curReviewId); if(!r) return; saveReview(false,true); r.custom=(r.custom||[]).filter(c=>c.id!==qid); persistReview(r); renderReviewDetail(); }
