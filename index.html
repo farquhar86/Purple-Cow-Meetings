@@ -6396,11 +6396,21 @@ Herd Life`;
   }
   /* ---------- sidebar navigation ---------- */
   let currentSection='home';
-  // Remember the section in the URL so a refresh lands back where the user was, not on Home.
-  function persistSection(sec){
+  // Remember the screen in the URL so a refresh lands back where the user was, not on Home.
+  // Each screen change also adds a browser history entry, so the browser's back and forward
+  // buttons move between screens inside the app instead of leaving it (see the popstate
+  // handler by applyRoute). A priority or review page adds &prio= or &review= to the section.
+  let routeQuiet=false;   // true while reopening a screen from back/forward or the first load: update the URL, don't add history
+  function routeSet(hash){
     if(!reviewUnlocked) return;
-    try{ history.replaceState(null,'', location.pathname+'#section='+encodeURIComponent(sec)); }catch(e){}
+    try{
+      if(location.hash===hash) return;
+      if(routeQuiet) history.replaceState(null,'', location.pathname+hash);
+      else history.pushState(null,'', location.pathname+hash);
+    }catch(e){}
   }
+  function sectionHash(sec){ return '#section='+encodeURIComponent(sec)+((sec==='reviews' && curReviewId)?'&review='+encodeURIComponent(curReviewId):''); }
+  function persistSection(sec){ routeSet(sectionHash(sec)); }
   function toggleMobileNav(){ document.body.classList.toggle('sb-open'); }
   function closeMobileNav(){ document.body.classList.remove('sb-open'); }
   function navTo(sec){
@@ -6702,8 +6712,8 @@ Herd Life`;
     box.innerHTML='<div class="rv-bar"><span>Quarter: '+qsel+'</span><span class="rv-count">'+inQ.length+' review'+(inQ.length===1?'':'s')+(isSuperAdmin()?' · you see everyone’s':'')+'</span></div>'+cards;
   }
   function setReviewQuarter(k){ reviewQuarterView=k; renderReviewsList(); }
-  function openReview(id){ curReviewId=id; rvDeptEditing=false; renderReviewDetail(); window.scrollTo({top:0}); }
-  function backToReviews(){ curReviewId=null; rvDeptEditing=false; renderReviewsList(); }
+  function openReview(id){ curReviewId=id; rvDeptEditing=false; renderReviewDetail(); window.scrollTo({top:0}); routeSet(sectionHash('reviews')); }
+  function backToReviews(){ curReviewId=null; rvDeptEditing=false; renderReviewsList(); routeSet(sectionHash('reviews')); }
   function deleteReview(id){ const r=reviews.find(x=>x.id===id); if(!r) return;
     if(!reviewCanDelete(r)){ infoModal('Only the reviewer, the person who created this review, or a super admin can delete it.'); return; }
     confirmModal('Delete this quarterly review for '+esc(pmName(resolvePerson(r.reviewee))||'this person')+'? This can’t be undone.', ()=>{
@@ -7171,6 +7181,15 @@ Herd Life`;
   }
   function toggleAcctMenu(ev){ if(ev) ev.stopPropagation(); const m=document.getElementById('sbAcctMenu'); if(m) m.classList.toggle('show'); }
   function closeAcctMenu(){ const m=document.getElementById('sbAcctMenu'); if(m) m.classList.remove('show'); }
+  /* Pop-ups close on a click on the dark background, but only when the click started there too.
+     Selecting text in a field and letting go outside the box counts as a background click to the
+     browser, which used to close the pop-up and throw away what was typed. */
+  (function(){ let downOn=null, upOn=null;
+    document.addEventListener('pointerdown', e=>{ downOn=e.target; }, true);
+    document.addEventListener('pointerup', e=>{ upOn=e.target; }, true);
+    document.addEventListener('click', e=>{ const t=e.target;
+      if(t && t.classList && t.classList.contains('modal-ov') && (downOn!==t || upOn!==t)) e.stopPropagation(); }, true);
+  })();
   document.addEventListener('click', (e)=>{ const b=document.getElementById('sbAcct'), m=document.getElementById('sbAcctMenu'); if(m && m.classList.contains('show') && !m.contains(e.target) && b && !b.contains(e.target)) m.classList.remove('show'); });
   function gotoForm(){ document.body.classList.remove('presenting'); showScreen('form'); window.scrollTo({top:0}); }
   function gotoDash(){ if(!reviewUnlocked){ openMgr(); return; } currentSection='priorities'; persistSection('priorities'); setActiveNav('priorities'); showScreen('dash'); renderDash(); window.scrollTo({top:0}); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
@@ -7750,7 +7769,7 @@ Herd Life`;
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; rvPrioReturn=rvPrioPending; rvPrioPending=null; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  function openPrio(id){ if(!reviewUnlocked) return; rvPrioReturn=rvPrioPending; rvPrioPending=null; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); routeSet(sectionHash(ent&&ent.special?'special':'priorities')+'&prio='+encodeURIComponent(id)); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
   /* a priority may live in the active quarter or on the Special Projects board */
   function findEntry(id){ return cur().entries.find(x=>x.id===id) || spProjects.find(x=>x.id===id); }
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special){ if(screen==='special') renderSpBoard(); } else renderDashBody(); }
@@ -8274,14 +8293,16 @@ Herd Life`;
   function resetAll(){ if(!isManager()) return; confirmModal(`This clears ALL entries in "${cur().name}". Export a copy first if you want to keep it.`, ()=>{ const mid=cur().id; cur().entries=[]; save(); render(); dbDeleteEntriesForMeeting(mid); }, 'Clear quarter'); }
 
   /* ---------- routing + init ---------- */
-  const NAV_SECTIONS=['home','vision','metrics','priorities','special','todos','issues','swim','meetings'];
+  const NAV_SECTIONS=['home','vision','metrics','priorities','special','todos','issues','swim','meetings','reviews'];
   function parseHash(){
     const h=(location.hash||'').replace(/^#/,'');
     if(h==='form' || h.indexOf('form=')===0 || h.indexOf('form/')===0){
       return { form:true, id: h.split(/[=/]/)[1] || '' };
     }
     if(h.indexOf('section=')===0){
-      return { section: decodeURIComponent(h.slice('section='.length)) };
+      const parts=h.split('&'), out={ section: decodeURIComponent(parts[0].slice('section='.length)) };
+      parts.slice(1).forEach(x=>{ const i=x.indexOf('='); if(i>0){ const k=x.slice(0,i); if(k==='prio'||k==='review') out[k]=decodeURIComponent(x.slice(i+1)); } });
+      return out;
     }
     return {};
   }
@@ -8293,11 +8314,32 @@ Herd Life`;
     } else {
       applyTheme(); renderForm();
       if(reviewUnlocked){
-        const sec = (r.section && NAV_SECTIONS.indexOf(r.section)>=0) ? r.section : 'home';
-        navTo(sec);
+        routeQuiet=true;
+        try{ openRoute(r); }finally{ routeQuiet=false; }
       } else { showScreen('login'); }
     }
   }
+  /* open the screen a URL points at: a section, or a priority / review inside it */
+  function openRoute(r){
+    // leaving a priority that was opened from a review: put the review's quarter back, like "← Back to the review" does
+    if(screen==='prio' && rvPrioReturn && r.prio!==prioOpenId){ const ret=rvPrioReturn; rvPrioReturn=null;
+      if(ret.restore && store.meetings.some(m=>m.id===ret.restore)){ store.activeId=ret.restore; save(); try{ applyTheme(); renderMeetingSel(); }catch(e){} } }
+    const sec = (r.section && NAV_SECTIONS.indexOf(r.section)>=0) ? r.section : 'home';
+    if(r.prio && findEntry(r.prio)){
+      if(sec!=='meetings') stopMtgPolling();
+      currentSection=sec; setActiveNav(sec); closeAcctMenu(); closeMobileNav();
+      openPrio(r.prio); if(screen==='prio') return;
+    }
+    if(sec==='reviews') curReviewId = r.review || null;
+    navTo(sec);
+  }
+  /* browser back / forward: reopen the screen that history entry points at, without adding a new entry */
+  window.addEventListener('popstate', ()=>{
+    if(!reviewUnlocked) return;
+    const r=parseHash(); if(r.form) return;   // the hashchange handler below opens the intake form
+    routeQuiet=true;
+    try{ openRoute(r); }finally{ routeQuiet=false; }
+  });
   function copyFormLink(){
     const url=location.origin+location.pathname+'#form='+cur().id;
     const done=()=>infoModal('Shareable form link for “'+cur().name+'”:\n\n'+url+'\n\nSend this to the team — it opens straight to this quarter\'s intake form.');
