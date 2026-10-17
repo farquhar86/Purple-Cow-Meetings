@@ -7786,9 +7786,13 @@ Herd Life`;
       if(ret.restore && store.meetings.some(m=>m.id===ret.restore)){ store.activeId=ret.restore; save(); try{ applyTheme(); renderMeetingSel(); }catch(e){} }
       navTo('reviews'); return; }
     const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special) navTo('special'); else gotoDash(); }
+  /* Jira bookkeeping on a task: jiraDone = the Jira sync ticked it; jiraSkip = someone un-ticked it
+     after that, so the sync leaves it alone. Rebuilding a task's plan has to carry these over, or
+     an un-ticked task gets ticked again on the next sync. */
+  function keepJiraFlags(from, to){ if(from&&from.jiraDone) to.jiraDone=from.jiraDone; if(from&&from.jiraSkip) to.jiraSkip=true; return to; }
   function syncPlan(e){
     e.done=e.done||[]; const old=e.plan||[]; const np=[];
-    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0,ocs:Array.isArray(old[i].ocs)?old[i].ocs.slice():[]} : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0,ocs:[]}); });
+    e.done.forEach((d,i)=>{ np.push(old[i] && typeof old[i]==='object' ? keepJiraFlags(old[i], {start:old[i].start||'',end:old[i].end||'',pct:Number(old[i].pct)||0,owner:old[i].owner||'',dept:old[i].dept||'',note:old[i].note||'',origStart:old[i].origStart||'',origEnd:old[i].origEnd||'',datesSetAt:old[i].datesSetAt||0,bumps:old[i].bumps||0,pctBefore:Number(old[i].pctBefore)||0,ocs:Array.isArray(old[i].ocs)?old[i].ocs.slice():[]}) : {start:'',end:'',pct:0,owner:'',dept:'',note:'',origStart:'',origEnd:'',datesSetAt:0,bumps:0,pctBefore:0,ocs:[]}); });
     e.plan=np;
   }
   /* a task counts as "bumped" once its end date has been pushed later than the original plan */
@@ -8167,6 +8171,9 @@ Herd Life`;
     if(taskModalIdx!=null && e.plan[taskModalIdx]){
       const old=e.plan[taskModalIdx];
       nv.origStart=old.origStart||''; nv.origEnd=old.origEnd||''; nv.datesSetAt=old.datesSetAt||0; nv.bumps=Number(old.bumps)||0;
+      keepJiraFlags(old, nv);
+      if((Number(old.pct)||0)===100 && nv.pct<100 && old.jiraDone) nv.jiraSkip=true;   // un-ticked here on purpose: the Jira sync backs off
+      nv.pctBefore = (nv.pct===100 && (Number(old.pct)||0)===100) ? (Number(old.pctBefore)||0) : 0;
       if(!old.end && nv.end){ nv.datesSetAt=Date.now(); }                       // dates set for the first time → baseline starts here
       else if(old.end && nv.end && parseD(old.end) && parseD(nv.end) && parseD(nv.end)>parseD(old.end)){
         if((Date.now()-(nv.datesSetAt||0)) > 48*3600*1000){                     // 48h grace so fixing a typo doesn't count as a bump

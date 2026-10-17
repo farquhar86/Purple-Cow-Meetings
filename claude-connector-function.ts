@@ -1060,7 +1060,9 @@ const TOOLS: Tool[] = [
           assigned_by: str(it.data.assignedBy),
           due: d || "",
           status: it.data.done ? "done" : d && d < ctx.today ? "overdue" : "open",
-          done_at: it.data.doneAt ? str(it.data.doneAt).slice(0, 10) : "",
+          done_at: it.data.doneAt
+            ? (isFinite(Number(it.data.doneAt)) ? new Date(Number(it.data.doneAt)).toLocaleDateString("en-CA", { timeZone: TZ }) : str(it.data.doneAt).slice(0, 10))
+            : "",
           meeting: mtgTitle(it.meeting_id),
           meeting_date: it.inst && it.inst !== "static" ? str(it.inst) : "",
           from_issue: it.data.fromIssue ? "yes" : "",
