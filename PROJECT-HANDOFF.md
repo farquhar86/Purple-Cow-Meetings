@@ -55,8 +55,10 @@ Supabase Auth  ─►  Custom SMTP  ─►  Resend  ─►  sends invite / reset
 | `herd-100k-worksheet.html` | Same content, working copy. |
 | `manage-users-function.ts` | Supabase Edge Function code (paste into Supabase to deploy). |
 | `jira-status-function.ts` | Supabase Edge Function that looks up Jira ticket statuses (see `JIRA-SYNC-SETUP.md`). |
-| `claude-connector-function.ts` | Supabase Edge Function that lets Claude read the app (MCP connector, read-only). See `MCP-CONNECTOR-SETUP.md`. |
-| `oauth-consent.html` | The "Allow Claude to read Round Up?" page the connector's sign-in sends people to. |
+| `claude-connector-function.ts` | Supabase Edge Function that lets Claude read the app and make a few updates (MCP connector). See `MCP-CONNECTOR-SETUP.md`. |
+| `oauth-consent.html` | The "Claude wants to use Round Up" approval page the connector's sign-in sends people to. |
+| `supabase-role-rules.sql` | Makes the database enforce the app's role rules for Team users, and adds `ru_save_if_unchanged` + `connector_log` for the connector's updates. |
+| `supabase-role-rules-undo.sql` | Drops those role rules again (leaves the connector's pieces). |
 | `supabase-setup.sql` | Original quarters tables (`meetings`, `entries`). |
 | `supabase-lockdown.sql` | RLS policies for those tables. |
 | `supabase-metrics.sql` | Metrics tables (`metrics` + `metric_values`). |
@@ -93,7 +95,11 @@ warns in console "relation ... does not exist").
 | `special_projects` | Special Projects (kanban cards, priority-shaped JSON) | one row per project; authenticated only |
 | Storage bucket `meeting-uploads` | Note images (public) | |
 
-RLS model: intake form is public-insert; everything else requires a logged-in user.
+RLS model: intake form is public-insert; everything else requires a logged-in user. Once
+`supabase-role-rules.sql` is run, Team-role users can only change the priorities, special
+projects and metrics they're on (restrictive policies on top of the ones above). Meetings and
+their items follow `supabase-meetings-privacy.sql` (attendees only). A login with no role counts
+as Admin.
 
 ---
 

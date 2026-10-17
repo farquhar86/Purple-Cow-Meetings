@@ -6,9 +6,14 @@ Connects Claude to Round Up so you can ask things like:
 - "What tasks does Operations owe other departments' priorities?"
 - "Which metrics don't have a number yet this week?"
 - "What are my open to-dos?"
+- "Tick off the venue task on the training priority." (stage 2)
+- "Put 22.2 in Breakage % for last week." (stage 2)
 
-**Stage 1 is read-only.** Claude can look things up but can't change anything in the app.
-Updates (stage 2) and filling in weekly metrics (stage 3) come later.
+**Stage 2 adds a few updates.** Claude can tick or update tasks, tick Definition of Done lines,
+add and tick off to-dos, move issue cards and enter weekly metric numbers. It checks with you
+before each change, follows the same rules as the app about who can change what, never saves
+over an edit someone made in the meantime, and logs every change (see `list_recent_changes`).
+Filling in weekly metrics automatically (stage 3) comes later.
 
 Each person connects with their own Round Up login, and Claude sees only what that
 person sees in the app. A Team-role user gets only the priorities they PM or have a task on,
@@ -123,13 +128,35 @@ Then have a Team-role person run the same three and check that they only see the
 | "This request isn't coming from Claude" | Something other than Claude tried to get access. Close the page. |
 | Claude connects but every answer is an error | Redeploy the function and confirm "Last deployed" changed. The function's **Logs** tab shows the real error. |
 | Someone sees less than they expect | They're a Team-role user. That's by design, and it matches the app. |
+| Claude says "Updates aren't switched on yet" | `supabase-role-rules.sql` hasn't been run. Run it once in the SQL Editor (see "Turning on updates" below). |
+| Claude says the database refused a change | The person's role doesn't allow it (the same rule as in the app). Nothing was saved. |
+| Claude says someone else is editing it | Someone saved the same priority three times while Claude tried. Nothing was saved; try again. |
 
 To cut off someone's access, remove the connector in Claude. To cut off everyone's, turn
 the OAuth Server off or delete the function. Neither affects the app itself.
 
 ---
 
-## What Claude can read (stage 1)
+## Turning on updates (stage 2)
+
+1. In Supabase ▸ SQL Editor, run **`supabase-role-rules.sql`** once. It's safe to run again.
+   - It makes the database itself enforce the app's role rules (until now it only checked that
+     someone was logged in), and adds the two pieces the connector's updates need:
+     `ru_save_if_unchanged` and the `connector_log` table.
+   - If anything goes wrong in the app afterwards, run **`supabase-role-rules-undo.sql`**. It
+     puts the rules back exactly as they were and leaves the connector's pieces in place.
+2. Redeploy the `claude-connector` function with the new `claude-connector-function.ts`
+   (paste it in, Deploy, and check that "Last deployed" changed). Verify JWT stays OFF.
+3. Push `oauth-consent.html` so the Allow page lists what Claude can now change.
+4. In Claude, open the Round Up connector and reconnect it (or start a new chat) so the new
+   tools show up. Then try one low-risk change, like ticking one of your own tasks.
+
+A login with no role set counts as Admin, in the app and in the database. Set a role in the
+app's Team panel for anyone who shouldn't be an Admin.
+
+---
+
+## What Claude can read
 
 | Tool | What it answers |
 |---|---|
@@ -144,6 +171,22 @@ the OAuth Server off or delete the function. Neither affects the app itself.
 | `list_issues` | Issues board cards from meetings you can see |
 | `list_special_projects` | Special projects by status |
 | `get_core_values` | The Core Values / Vision page |
+| `list_recent_changes` | Changes made through Claude: who, when, what (Admins see everyone's) |
+
+## What Claude can change (stage 2)
+
+Claude confirms each change with you first, and does one change per call.
+
+| Tool | What it does | Who can |
+|---|---|---|
+| `update_task` | Tick a task done or un-tick it, set its %, move its start or end date, add a note. Works like the app: a finished task drops to the bottom, un-ticking restores its old %, a later end date counts as a bump, and the priority's stage updates itself. Works on special projects too. | Anyone on that priority (Team users: only priorities they PM, are assigned to, or have a task on) |
+| `set_dod_line` | Tick or un-tick a Definition of Done line. All lines ticked = the priority is complete. | Same as above |
+| `add_todo` | Add a to-do to the To-Dos page, due in a week unless a date is given. | Everyone for themselves; Admins and Leadership for anyone |
+| `complete_todo` | Mark a to-do done or not done. | The to-do's owner, plus Admins and Super Admins |
+| `move_issue` | Move an issue card between Not started, In progress, Has update and Done. | Anyone who can see that meeting |
+| `set_metric_value` | Enter or clear one week's number. Defaults to last week (Monday's number is last week's). Won't fill calculated or roll-up metrics. | The metric's owner (Team users); everyone else for any metric |
+
+Not yet: creating or deleting priorities, changing owners or departments, or editing meeting notes.
 
 "Off track" and "behind" use the same rules as the app: off track means a task is past its
 end date and not at 100%, and behind means progress is more than 10 points under where the
@@ -153,8 +196,6 @@ timeline says it should be.
 
 ## Coming next
 
-- **Stage 2: updates from Claude.** Tick tasks, change task %, add to-dos, and move issues,
-  limited to what each person can already change in the app.
 - **Stage 3: weekly metrics fill themselves.** Metrics tagged Salesforce or AWS Connect get
   their number each week. The rest stay with their owners. A check flags any auto metric
   that didn't get its number.

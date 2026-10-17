@@ -12,7 +12,7 @@
   Supabase's OAuth 2.1 Server sends people here when they click Connect in Claude
   (Authentication ▸ OAuth Server ▸ Authorization Path = /oauth-consent.html).
   It uses the same login as the app, so anyone already signed in to the app just clicks Allow.
-  The connector is read-only, so the page says exactly that.
+  The page says exactly what the connector can see and change.
 
   Only Claude's own addresses can be approved here (ALLOWED_REDIRECT_HOSTS), so the page
   can't be used to hand someone's access to some other app.
@@ -77,9 +77,9 @@
   </section>
 
   <section id="v-consent" hidden>
-    <h1><span id="client-name">Claude</span> wants to read Round Up</h1>
+    <h1><span id="client-name">Claude</span> wants to use Round Up</h1>
     <div class="who">Signed in as <b id="who-email"></b><a id="switch">Not you?</a></div>
-    <span class="ro">READ-ONLY</span>
+    <span class="ro">ACTS AS YOU</span>
     <p style="color:var(--ink);margin-bottom:2px">It will be able to see, as you:</p>
     <ul>
       <li>Quarterly priorities and their tasks</li>
@@ -87,7 +87,13 @@
       <li>To-dos, issues and special projects</li>
       <li>The core values page</li>
     </ul>
-    <p>It sees only what you can already see in the app, and it can't change anything.</p>
+    <p style="color:var(--ink);margin-bottom:2px">And, when you ask it to:</p>
+    <ul>
+      <li>Tick or update tasks and Definition of Done lines</li>
+      <li>Add and tick off to-dos, and move issue cards</li>
+      <li>Enter weekly metric numbers</li>
+    </ul>
+    <p>It sees and changes only what you already can in the app, it checks with you before changing anything, and every change is logged.</p>
     <div class="warn" id="bad-client" hidden>This request isn't coming from Claude, so it can't be approved here. Close this page.</div>
     <div class="row">
       <button class="secondary" id="deny-btn" type="button">Cancel</button>

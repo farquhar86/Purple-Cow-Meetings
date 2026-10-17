@@ -2,7 +2,12 @@
 // Lets Claude read Round Up: quarterly priorities and their tasks, the weekly
 // metrics scorecard, to-dos, issues, special projects and the core values page.
 //
-// Stage 1 is READ-ONLY. Nothing in this file writes to the database.
+// Stage 2 adds a few updates: tick or change a task, tick a Definition of Done line, add or
+// complete a to-do, move an issue card, and enter a weekly metric number. Each one follows the
+// same rules as the app (a Team-role user can only change what the app lets them change), saves
+// only if nobody else changed that record since Claude read it, and is written to connector_log.
+// Updates need supabase-role-rules.sql to have been run once (it adds ru_save_if_unchanged and
+// connector_log). Reads work without it.
 //
 // How it fits together
 //   Claude ──► this function (an MCP server) ──► the app's Supabase tables, as the person signed in
@@ -34,14 +39,18 @@ const AUTH_SERVER = `${SUPABASE_URL}/auth/v1`;
 const APP_URL = "https://farquhar86.github.io/Purple-Cow-Meetings/";
 const TZ = "America/Halifax";
 
-const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.1.0" };
+const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.2.0" };
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS = [
   "Round Up is Purple Cow Internet's planning app (" + APP_URL + ").",
   "It holds quarterly priorities (also called rocks) with their tasks, the weekly metrics scorecard,",
   "to-dos from meetings, the issues board, special projects and the core values page.",
-  "This connector is read-only. 'me' means the person who connected it.",
+  "'me' means the person who connected it.",
+  "It can also make a few updates (update_task, set_dod_line, add_todo, complete_todo, move_issue,",
+  "set_metric_value). Before calling any of them, tell the person exactly what will change and wait",
+  "for them to say yes; make one change per call. Each update follows the app's own rules about who",
+  "can change what, and reports what it changed. list_recent_changes shows changes made through Claude.",
   "Dates are Atlantic time; metric weeks start on Sunday and are keyed by that Sunday's date.",
   "A task is off track when it is past its end date and not 100%. A priority is off track when",
   "any task is off track, and behind when its progress is more than 10 points under where the",
@@ -492,6 +501,7 @@ function tasksOf(e: Json, today: string) {
     const p = plan[i] || {};
     const pct = Number(p.pct) || 0;
     return compact({
+      number: i + 1,
       task: str(title),
       owner: str(p.owner) || "Unassigned",
       department: taskDept(e, i) || "Unassigned",
@@ -714,6 +724,8 @@ interface Tool {
   description: string;
   inputSchema: Json;
   run: (args: Json, ctx: Ctx) => Promise<Json>;
+  write?: boolean;        // changes something in the app
+  repeatable?: boolean;   // calling it twice with the same arguments changes nothing more
 }
 
 const quarterArg = {
@@ -912,6 +924,7 @@ const TOOLS: Tool[] = [
           if (status === "done" && st !== "done") return;
           if (status === "unassigned" && str(p.owner)) return;
           out.push(compact({
+            task_number: i + 1,
             task: str(title),
             priority: str(e.title),
             priority_id: str(e.id),
@@ -1041,6 +1054,7 @@ const TOOLS: Tool[] = [
       const rows = list.map((it) => {
         const d = due(it);
         return compact({
+          id: str(it.id),
           todo: clip(it.data.text, 300),
           owner: owner(it),
           assigned_by: str(it.data.assignedBy),
@@ -1085,6 +1099,7 @@ const TOOLS: Tool[] = [
       return {
         count: list.length,
         issues: list.map((it) => compact({
+          id: str(it.id),
           issue: clip(it.data.text, 200),
           status: label[st(it)] || st(it),
           raised_by: str(it.data.author),
@@ -1152,6 +1167,595 @@ const TOOLS: Tool[] = [
 const STATUS_ORDER = ["inprogress", "blocked", "backlog", "done"];
 
 // ============================================================================================
+// Updates (stage 2)
+//
+// Every update follows the same steps: find the record the person means, check the app would let
+// this person change it, then read it fresh, apply the change the way the app does, and save it
+// only if nobody changed it in between (ru_save_if_unchanged). The database's own rules
+// (supabase-role-rules.sql) check the same thing again. Each change is written to connector_log.
+// ============================================================================================
+
+const NEEDS_SETUP =
+  "Updates aren't switched on yet: the one-time database update (supabase-role-rules.sql) hasn't been run in Supabase. Reading still works.";
+
+// Same shape as the app's uid().
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const firstName = (email: string) => {
+  const s = email.split("@")[0].split(/[._-]/)[0] || email;
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+async function rest(me: Caller, method: string, path: string, body?: Json, prefer?: string) {
+  const headers: Record<string, string> = { apikey: ANON_KEY, Authorization: `Bearer ${me.token}`, Accept: "application/json" };
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+  if (prefer) headers.Prefer = prefer;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
+    method,
+    headers,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  const text = await r.text();
+  let data: Json = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  return { ok: r.ok, status: r.status, data, text };
+}
+
+async function readRow(me: Caller, table: string, id: string): Promise<Json | null> {
+  const r = await rest(me, "GET", `${table}?select=*&id=eq.${encodeURIComponent(id)}`);
+  if (!r.ok) throw new ToolError(`Couldn't read ${table} (${r.status}): ${r.text.slice(0, 200)}`);
+  return Array.isArray(r.data) && r.data.length ? r.data[0] : null;
+}
+
+const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
+
+// Read the record, apply the change, and save it only if it's still exactly what was read.
+// If someone saved in between, start again from their version (up to three tries).
+async function changeRecord(me: Caller, table: string, id: string, apply: (d: Json) => void): Promise<{ before: Json; after: Json; changed: boolean }> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const row = await readRow(me, table, id);
+    if (!row || !row.data) throw new ToolError("That record no longer exists in the app.");
+    const before = row.data;
+    const after = JSON.parse(JSON.stringify(before));
+    apply(after);
+    if (same(after, before)) return { before, after, changed: false };
+    const r = await rest(me, "POST", "rpc/ru_save_if_unchanged", { p_table: table, p_id: id, p_expected: before, p_new: after });
+    if (r.status === 404 || (r.data && r.data.code === "PGRST202")) throw new ToolError(NEEDS_SETUP);
+    if (!r.ok) throw new ToolError(`The database didn't accept the change (${r.status}): ${r.text.slice(0, 200)}`);
+    if (r.data === true) return { before, after, changed: true };
+    // Not saved. Either someone changed it in between (go again from their version) or the rules said no.
+    const now = await readRow(me, table, id);
+    if (now && same(now.data, before)) throw new ToolError("The database refused this change for your account. Nothing was saved.");
+  }
+  throw new ToolError("Someone else is editing this right now. Nothing was saved; try again in a minute.");
+}
+
+async function logChange(me: Caller, tool: string, target: string, summary: string, before: Json, after: Json): Promise<boolean> {
+  try {
+    const r = await rest(me, "POST", "connector_log", { by_email: me.email, tool, target, summary, before, after }, "return=minimal");
+    if (!r.ok) console.warn("connector_log insert failed", r.status, r.text.slice(0, 200));
+    return r.ok;
+  } catch (e) {
+    console.warn("connector_log insert failed", e);
+    return false;
+  }
+}
+
+function saved(summary: string, logged: boolean, extra: Json = {}) {
+  return compact({ saved: "yes", summary, ...extra, ...(logged ? {} : { note: "Saved, but it couldn't be added to the change log." }) });
+}
+
+// ---------- Priority helpers, ported from the app (autoStage, syncStageFlags, sinkTask) ----------
+
+const stageRank = (k: string) => Math.max(0, STAGE_ORDER.indexOf(k));
+
+function syncStageFlags(e: Json) {
+  const r = stageRank(stageOf(e));
+  e.reviewed = r >= stageRank("reviewed");
+  e.committed = r >= stageRank("committed");
+  e.completed = stageOf(e) === "complete";
+}
+
+function autoStage(e: Json) {
+  if (!e.stage) e.stage = legacyStage(e);
+  if (e.size && stageRank(e.stage) < stageRank("sized")) e.stage = "sized";
+  if (prioRange(e) && stageRank(e.stage) < stageRank("scheduled")) e.stage = "scheduled";
+  if (dodLines(e).length) {
+    // with Definition of Done lines, a priority is complete when every line is ticked
+    if (dodAllMet(e)) {
+      if (stageRank(e.stage) < stageRank("complete")) e.stage = "complete";
+    } else if (e.stage === "complete") e.stage = prioRange(e) ? "scheduled" : "committed";
+  } else if (arr(e.done).length > 0 && prioPct(e) === 100 && stageRank(e.stage) < stageRank("complete")) e.stage = "complete";
+  syncStageFlags(e);
+}
+
+const blankPlan = () => ({ start: "", end: "", pct: 0, owner: "", dept: "", note: "", origStart: "", origEnd: "", datesSetAt: 0, bumps: 0, pctBefore: 0, ocs: [] });
+
+// Make plan[] line up with done[] (one entry per task), keeping everything already there.
+function alignPlan(e: Json) {
+  if (!Array.isArray(e.done)) e.done = [];
+  if (!Array.isArray(e.plan)) e.plan = [];
+  for (let i = 0; i < e.done.length; i++) if (!e.plan[i] || typeof e.plan[i] !== "object") e.plan[i] = blankPlan();
+  e.plan.length = e.done.length;
+}
+
+// A finished task drops to the bottom of the list, like in the app.
+function sinkTask(e: Json, i: number) {
+  const d = e.done.splice(i, 1)[0];
+  const p = e.plan.splice(i, 1)[0];
+  e.done.push(d);
+  e.plan.push(p);
+}
+
+const canChangePrio = (e: Json, me: Caller) => me.role !== "team" || teamVisible(e, me, true);
+
+// Which priority (or special project) the person means, and may they change it?
+async function findPrioForUpdate(ctx: Ctx, a: Json): Promise<{ table: string; e: Json }> {
+  const idq = str(a.priority_id).trim(), tq = str(a.priority).trim();
+  if (!idq && !tq) throw new ToolError("Say which priority: pass priority_id (from list_priorities or get_priority), or its title as priority.");
+  const [ps, sps] = await Promise.all([ctx.priorities(), ctx.specialProjects()]);
+  const pool = [...ps.map((e) => ({ table: "entries", e })), ...sps.map((e) => ({ table: "special_projects", e }))];
+  let hits = idq ? pool.filter((x) => x.e.id === idq) : pool.filter((x) => lc(x.e.title) === lc(tq));
+  if (!hits.length && !idq) hits = pool.filter((x) => textMatches([x.e.title], tq));
+  if (hits.length > 1) {
+    // the same title is often carried over from quarter to quarter; prefer the current one
+    const q = await resolveQuarter(ctx, "current").catch(() => null);
+    const cur = hits.filter((x) => q && x.e._quarterId === q.id);
+    if (cur.length === 1) hits = cur;
+  }
+  if (!hits.length) throw new ToolError("No priority or special project found with that id or title (or you can't see it).");
+  if (hits.length > 1) {
+    throw new ToolError(
+      "More than one matches: " +
+        hits.slice(0, 8).map((x) => `"${x.e.title}" (${x.e._quarter || "special project"}, id ${x.e.id})`).join("; ") +
+        ". Call again with priority_id.",
+    );
+  }
+  if (!canChangePrio(hits[0].e, ctx.me)) {
+    throw new ToolError("Your account can only change priorities you PM, are assigned to, or have a task on.");
+  }
+  return hits[0];
+}
+
+// Which task: its number (as get_priority lists them) or its title.
+function findTaskIndex(e: Json, q: unknown): number {
+  const tasks = arr(e.done).map(str);
+  if (!tasks.length) throw new ToolError("This priority has no tasks.");
+  const s = str(q).trim();
+  if (!s) throw new ToolError("Say which task: its number from get_priority, or its title.");
+  if (/^\d+$/.test(s)) {
+    const n = Number(s);
+    if (n >= 1 && n <= tasks.length) return n - 1;
+    throw new ToolError(`There's no task ${n}; this one has ${tasks.length}.`);
+  }
+  let idx = tasks.map((t, i) => (lc(t) === lc(s) ? i : -1)).filter((i) => i >= 0);
+  if (!idx.length) idx = tasks.map((t, i) => (textMatches([t], s) ? i : -1)).filter((i) => i >= 0);
+  if (idx.length === 1) return idx[0];
+  if (!idx.length) throw new ToolError(`No task matching "${s}". Tasks: ${tasks.map((t, i) => `${i + 1}. ${t}`).join("; ")}`);
+  throw new ToolError(`More than one task matches "${s}": ${idx.map((i) => `${i + 1}. ${tasks[i]}`).join("; ")}. Use the number.`);
+}
+
+// Tasks can move (a finished one drops to the bottom), so find it again in the fresh copy by title.
+function relocateTask(d: Json, title: string, wasAt: number): number {
+  const tasks = arr(d.done).map(str);
+  if (tasks[wasAt] === title) return wasAt;
+  const idx = tasks.map((t, i) => (t === title ? i : -1)).filter((i) => i >= 0);
+  if (idx.length === 1) return idx[0];
+  throw new ToolError("That task changed or moved while saving. Nothing was saved; check get_priority and try again.");
+}
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function dateArg(v: unknown, name: string): string | undefined {
+  if (v === undefined || v === null) return undefined;
+  const s = str(v).trim();
+  if (s === "" || lc(s) === "none" || lc(s) === "clear") return "";
+  if (!DATE_RE.test(s) || ymd(s) !== s) throw new ToolError(`${name} must be a date like 2026-11-15.`);
+  return s;
+}
+
+// Which to-do or issue card: its id (from list_todos / list_issues), or words from its text.
+function pickItem(list: Json[], a: Json, kind: string): Json {
+  if (a.id) {
+    const hit = list.find((it) => it.id === a.id);
+    if (!hit) throw new ToolError(`No ${kind} with that id that you can change.`);
+    return hit;
+  }
+  if (!a.search) throw new ToolError(`Say which ${kind}: pass id (from list_${kind === "to-do" ? "todos" : "issues"}) or search words.`);
+  const hits = list.filter((it) => textMatches([it.data.text], str(a.search)));
+  if (hits.length === 1) return hits[0];
+  if (!hits.length) throw new ToolError(`No ${kind} matching "${a.search}" that you can change.`);
+  throw new ToolError(
+    `More than one ${kind} matches: ` + hits.slice(0, 8).map((it) => `"${clip(it.data.text, 80)}" (id ${it.id})`).join("; ") + ". Use the id.",
+  );
+}
+
+const ISSUE_LABEL: Record<string, string> = { notstarted: "Not started", inprogress: "In progress", hasupdate: "Has update", done: "Done" };
+
+const priorityArgs = {
+  priority_id: { type: "string", description: "The id from list_priorities, get_priority or list_tasks (best)." },
+  priority: { type: "string", description: "Or the priority's title (or a unique part of it)." },
+};
+
+TOOLS.push(
+  {
+    name: "update_task",
+    title: "Update a task",
+    write: true,
+    repeatable: true,
+    description:
+      "Change one task on a priority or special project: tick it done (or un-tick it), set its %, move its start or end date, or add a note. " +
+      "Works the way the app does: a finished task drops to the bottom, un-ticking puts back the % it had, pushing the end date out counts as a bump, " +
+      "and the priority's stage updates itself. Confirm the change with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...priorityArgs,
+        task: { type: "string", description: "The task's number (as get_priority lists it) or its title." },
+        done: { type: "boolean", description: "true = tick it done (100%); false = un-tick it." },
+        pct: { type: "number", description: "Set the % complete (0 to 100)." },
+        start: { type: "string", description: "New start date, YYYY-MM-DD." },
+        end: { type: "string", description: "New end date, YYYY-MM-DD." },
+        add_note: { type: "string", description: "A line to add to the task's notes (dated, marked as added via Claude)." },
+      },
+      required: ["task"],
+    },
+    run: async (a, ctx) => {
+      const has = (k: string) => a[k] !== undefined && a[k] !== null && a[k] !== "";
+      if (!["done", "pct", "start", "end", "add_note"].some(has)) throw new ToolError("Nothing to change: pass done, pct, start, end or add_note.");
+      if (has("done") && has("pct")) throw new ToolError("Pass done or pct, not both.");
+      let pct: number | undefined;
+      if (has("pct")) {
+        pct = Number(a.pct);
+        if (!isFinite(pct) || pct < 0 || pct > 100) throw new ToolError("pct must be a number from 0 to 100.");
+        pct = Math.round(pct);
+      }
+      const start = dateArg(a.start, "start"), end = dateArg(a.end, "end");
+      const note = str(a.add_note).trim();
+      const { table, e } = await findPrioForUpdate(ctx, a);
+      const at = findTaskIndex(e, a.task);
+      const title = str(arr(e.done)[at]);
+      const me = ctx.me;
+      let oldPct = 0, newPct = 0;
+      const res = await changeRecord(me, table, e.id, (d) => {
+        if (!canChangePrio(d, me)) throw new ToolError("Your account can only change priorities you PM, are assigned to, or have a task on.");
+        alignPlan(d);
+        const i = relocateTask(d, title, at);
+        const p = d.plan[i];
+        oldPct = Number(p.pct) || 0;
+        if (a.done === true || pct === 100) {
+          if (oldPct < 100) {
+            p.pctBefore = oldPct;
+            p.pct = 100;
+          }
+        } else if (a.done === false) {
+          if (oldPct >= 100) {
+            if (p.jiraDone) p.jiraSkip = true; // un-ticked on purpose: the Jira sync leaves it alone
+            p.pct = Math.max(0, Math.min(99, Number(p.pctBefore) || 0));
+            p.pctBefore = 0;
+          }
+        } else if (pct !== undefined) {
+          if (oldPct >= 100 && p.jiraDone) p.jiraSkip = true;
+          p.pct = pct;
+          p.pctBefore = 0;
+        }
+        if (end !== undefined) {
+          // same bump rules as the app's task popup: a later end date counts as a bump after a 48-hour grace
+          const oldEnd = ymd(p.end) || "";
+          if (!oldEnd && end) p.datesSetAt = Date.now();
+          else if (oldEnd && end && end > oldEnd && Date.now() - (Number(p.datesSetAt) || 0) > 48 * 3600 * 1000) {
+            if (!p.origEnd) {
+              p.origStart = p.start || "";
+              p.origEnd = oldEnd;
+            }
+            p.bumps = (Number(p.bumps) || 0) + 1;
+          }
+          p.end = end;
+          if (p.origEnd && end && end <= (ymd(p.origEnd) || "")) {
+            p.origStart = "";
+            p.origEnd = "";
+          }
+        }
+        if (start !== undefined) p.start = start;
+        const s2 = ymd(p.start), e2 = ymd(p.end);
+        if (s2 && e2 && e2 < s2) throw new ToolError("The end date would be before the start date. Nothing was saved.");
+        if (note) p.note = (str(p.note) ? str(p.note) + "\n" : "") + `${ctx.today} (${firstName(me.email)}, via Claude): ${note}`;
+        newPct = Number(p.pct) || 0;
+        if (newPct >= 100 && oldPct < 100) sinkTask(d, i);
+        autoStage(d);
+      });
+      if (!res.changed) return { saved: "no", summary: `Nothing to change: "${title}" already looks like that.` };
+      const bits = [];
+      if (newPct !== oldPct) bits.push(newPct >= 100 ? "ticked done" : oldPct >= 100 ? `un-ticked (back to ${newPct}%)` : `${oldPct}% → ${newPct}%`);
+      if (end !== undefined) bits.push(end ? `end date ${end}` : "end date cleared");
+      if (start !== undefined) bits.push(start ? `start date ${start}` : "start date cleared");
+      if (note) bits.push("note added");
+      const p = res.after;
+      const summary = `"${title}" on "${str(p.title)}": ${bits.join(", ")}. Priority now ${prioPct(p)}%, stage ${stageOf(p)}.`;
+      const ti = arr(p.done).findIndex((t: Json) => str(t) === title);
+      const bi = arr(res.before.done).findIndex((t: Json) => str(t) === title);
+      const logged = await logChange(me, "update_task", `${table}:${e.id}`, summary,
+        { task: title, ...arr(res.before.plan)[bi] }, { task: title, ...arr(p.plan)[ti] });
+      return saved(summary, logged, { bumped: ti >= 0 ? bumpInfo(arr(p.plan)[ti]) || "" : "" });
+    },
+  },
+  {
+    name: "set_dod_line",
+    title: "Tick a Definition of Done line",
+    write: true,
+    repeatable: true,
+    description:
+      "Tick (or un-tick) one Definition of Done line on a priority. When every line is ticked the priority becomes complete, as in the app. Confirm with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        ...priorityArgs,
+        line: { type: "string", description: "The line's number (as get_priority lists them) or its text." },
+        met: { type: "boolean", description: "true (default) = tick it; false = un-tick it." },
+      },
+      required: ["line"],
+    },
+    run: async (a, ctx) => {
+      const met = a.met !== false;
+      const { table, e } = await findPrioForUpdate(ctx, a);
+      const lines = dodLines(e);
+      if (!lines.length) throw new ToolError("This priority has no Definition of Done lines.");
+      const s = str(a.line).trim();
+      let at = -1;
+      if (/^\d+$/.test(s) && Number(s) >= 1 && Number(s) <= lines.length) at = Number(s) - 1;
+      else {
+        let idx = lines.map((t, i) => (lc(t) === lc(s) ? i : -1)).filter((i) => i >= 0);
+        if (!idx.length) idx = lines.map((t, i) => (textMatches([t], s) ? i : -1)).filter((i) => i >= 0);
+        if (idx.length !== 1) throw new ToolError(`Couldn't pick one line from "${s}". Lines: ${lines.map((t, i) => `${i + 1}. ${t}`).join("; ")}`);
+        at = idx[0];
+      }
+      const text = lines[at];
+      const me = ctx.me;
+      const res = await changeRecord(me, table, e.id, (d) => {
+        if (!canChangePrio(d, me)) throw new ToolError("Your account can only change priorities you PM, are assigned to, or have a task on.");
+        const L = dodLines(d);
+        const i = L[at] === text ? at : L.indexOf(text);
+        if (i < 0) throw new ToolError("That line changed while saving. Nothing was saved; check get_priority and try again.");
+        d.dodIds = dodIds(d);
+        const id = d.dodIds[i];
+        if (!d.dodMet || typeof d.dodMet !== "object" || Array.isArray(d.dodMet)) d.dodMet = {};
+        if (met) {
+          if (!d.dodMet[id]) d.dodMet[id] = { by: me.email, at: ctx.today };
+        } else delete d.dodMet[id];
+        autoStage(d);
+      });
+      if (!res.changed) return { saved: "no", summary: `Nothing to change: "${text}" is already ${met ? "ticked" : "not ticked"}.` };
+      const it = dodItems(res.after);
+      const summary = `${met ? "Ticked" : "Un-ticked"} "${text}" on "${str(res.after.title)}" (${it.filter((x) => x.met).length} of ${it.length} met). ` +
+        (stageOf(res.after) === "complete" ? "The priority is now complete." : `Stage: ${stageOf(res.after)}.`);
+      const logged = await logChange(me, "set_dod_line", `${table}:${e.id}`, summary, { line: text, met: !met }, { line: text, met });
+      return saved(summary, logged);
+    },
+  },
+  {
+    name: "add_todo",
+    title: "Add a to-do",
+    write: true,
+    description:
+      "Add a to-do to the To-Dos page, for the signed-in person or (Admins and Leadership) for someone else. " +
+      "Due in a week unless a date is given. Confirm the wording, owner and due date with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        text: { type: "string", description: "What needs doing." },
+        owner: { ...personArg, description: "Who it's for: an email, a first name, or \"me\" (default)." },
+        due: { type: "string", description: "Due date, YYYY-MM-DD. Default: a week from today." },
+      },
+      required: ["text"],
+    },
+    run: async (a, ctx) => {
+      const text = str(a.text).trim();
+      if (!text) throw new ToolError("The to-do needs some text.");
+      if (text.length > 1000) throw new ToolError("That's too long for a to-do; keep it under 1,000 characters.");
+      const me = ctx.me;
+      let owner = ctx.person(a.owner);
+      if (!owner.includes("@")) {
+        await Promise.all([ctx.priorities(), ctx.meetings(), ctx.metricsAll(), ctx.items("pri")]);
+        owner = ctx.dir.resolve(owner);
+      }
+      owner = lc(owner);
+      if (!owner.includes("@")) throw new ToolError(`Couldn't tell who "${a.owner}" is. Use their email.`);
+      if (owner !== me.email && me.role === "team") throw new ToolError("Your account can only add to-dos for yourself.");
+      const due = dateArg(a.due, "due") || addDays(ctx.today, 7);
+      const row = {
+        id: newId(),
+        meeting_id: "standalone",
+        section: "todos",
+        inst: due,
+        data: { type: "pri", text, done: false, author: owner, due, assignedBy: me.email, standalone: true, t: Date.now(), via: "claude" },
+      };
+      const r = await rest(me, "POST", "mtg_items", row, "return=minimal");
+      if (!r.ok) throw new ToolError(`The database didn't accept the to-do (${r.status}): ${r.text.slice(0, 200)}`);
+      const summary = `Added to-do "${clip(text, 120)}" for ${owner === me.email ? "you" : owner}, due ${due}.`;
+      const logged = await logChange(me, "add_todo", `mtg_items:${row.id}`, summary, null, row.data);
+      return saved(summary, logged, { id: row.id });
+    },
+  },
+  {
+    name: "complete_todo",
+    title: "Tick off a to-do",
+    write: true,
+    repeatable: true,
+    description:
+      "Mark a to-do done (or not done). People can tick their own to-dos; Admins and Super Admins can tick anyone's. " +
+      "Pass the id from list_todos, or search words that match exactly one. Confirm with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The to-do's id from list_todos (best)." },
+        search: { type: "string", description: "Or words from the to-do's text." },
+        done: { type: "boolean", description: "true (default) = done; false = not done." },
+      },
+    },
+    run: async (a, ctx) => {
+      const done = a.done !== false;
+      const me = ctx.me;
+      // whose it is: the To-Dos page goes by who it's for (author); the meeting view also lets
+      // the person it's assigned to tick it
+      const owner = (it: Json) => str(it.data.author || it.data.owner);
+      const isMine = (it: Json) => [it.data.author, it.data.owner, it.data.assignee].some((x) => x && ctx.dir.matches(x, me.email));
+      const all = await ctx.items("pri");
+      const mine = all.filter((it) => isMine(it) || canSeeEveryone(me));
+      const pool = a.id ? mine : mine.filter((it) => !!it.data.done !== done);
+      const it = pickItem(pool, a, "to-do");
+      const res = await changeRecord(me, "mtg_items", it.id, (d) => {
+        d.done = done;
+        d.doneBy = done ? me.email : "";
+        d.doneAt = done ? Date.now() : null;
+        if (!done && d.jiraDone) d.jiraSkip = true;
+      });
+      if (!res.changed) return { saved: "no", summary: `Nothing to change: it's already ${done ? "done" : "open"}.` };
+      const summary = `${done ? "Ticked off" : "Re-opened"} to-do "${clip(it.data.text, 120)}"${isMine(it) ? "" : ` (${owner(it)}'s)`}.`;
+      const logged = await logChange(me, "complete_todo", `mtg_items:${it.id}`, summary, { done: !!res.before.done }, { done });
+      return saved(summary, logged);
+    },
+  },
+  {
+    name: "move_issue",
+    title: "Move an issue card",
+    write: true,
+    repeatable: true,
+    description:
+      "Move a card on an issues board to Not started, In progress, Has update or Done, in a meeting the person can see (any attendee can, as in the app). " +
+      "Pass the id from list_issues, or search words that match exactly one. Confirm with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        id: { type: "string", description: "The issue's id from list_issues (best)." },
+        search: { type: "string", description: "Or words from the issue's title." },
+        status: { type: "string", enum: ["notstarted", "inprogress", "hasupdate", "done"] },
+      },
+      required: ["status"],
+    },
+    run: async (a, ctx) => {
+      const status = str(a.status);
+      if (!ISSUE_LABEL[status]) throw new ToolError("status must be notstarted, inprogress, hasupdate or done.");
+      const me = ctx.me;
+      const [items, mtgs] = await Promise.all([ctx.items("issue"), ctx.meetings()]);
+      const byId = new Map(mtgs.map((m) => [m.id, m]));
+      const visible = items.filter((it) => {
+        const m = byId.get(it.meeting_id);
+        return m ? mtgVisible(m, me, ctx.dir) : me.role === "superadmin";
+      });
+      const it = pickItem(visible, a, "issue");
+      const was = str(it.data.status) || "notstarted";
+      if (was === status) return { saved: "no", summary: `Nothing to change: "${clip(it.data.text, 120)}" is already ${ISSUE_LABEL[status]}.` };
+      const res = await changeRecord(me, "mtg_items", it.id, (d) => {
+        d.status = status;
+        d.editedAt = Date.now();
+        d.editedBy = me.email;
+      });
+      const summary = `Moved issue "${clip(it.data.text, 120)}" from ${ISSUE_LABEL[was] || was} to ${ISSUE_LABEL[status]}` +
+        (byId.get(it.meeting_id) ? ` (${str(byId.get(it.meeting_id)!.title)}).` : ".");
+      const logged = await logChange(me, "move_issue", `mtg_items:${it.id}`, summary, { status: was }, { status });
+      return saved(summary, logged);
+    },
+  },
+  {
+    name: "set_metric_value",
+    title: "Enter a weekly metric number",
+    write: true,
+    repeatable: true,
+    description:
+      "Enter (or clear) one week's number on a scorecard metric. Weeks run Sunday to Saturday. " +
+      "By the team's convention, the number reported on Monday is last week's, so week defaults to last_week. " +
+      "Team-role users can only fill metrics they own. Calculated and roll-up metrics work their numbers out from others, so fill their inputs instead. " +
+      "Confirm the metric, week and number with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        metric: { type: "string", description: "Metric id or name." },
+        value: { type: "number", description: "The number, without % or $ signs." },
+        clear: { type: "boolean", description: "true = remove that week's number instead of entering one." },
+        week: { type: "string", description: 'last_week (default), this_week, or any date in the week (YYYY-MM-DD).' },
+      },
+      required: ["metric"],
+    },
+    run: async (a, ctx) => {
+      const me = ctx.me;
+      const all = await ctx.metricsAll();
+      const hits = findMetric(all.filter((m) => metricVisible(m, me)), str(a.metric));
+      if (!hits.length) throw new ToolError(`No metric matching "${a.metric}" (or you don't have access to it).`);
+      if (hits.length > 1) throw new ToolError("More than one metric matches: " + hits.map((m) => `"${m.name}" (id ${m.id})`).join("; ") + ". Use the id or exact name.");
+      const m = hits[0];
+      if (me.role === "team" && lc(m.owner) !== me.email) throw new ToolError("Your account can only fill in metrics you own.");
+      if (isRollup(m) || isCalc(m)) throw new ToolError(`"${m.name}" works its number out (${fillMethod(m, all)}). Fill in its inputs instead.`);
+      const wq = lc(a.week || "last_week").replace(/\s+/g, "_");
+      const thisWk = weekStartOf(ctx.today);
+      let wk: string;
+      if (wq === "last_week") wk = addDays(thisWk, -7);
+      else if (wq === "this_week") wk = thisWk;
+      else {
+        const d = dateArg(a.week, "week");
+        if (!d) throw new ToolError("week must be last_week, this_week or a date.");
+        wk = weekStartOf(d);
+      }
+      const raw = a.value;
+      const clear = a.clear === true;
+      if (!clear && (raw === null || raw === undefined || str(raw).trim() === "")) throw new ToolError("Pass a value, or clear: true to remove that week's number.");
+      let value: number | null = null;
+      if (!clear) {
+        value = typeof raw === "number" ? raw : Number(str(raw).trim().replace(/,/g, ""));
+        if (!isFinite(value)) throw new ToolError(`"${raw}" isn't a number. Pass just the number, without % or $ signs.`);
+      }
+      const prev = (m.values || {})[wk];
+      const prevV = prev === undefined || prev === "" ? null : prev;
+      if ((clear && prevV === null) || (!clear && Number(prevV) === value && prevV !== null)) {
+        return { saved: "no", summary: `Nothing to change: "${m.name}" for the week of ${wk} is already ${clear ? "empty" : value}.` };
+      }
+      const key = `${m.id}|${wk}`;
+      if (clear) {
+        const r = await rest(me, "DELETE", `metric_values?id=eq.${encodeURIComponent(key)}`, undefined, "return=representation");
+        if (!r.ok) throw new ToolError(`The database didn't accept that (${r.status}): ${r.text.slice(0, 200)}`);
+        if (!Array.isArray(r.data) || !r.data.length) throw new ToolError("The database refused to clear that week for your account. Nothing was changed.");
+      } else {
+        const r = await rest(me, "POST", "metric_values", { id: key, metric_id: m.id, wk, value }, "resolution=merge-duplicates,return=representation");
+        if (!r.ok) {
+          if (r.status === 401 || r.status === 403 || /row-level security/i.test(r.text)) throw new ToolError("The database refused that number for your account. Nothing was saved.");
+          throw new ToolError(`The database didn't accept that number (${r.status}): ${r.text.slice(0, 200)}`);
+        }
+        const back = await readRow(me, "metric_values", key);
+        if (!back || Number(back.value) !== value) throw new ToolError("The number didn't stick (the metric may have been deleted). Nothing was saved.");
+      }
+      const summary = `"${m.name}", week of ${wk}: ${prevV === null ? "empty" : prevV} → ${clear ? "empty" : value}.`;
+      const logged = await logChange(me, "set_metric_value", `metric_values:${key}`, summary, { value: prevV }, { value: clear ? null : value });
+      return saved(summary, logged);
+    },
+  },
+  {
+    name: "list_recent_changes",
+    title: "Changes made through Claude",
+    description: "What's been changed in Round Up through Claude, newest first: who, when and what. Admins see everyone's; others see their own.",
+    inputSchema: {
+      type: "object",
+      properties: { days: { type: "number", description: "How far back. Default 7." } },
+    },
+    run: async (a, ctx) => {
+      const days = Number(a.days) > 0 ? Math.min(Number(a.days), 365) : 7;
+      const since = new Date(Date.now() - days * 86400000).toISOString();
+      const r = await rest(ctx.me, "GET", `connector_log?select=at,by_email,tool,summary&at=gte.${encodeURIComponent(since)}&order=at.desc&limit=300`);
+      if (r.status === 404 || (r.data && r.data.code === "42P01") || (r.data && r.data.code === "PGRST205")) throw new ToolError(NEEDS_SETUP);
+      if (!r.ok) throw new ToolError(`Couldn't read the change log (${r.status}): ${r.text.slice(0, 200)}`);
+      const rows = (Array.isArray(r.data) ? r.data : []).map((x: Json) => ({
+        when: new Date(x.at).toLocaleString("en-CA", { timeZone: TZ, dateStyle: "medium", timeStyle: "short" }),
+        who: str(x.by_email),
+        what: str(x.summary),
+      }));
+      return { days, count: rows.length, changes: rows };
+    },
+  },
+);
+
+// ============================================================================================
 // MCP over HTTP (stateless JSON responses; no server-sent streams needed for read tools)
 // ============================================================================================
 
@@ -1183,7 +1787,9 @@ async function handleRpc(msg: Json, me: Caller): Promise<Json | null> {
           title: t.title,
           description: t.description,
           inputSchema: t.inputSchema,
-          annotations: { title: t.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+          annotations: t.write
+            ? { title: t.title, readOnlyHint: false, destructiveHint: false, idempotentHint: !!t.repeatable, openWorldHint: false }
+            : { title: t.title, readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
         })),
       });
     case "tools/call": {
