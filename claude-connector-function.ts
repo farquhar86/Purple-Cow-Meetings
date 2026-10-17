@@ -738,7 +738,7 @@ const TOOLS: Tool[] = [
       can_see: ctx.me.role === "team"
         ? "Only priorities and special projects they PM or have a task on, metrics they own, their own to-dos, and meetings they attend."
         : canSeeEveryone(ctx.me)
-        ? "Every priority, metric and special project, and everyone's to-dos." +
+        ? (ctx.me.role === "superadmin" ? "Every priority, metric and special project, and everyone's to-dos." : "Every priority, metric and special project, and everyone's to-dos except ones from meetings they aren't in.") +
           (ctx.me.role === "superadmin" ? " Every meeting." : " Meetings they attend or organize.")
         : "Every priority, metric and special project, their own to-dos, and meetings they attend or organize.",
       app: APP_URL,

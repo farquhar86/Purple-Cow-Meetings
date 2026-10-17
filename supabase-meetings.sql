@@ -27,7 +27,5 @@ alter table mtg_items enable row level security;
 drop policy if exists "authenticated mtgs"      on mtgs;
 drop policy if exists "authenticated mtg_items" on mtg_items;
 
-create policy "authenticated mtgs" on mtgs
-  for all to authenticated using (true) with check (true);
-create policy "authenticated mtg_items" on mtg_items
-  for all to authenticated using (true) with check (true);
+-- Who can see and change meetings is set in supabase-meetings-privacy.sql.
+-- Run that file next; without it, signed-in users get no access to meetings.
