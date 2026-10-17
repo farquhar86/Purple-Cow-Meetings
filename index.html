@@ -3772,6 +3772,13 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       const v=el.value.trim(); if(v!=='') out[k]=Number(v); });
     return out;
   }
+  // The form only shows quarterList(2,3). Keep saved quarters outside that window
+  // (past quarters and ones further out) so saving the form doesn't wipe them.
+  function mxKeepHidden(saved, read){
+    const shown=new Set(quarterList(2,3)); const out={};
+    Object.keys(saved||{}).forEach(k=>{ if(!shown.has(k)) out[k]=saved[k]; });
+    return Object.assign(out, read);
+  }
   /* ----- backfill: paste weekly history (e.g. exported from Salesforce) ----- */
   let mxPendingBackfill=null;
   function parseAnyDate(s){
@@ -4320,6 +4327,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const rawRef=document.getElementById('mx-srcref').value.trim();
     let sourceRef=rawRef, sourceName=rawRef;
     if(source==='salesforce'){ const hit=sfReportIdFrom(rawRef); if(hit){ sourceRef=hit.id; sourceName=hit.name; } }
+    const prev=id?metricsStore.find(x=>x.id===id):null;
     const data={ name, owner:document.getElementById('mx-owner').value||'',
       unit:document.getElementById('mx-unit').value||'number',
       period:'weekly',
@@ -4332,8 +4340,8 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       goal: gv===''?'':Number(gv),
       direction:document.getElementById('mx-dir').value||'higher',
       tierPct: pv===''?10:Number(pv),
-      quarterGoals: mxReadQuarters(),
-      quarterStarts: mxReadQuarterStarts(),
+      quarterGoals: mxKeepHidden(prev&&prev.quarterGoals, mxReadQuarters()),
+      quarterStarts: mxKeepHidden(prev&&prev.quarterStarts, mxReadQuarterStarts()),
       source, sourceRef, sourceName,
       parent: (function(){ const p=(document.getElementById('mx-parent')||{}).value||''; return (p && p!==id)?p:''; })(),
       rollRule: (document.getElementById('mx-rollrule')||{}).value||'sum',
