@@ -270,7 +270,7 @@ create or replace function public.ru_save_if_unchanged(p_table text, p_id text, 
 returns boolean language plpgsql security invoker set search_path = '' as $$
 declare n integer;
 begin
-  if p_table not in ('entries', 'special_projects', 'mtg_items') then
+  if p_table not in ('entries', 'special_projects', 'mtg_items', 'metrics') then
     raise exception 'ru_save_if_unchanged: % is not allowed', p_table;
   end if;
   execute format('update public.%I set data = $1, updated_at = now() where id = $2 and data = $3', p_table)

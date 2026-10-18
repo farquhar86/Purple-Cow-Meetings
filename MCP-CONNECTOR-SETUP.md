@@ -152,6 +152,8 @@ the OAuth Server off or delete the function. Neither affects the app itself.
 3. Push `oauth-consent.html` so the Allow page lists what Claude can now change.
 4. In Claude, open the Round Up connector and reconnect it (or start a new chat) so the new
    tools show up. Then try one low-risk change, like ticking one of your own tasks.
+5. For metric comments (`set_metric_comment`), also run **`supabase-metric-comments.sql`** once.
+   It lets the connector's safe save work on metrics. Safe to run again.
 
 A login with no role set counts as Admin, in the app and in the database. Set a role in the
 app's Team panel for anyone who shouldn't be an Admin.
@@ -168,7 +170,7 @@ app's Team panel for anyone who shouldn't be an Admin.
 | `get_priority` | One priority in full: why, notes, Definition of Done, and every task |
 | `list_tasks` | Tasks across priorities for a person or a contributing department |
 | `list_metrics` | Scorecard metrics: how each one fills, this week, last week, quarter target, and what's missing |
-| `get_metric` | One metric's weekly history |
+| `get_metric` | One metric's weekly history, with any weekly comments |
 | `list_todos` | To-dos (yours by default; Admins can see everyone's) |
 | `list_issues` | Issues board cards from meetings you can see |
 | `list_meetings` | Meetings you're in: when they run, the next date, who's in them, and which sections take entries |
@@ -189,6 +191,7 @@ Claude confirms each change with you first, and does one change per call.
 | `complete_todo` | Mark a to-do done or not done. | The to-do's owner, plus Admins and Super Admins |
 | `move_issue` | Move an issue card between Not started, In progress, Has update and Done. | Anyone who can see that meeting |
 | `set_metric_value` | Enter or clear one week's number. Defaults to last week (Monday's number is last week's). Won't fill calculated or roll-up metrics. | The metric's owner (Team users); everyone else for any metric |
+| `set_metric_comment` | Add, change or clear the comment on one week of a metric (the 🗣️ note on the scorecard). Defaults to this week, the week the scorecard is showing. Works on roll-up and calculated metrics too. | The metric's owner (Team users); everyone else for any metric |
 | `add_to_meeting` | Put an item on a meeting's agenda: a topic (with points under it), a note, a to-do for someone in the meeting, or an issue card. Goes on the next meeting that hasn't ended yet unless a date is given. With no section named it goes in Topics, or the Issues list if there's no Topics section. Won't add the same thing twice. | Anyone in that meeting (as in the app) |
 
 Not yet: creating or deleting priorities, changing owners or departments, or editing or removing what's already in a meeting.

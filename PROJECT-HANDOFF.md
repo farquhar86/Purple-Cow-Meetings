@@ -88,7 +88,7 @@ warns in console "relation ... does not exist").
 |---|---|---|
 | `meetings` | Quarters (name/theme/goal) | anon can read; authenticated write |
 | `entries` | Priorities, SWOT, start/stop/keep | one row per entry (concurrency-safe); anon can insert (intake form) |
-| `metrics` | Metric definitions | one row per metric |
+| `metrics` | Metric definitions, plus weekly comments in `data.notes` (`{ "<week>": {text, by, at} }`) | one row per metric |
 | `metric_values` | Weekly numbers | **one row per (metric, week)** — key `"<metricId>|<week>"` |
 | `mtgs` | Meeting definitions + the Vision page (`id = 'app-vision'`) | authenticated only |
 | `mtg_items` | Every meeting entry (notes, to-dos, issues, comments, text blocks) | one row per item |

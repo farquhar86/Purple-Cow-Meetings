@@ -3,12 +3,13 @@
 // metrics scorecard, to-dos, issues, special projects and the core values page.
 //
 // Stage 2 adds a few updates: tick or change a task, tick a Definition of Done line, add or
-// complete a to-do, move an issue card, enter a weekly metric number, and put an item on a
-// meeting's agenda (list_meetings / get_meeting / add_to_meeting). Each one follows the
+// complete a to-do, move an issue card, enter a weekly metric number, add a comment to a week
+// of a metric, and put an item on a meeting's agenda (list_meetings / get_meeting / add_to_meeting). Each one follows the
 // same rules as the app (a Team-role user can only change what the app lets them change), saves
 // only if nobody else changed that record since Claude read it, and is written to connector_log.
 // Updates need supabase-role-rules.sql to have been run once (it adds ru_save_if_unchanged and
-// connector_log). Reads work without it.
+// connector_log). Metric comments also need supabase-metric-comments.sql (it lets
+// ru_save_if_unchanged save metrics). Reads work without either.
 //
 // How it fits together
 //   Claude ──► this function (an MCP server) ──► the app's Supabase tables, as the person signed in
@@ -40,7 +41,7 @@ const AUTH_SERVER = `${SUPABASE_URL}/auth/v1`;
 const APP_URL = "https://farquhar86.github.io/Purple-Cow-Meetings/";
 const TZ = "America/Halifax";
 
-const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.3.0" };
+const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.4.0" };
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS = [
@@ -49,7 +50,7 @@ const INSTRUCTIONS = [
   "meetings and their agendas, to-dos from meetings, the issues board, special projects and the core values page.",
   "'me' means the person who connected it.",
   "It can also make a few updates (update_task, set_dod_line, add_todo, complete_todo, move_issue,",
-  "set_metric_value, add_to_meeting). Before calling any of them, tell the person exactly what will change and wait",
+  "set_metric_value, set_metric_comment, add_to_meeting). Before calling any of them, tell the person exactly what will change and wait",
   "for them to say yes; make one change per call. Each update follows the app's own rules about who",
   "can change what, and reports what it changed. list_recent_changes shows changes made through Claude.",
   "Dates are Atlantic time; metric weeks start on Sunday and are keyed by that Sunday's date.",
@@ -574,6 +575,20 @@ function typedValue(m: Json, wk: string): Json {
   return inWeek.length ? vals[inWeek[inWeek.length - 1]] : null;
 }
 
+// A week's comment on a metric. The app keeps them on the metric itself:
+// notes = { "<week key>": { text, by, at } }. A cleared comment stays as an empty entry with
+// its time, so an older copy of the metric (someone's open tab) can't bring it back.
+function metricNote(m: Json, wk: string): Json | null {
+  const n = m && m.notes && typeof m.notes === "object" ? m.notes[wk] : null;
+  return n && str(n.text).trim() ? n : null;
+}
+
+function noteOut(n: Json | null): string {
+  if (!n) return "";
+  const when = str(n.at).slice(0, 10);
+  return `${str(n.text).trim()} (${str(n.by) || "unknown"}${when ? ", " + when : ""})`;
+}
+
 function effValue(m: Json, wk: string, all: Json[], depth = 0): number | string | null {
   const typed = typedValue(m, wk);
   if (typed !== null) return typeof typed === "number" ? typed : (isNaN(Number(typed)) ? String(typed) : Number(typed));
@@ -665,8 +680,8 @@ function metricSummary(m: Json, all: Json[], today: string) {
     kind: metricKind(m),
     direction: m.direction === "lower" ? "lower is better" : "higher is better",
     quarter_target: metricTarget(m, qk),
-    this_week: { week_of: thisWk, value: effValue(m, thisWk, all) },
-    last_week: { week_of: lastWk, value: effValue(m, lastWk, all) },
+    this_week: { week_of: thisWk, value: effValue(m, thisWk, all), ...(metricNote(m, thisWk) ? { comment: noteOut(metricNote(m, thisWk)) } : {}) },
+    last_week: { week_of: lastWk, value: effValue(m, lastWk, all), ...(metricNote(m, lastWk) ? { comment: noteOut(metricNote(m, lastWk)) } : {}) },
     last_filled_week: filled[filled.length - 1] || "never",
     rolls_up_into: m.parent ? str(all.find((x) => x.id === m.parent)?.name) : "",
   });
@@ -983,7 +998,7 @@ const TOOLS: Tool[] = [
   {
     name: "get_metric",
     title: "Get a metric's weekly history",
-    description: "One metric's weekly numbers (newest first), quarter targets and settings. Pass the id or the name (or part of it).",
+    description: "One metric's weekly numbers (newest first) with any weekly comments, quarter targets and settings. Pass the id or the name (or part of it).",
     inputSchema: {
       type: "object",
       properties: {
@@ -1005,7 +1020,7 @@ const TOOLS: Tool[] = [
         const wk = addDays(thisWk, -7 * i);
         const typed = typedValue(m, wk);
         const v = effValue(m, wk, all);
-        history.push(compact({ week_of: wk, value: v, worked_out: v !== null && typed === null ? "yes" : "" }));
+        history.push(compact({ week_of: wk, value: v, worked_out: v !== null && typed === null ? "yes" : "", comment: noteOut(metricNote(m, wk)) }));
       }
       return compact({
         ...metricSummary(m, all, ctx.today),
@@ -1180,6 +1195,9 @@ const STATUS_ORDER = ["inprogress", "blocked", "backlog", "done"];
 
 const NEEDS_SETUP =
   "Updates aren't switched on yet: the one-time database update (supabase-role-rules.sql) hasn't been run in Supabase. Reading still works.";
+
+const NEEDS_COMMENT_SETUP =
+  "Metric comments aren't switched on yet: the one-time database update (supabase-metric-comments.sql) hasn't been run in Supabase. Nothing was saved.";
 
 // Same shape as the app's uid().
 const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -1731,6 +1749,73 @@ TOOLS.push(
       }
       const summary = `"${m.name}", week of ${wk}: ${prevV === null ? "empty" : prevV} → ${clear ? "empty" : value}.`;
       const logged = await logChange(me, "set_metric_value", `metric_values:${key}`, summary, { value: prevV }, { value: clear ? null : value });
+      return saved(summary, logged);
+    },
+  },
+  {
+    name: "set_metric_comment",
+    title: "Comment on a week of a metric",
+    write: true,
+    repeatable: true,
+    description:
+      "Add, change or clear the comment on one week of a scorecard metric: the context that shows with the 🗣️ icon on the scorecard, " +
+      "in the metric's weekly history and on meeting scorecards. Works on any metric the person can edit, roll-ups and calculated metrics included. " +
+      "Weeks run Sunday to Saturday and are keyed by the Sunday. The scorecard's current week shows last week's results, so a comment " +
+      "explaining the latest numbers goes on this_week (the default). A new comment replaces the one already on that week. " +
+      "Team-role users can only comment on metrics they own. Confirm the metric, week and wording with the person first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        metric: { type: "string", description: "Metric id or name." },
+        text: { type: "string", description: "The comment. Replaces any comment already on that week." },
+        clear: { type: "boolean", description: "true = remove that week's comment instead of writing one." },
+        week: { type: "string", description: "this_week (default, the scorecard's current week), last_week, or any date in the week (YYYY-MM-DD)." },
+      },
+      required: ["metric"],
+    },
+    run: async (a, ctx) => {
+      const me = ctx.me;
+      const all = await ctx.metricsAll();
+      const hits = findMetric(all.filter((m) => metricVisible(m, me)), str(a.metric));
+      if (!hits.length) throw new ToolError(`No metric matching "${a.metric}" (or you don't have access to it).`);
+      if (hits.length > 1) throw new ToolError("More than one metric matches: " + hits.map((m) => `"${m.name}" (id ${m.id})`).join("; ") + ". Use the id or exact name.");
+      const m = hits[0];
+      if (me.role === "team" && lc(m.owner) !== me.email) throw new ToolError("Your account can only comment on metrics you own.");
+      const wq = lc(a.week || "this_week").replace(/\s+/g, "_");
+      const thisWk = weekStartOf(ctx.today);
+      let wk: string;
+      if (wq === "this_week") wk = thisWk;
+      else if (wq === "last_week") wk = addDays(thisWk, -7);
+      else {
+        const d = dateArg(a.week, "week");
+        if (!d) throw new ToolError("week must be this_week, last_week or a date.");
+        wk = weekStartOf(d);
+      }
+      const clear = a.clear === true;
+      const text = str(a.text).trim();
+      if (!clear && !text) throw new ToolError("Pass the comment, or clear: true to remove that week's comment.");
+      if (text.length > 2000) throw new ToolError("That comment is too long. Keep it under 2,000 characters.");
+      const want = clear ? "" : text;
+      let prev = "";
+      let res: { before: Json; after: Json; changed: boolean };
+      try {
+        res = await changeRecord(me, "metrics", m.id, (d) => {
+          const cur = d.notes && typeof d.notes === "object" && !Array.isArray(d.notes) ? d.notes[wk] : null;
+          prev = cur && str(cur.text).trim() ? str(cur.text).trim() : "";
+          if (prev === want) return;
+          if (!d.notes || typeof d.notes !== "object" || Array.isArray(d.notes)) d.notes = {};
+          d.notes[wk] = { text: want, by: me.email, at: new Date().toISOString() };
+        });
+      } catch (e) {
+        if (e instanceof ToolError && /metrics is not allowed/i.test(e.message)) throw new ToolError(NEEDS_COMMENT_SETUP);
+        throw e;
+      }
+      if (!res.changed) {
+        return { saved: "no", summary: `Nothing to change: "${m.name}" for the week of ${wk} ${want ? "already has that comment" : "has no comment"}.` };
+      }
+      const what = clear ? "removed" : prev ? "changed" : "added";
+      const summary = `Comment ${what} on "${m.name}", week of ${wk}` + (clear ? "." : `: "${clip(text, 160)}"`);
+      const logged = await logChange(me, "set_metric_comment", `metrics:${m.id}`, summary, { week: wk, comment: prev || null }, { week: wk, comment: want || null });
       return saved(summary, logged);
     },
   },

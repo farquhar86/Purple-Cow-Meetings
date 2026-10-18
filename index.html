@@ -630,6 +630,21 @@
   .sc-card:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(80,30,110,.13);}
   .sc-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;}
   .sc-name{font-weight:800;color:var(--heading);font-size:1rem;}
+  /* weekly comments on a metric: the talking head says there's something to read */
+  .mx-note-ind{display:inline-block;margin-left:6px;font-size:.95em;line-height:1;cursor:pointer;vertical-align:baseline;transition:transform .12s;}
+  .mx-note-ind:hover{transform:scale(1.2);}
+  .ch-tbl td.note{text-align:left;width:46%;min-width:240px;}
+  .hx-tbl td.note{white-space:normal;width:40%;min-width:220px;font-variant-numeric:normal;}
+  .hx-tbl th.note{text-align:left;}
+  .hx-tbl .mx-note-cnt{color:var(--muted);font-size:12px;font-weight:600;}
+  .ch-tbl textarea.mx-note-in{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:5px 7px;font:inherit;font-size:12.5px;line-height:1.35;background:transparent;color:var(--ink);resize:vertical;min-height:28px;}
+  .ch-tbl textarea.mx-note-in:focus{outline:none;border-color:var(--purple);}
+  .ch-tbl .mx-note-txt{white-space:pre-wrap;}
+  .ch-tbl .mx-note-by{display:block;color:var(--muted);font-size:10.5px;margin-top:2px;}
+  .mx-note-sum{margin:0 0 12px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--lilac);font-size:.85rem;}
+  .mx-note-sum .wk{font-weight:700;color:var(--heading);margin-right:6px;}
+  .mx-note-sum .by{color:var(--muted);font-size:.78rem;margin-left:6px;}
+  .mx-note-sum div+div{margin-top:6px;}
   .sc-top img,.sc-top .tm-initials{width:30px;height:30px;border-radius:50%;}
   .sc-num-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .sc-big-wrap{display:flex;align-items:baseline;gap:6px;min-width:0;}
@@ -2998,7 +3013,47 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function fnByName(n){ return ensureFnConfig().list.find(f=>f.name.toLowerCase()===String(n||'').toLowerCase()); }
   function saveMetricsLocal(){ try{ localStorage.setItem(KEY+'_metrics', JSON.stringify(metricsStore)); }catch(e){} }
   function persistMetric(m){ saveMetricsLocal(); dbUpsertMetric(m); }
-  function dbUpsertMetric(m){ if(!USE_DB) return; sb.from('metrics').upsert({id:m.id,data:m}).then(r=>{ if(r.error) console.warn('metric save failed', r.error); }); }
+  /* Before saving a metric, pull in the newest copy of its weekly comments from the
+     database, so a save from an older copy (someone's open tab) never wipes a comment
+     a teammate added in the meantime. */
+  async function dbUpsertMetric(m){ if(!USE_DB) return;
+    if(m && m.id && m.id!=='fnconfig'){
+      try{ const fr=await sb.from('metrics').select('data').eq('id',m.id).limit(1);
+        const fresh=(!fr.error && fr.data && fr.data[0] && fr.data[0].data) || null;
+        if(fresh && fresh.notes) m.notes=mergeNotes(fresh.notes, m.notes);
+      }catch(_){}
+    }
+    const r=await sb.from('metrics').upsert({id:m.id,data:m}); if(r.error) console.warn('metric save failed', r.error); }
+  /* ---------- weekly comments on a metric ----------
+     Kept on the metric itself: m.notes = { 'YYYY-MM-DD' (week key): {text, by, at} }.
+     Clearing a comment leaves an empty entry with its time, so an older copy can't
+     bring it back. When two copies disagree, the newest edit of each week wins. */
+  function metricNote(m,wk){ const n=m&&m.notes&&m.notes[wk]; return (n && String(n.text||'').trim()) ? n : null; }
+  function mergeNotes(a,b){ const out={};
+    [a||{},b||{}].forEach(srcN=>Object.keys(srcN).forEach(k=>{ const n=srcN[k]; if(!n) return;
+      const cur=out[k]; if(!cur || String(n.at||'')>String(cur.at||'')) out[k]=n; }));
+    return out; }
+  function noteWkLabel(k){ const d=new Date(k+'T12:00:00'); return isNaN(d) ? k : d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+  function noteWhen(n){ if(!n||!n.at) return ''; const d=new Date(n.at); return isNaN(d)?'':d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); }
+  /* the weeks a card speaks for: this week and last week */
+  function noteKeysNow(){ const ws=weekStarts(2,weekStartDay); return [wkKey(ws[1]), wkKey(ws[0])]; }
+  function notesFor(m,keys){ return (keys||[]).map(k=>({k, n:metricNote(m,k)})).filter(x=>x.n); }
+  /* talking head beside a metric's name when there's a comment to read; click opens it */
+  function noteBadge(m,keys){ const list=notesFor(m,keys); if(!list.length) return '';
+    const tip=list.map(x=>'Week of '+noteWkLabel(x.k)+' · '+pmName(x.n.by)+': '+x.n.text).join('\n\n');
+    return ' <span class="mx-note-ind" title="'+esc(tip)+'" onclick="event.stopPropagation();openMetricChart(\''+m.id+'\')">🗣️</span>'; }
+  /* the comments themselves, for the meeting scorecard when a metric is opened up */
+  function noteSummaryHtml(m,keys){ const list=notesFor(m,keys); if(!list.length) return '';
+    return '<div class="mx-note-sum">'+list.map(x=>'<div><span class="wk">🗣️ Week of '+esc(noteWkLabel(x.k))+'</span>'
+      +esc(x.n.text)+'<span class="by">'+esc(pmName(x.n.by))+'</span></div>').join('')+'</div>'; }
+  function saveMetricNote(id,wk,el){ const m=metricsStore.find(x=>x.id===id); if(!m || !canEditMetric(m) || !el) return;
+    const text=String(el.value||'').trim(); const cur=metricNote(m,wk);
+    if((cur?cur.text:'')===text) return;
+    m.notes=m.notes||{}; m.notes[wk]={text:text, by:myEmail, at:new Date().toISOString()};
+    persistMetric(m);
+    const by=el.parentNode && el.parentNode.querySelector('.mx-note-by'); if(by) by.textContent = text ? (pmName(myEmail)+' · just now') : '';
+    renderMetrics(); renderHomeMetrics(); }
+  function noteGrow(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,160)+'px'; }
   /* Deleting leaves a tombstone row (data.deleted) rather than removing the row.
      A hard delete used to get undone: dbLoadMetrics re-uploads anything still sitting
      in a teammate's browser cache, so the next person to open the app put the metric
@@ -3373,7 +3428,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
         + '<div class="sc-cum2">Week '+qi.weeksElapsed+' of '+qi.weeksTotal+' &middot; pace needs '+esc(fmtVal(m,qi.expected))+' by now &middot; on this trend ≈ '+esc(fmtVal(m,Math.round(qi.projected)))+'</div></div>';
     }
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
-      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+' <span class="sc-cumtag">running total</span></span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+' <span class="sc-cumtag">running total</span></span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">this week</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+statusTxt+'</span></div>'
       +'<div class="sc-meta">'+sub+'</div>'
@@ -3399,7 +3454,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const calcFoot = isCalc(m) ? '<span class="mx-calcfoot" title="Worked out automatically, no typing">\u0192 '+esc(calcLabel(m))+'</span>'
       : (isRollup(m) ? '<span class="mx-calcfoot" title="Worked out automatically from its channels">\u0192 '+esc(rollupLabel(m))+'</span>' : '');
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
-      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
+      +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
@@ -3444,7 +3499,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       : '<div class="sc-kids-empty">Nothing rolls up into this yet. Open a metric and set its <b>Rolls up into</b> to '+esc(m.name||'this metric')+'.</div>';
     return '<div class="sc-card sc-roll'+(open?' open':'')+'" id="roll-'+esc(m.id)+'" style="border-left-color:'+color+'">'
       +'<div class="sc-head" onclick="toggleRoll(\''+m.id+'\',event)">'
-      +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+'</span></div>'
+      +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap"><span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span><span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
       +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
       +'<div class="sc-side"><span class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></span>'
@@ -3624,7 +3679,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       }
     }
     return '<div class="cg-row" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
-      +'<div class="hd">'+owner+'<span class="nm">'+esc(m.name||'Untitled')+'</span></div>'
+      +'<div class="hd">'+owner+'<span class="nm">'+esc(m.name||'Untitled')+noteBadge(m,noteKeysNow())+'</span></div>'
       +'<div class="vals">'+aHtml+'<span class="t">target<br><b>'+(t===null?'—':esc(cgFmt(m,t,signed)))+'</b></span></div>'
       +sub+'</div>';
   }
@@ -4088,6 +4143,8 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function hxWeeks(m){
     const V=weekValues(m); let first=null;
     Object.keys(V).forEach(k=>{ const a=parseAnyDate(k); if(a && (!first||a<first)) first=a; });
+    /* reach back to the earliest commented week too, so every comment has a row */
+    Object.keys(m.notes||{}).forEach(k=>{ if(!metricNote(m,k)) return; const a=parseAnyDate(k); if(a && (!first||a<first)) first=a; });
     const nowK=alignWeekStart(new Date());
     if(!first||first>nowK) first=new Date(nowK.getFullYear(),nowK.getMonth(),nowK.getDate()-12*7);
     const out=[]; const d=new Date(first);
@@ -4214,7 +4271,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return '<button type="button" class="hx-caret" data-hx="'+esc(id)+'" aria-expanded="'+(open?'true':'false')+'" aria-label="'+(open?'Collapse ':'Expand ')+esc(label)+'" onclick="hxToggle(\''+esc(id)+'\')">▶</button>';
   }
   function hxTableHtml(m,model){
-    const editable=canTypeMetric(m);
+    const editable=canTypeMetric(m), canNote=canEditMetric(m);
     const nowK=wkKey(alignWeekStart(new Date()));
     const ratio=isCalc(m) && ['add','sub','mul'].indexOf(m.calc.op)<0;
     const A=ratio?metricsStore.find(x=>x.id===m.calc.a):null, B=ratio?metricsStore.find(x=>x.id===m.calc.b):null;
@@ -4231,31 +4288,39 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       if(parts) h+='<td>'+(a.cr?esc(fmtVal(A,Math.round(a.cr.a*100)/100)):'—')+'</td><td>'+(a.cr?esc(fmtVal(B,Math.round(a.cr.b*100)/100)):'—')+'</td>';
       return h; };
     const tag=p=>p.partial ? '<span class="hx-todate">'+(p.current?'so far':'partial')+'</span>' : '';
+    /* comments: a box on each week; months and quarters show how many weeks inside have one */
+    const noteSum=weeks=>{ const n=weeks.filter(w=>metricNote(m,wkKey(w))).length;
+      return '<td class="note">'+(n?'<span class="mx-note-cnt">🗣️ '+n+' comment'+(n===1?'':'s')+'</span>':'')+'</td>'; };
+    const noteWeek=w=>{ const nk=wkKey(w), nn=metricNote(m,nk);
+      const byTxt = nn ? esc(pmName(nn.by))+(noteWhen(nn)?' · '+esc(noteWhen(nn)):'') : '';
+      if(canNote) return '<td class="note"><textarea class="mx-note-in" rows="1" placeholder="Add a comment…" aria-label="'+esc('Comment, '+hxWeekLabel(w))+'" oninput="noteGrow(this)" onchange="saveMetricNote(\''+m.id+'\',\''+nk+'\',this)">'+esc(nn?nn.text:'')+'</textarea><span class="mx-note-by">'+byTxt+'</span></td>';
+      return '<td class="note">'+(nn ? '<span class="mx-note-txt">'+esc(nn.text)+'</span><span class="mx-note-by">'+byTxt+'</span>' : '')+'</td>'; };
     let rows='';
     model.Q.slice().reverse().forEach(q=>{
       const qo=!!chOpen[q.id];
-      rows+='<tr class="hx-q"><td class="lft">'+hxCaret(q.id,qo,q.label)+esc(q.label)+tag(q)+'</td>'+cells(q.weeks)+'</tr>';
+      rows+='<tr class="hx-q"><td class="lft">'+hxCaret(q.id,qo,q.label)+esc(q.label)+tag(q)+'</td>'+cells(q.weeks)+noteSum(q.weeks)+'</tr>';
       if(!qo) return;
       q.months.slice().reverse().forEach(mo=>{
         const oo=!!chOpen[mo.id];
-        rows+='<tr class="hx-m"><td class="lft">'+hxCaret(mo.id,oo,mo.label)+esc(mo.label)+tag(mo)+'</td>'+cells(mo.weeks)+'</tr>';
+        rows+='<tr class="hx-m"><td class="lft">'+hxCaret(mo.id,oo,mo.label)+esc(mo.label)+tag(mo)+'</td>'+cells(mo.weeks)+noteSum(mo.weeks)+'</tr>';
         if(!oo) return;
         mo.weeks.slice().reverse().forEach(w=>{
           const isNow=wkKey(w)===nowK;
           rows+='<tr class="hx-w'+(isNow?' is-now':'')+'"><td class="lft">'+esc(hxWeekLabel(w))
             +'<span class="hx-col">'+esc(w.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+' column'+(isNow?' · now':'')+'</span></td>'
-            +cells([w],w)+'</tr>';
+            +cells([w],w)+noteWeek(w)+'</tr>';
         });
       });
     });
     const goalHd = (cgIsLevel(m)&&!cgClimbs(m)) ? 'Target' : 'Goal';
     return '<div class="hx-scroll"><table class="ch-tbl hx-tbl"><thead><tr><th class="lft">Period</th><th>'+esc(m.name||'Actual')+'</th><th>'+goalHd+'</th>'
       + (parts ? '<th>'+esc(A.name||'A')+'</th><th>'+esc(B.name||'B')+'</th>' : '')
-      + '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+      + '<th class="note">Comment</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function hxRedraw(focusId){
     const m=metricsStore.find(x=>x.id===curChartMetricId); const box=document.getElementById('hxBox'); if(!m||!box) return;
     _wvc={}; try{ box.innerHTML=hxTableHtml(m,hxModel(m)); } finally{ _wvc=null; }
+    box.querySelectorAll('textarea.mx-note-in').forEach(noteGrow);
     if(focusId){ const b=box.querySelector('[data-hx="'+focusId+'"]'); if(b) b.focus(); }
   }
   function hxToggle(id){ if(!chOpen) chOpen={}; if(chOpen[id]) delete chOpen[id]; else chOpen[id]=1; hxRedraw(id); }
@@ -4290,9 +4355,10 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     document.getElementById('chBody').innerHTML='<div class="hx-bar">'+seg+tools+'</div>'+chartHtml
       + '<div class="hx-hd"><h4>History</h4><div class="hx-btns"><button type="button" class="btn ghost sm" onclick="hxAll(true)">Expand all</button><button type="button" class="btn ghost sm" onclick="hxAll(false)">Collapse all</button></div></div>'
       + '<p class="hx-note">Open a quarter for its months and a month for its weeks. A week counts in the month where most of its days fall'
-      + (canTypeMetric(m) ? '. Type in a week to add or correct it.' : '.')+'</p>'
+      + (canTypeMetric(m) ? '. Type in a week to add or correct it, and add a comment to any week.' : (canEditMetric(m) ? '. Add a comment to any week.' : '.'))+'</p>'
       + '<div id="hxBox">'+histHtml+'</div>';
     modal.classList.add('show');
+    document.querySelectorAll('#chBody textarea.mx-note-in').forEach(noteGrow);
     if(same&&scroller) scroller.scrollTop=keepTop;
   }
   /* where a running total should be BY a given week — the pace ramp: goal × week-in-quarter ÷ 13 */
@@ -4300,6 +4366,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return Number(g)*weekIndexInQuarter(w)/weeksInQuarter(weekQuarter(w)); }
   function editableHistoryTable(m){
     const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canTypeMetric(m);
+    const canNote=canEditMetric(m);
     const cum=isCumulative(m); const absolute=m.cumEntry==='absolute';
     const rows=weeks.map(w=>{ const cv=cellValue(m,colFor(w)); const has=cv.eff!==null&&!isNaN(cv.eff);
       const now=(wkKey(w)===wkKey(weekStarts(1,weekStartDay)[0]));
@@ -4308,12 +4375,19 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
         if(absolute && has && pace!=null) t=((m.direction==='lower')? cv.eff<=pace : cv.eff>=pace)?'great':'bad'; }
       else { const g=effectiveGoal(m,w); t=has?tierOfGoal(m,cv.eff,g):''; goalCell=(g===''||g==null?'—':esc(fmtTgt(m,g))); }
       const inp = editable ? '<input class="mx-val" value="'+esc(cv.direct)+'" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(w)+'\',this.value)">' : (has?esc(fmtVal(m,cv.eff)):'—');
-      return '<tr><td class="lft">'+w.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(now?' <b style="color:var(--purple)">· now</b>':'')+'</td>'
+      const nk=wkKey(w), nn=metricNote(m,nk);
+      const byTxt = nn ? esc(pmName(nn.by))+(noteWhen(nn)?' · '+esc(noteWhen(nn)):'') : '';
+      const rowsN = nn ? Math.min(4, Math.max(1, Math.ceil(nn.text.length/48))) : 1;
+      const noteCell = canNote
+        ? '<textarea class="mx-note-in" rows="'+rowsN+'" placeholder="Add a comment…" oninput="noteGrow(this)" onchange="saveMetricNote(\''+m.id+'\',\''+nk+'\',this)">'+esc(nn?nn.text:'')+'</textarea><span class="mx-note-by">'+byTxt+'</span>'
+        : (nn ? '<span class="mx-note-txt">'+esc(nn.text)+'</span><span class="mx-note-by">'+byTxt+'</span>' : '<span style="color:var(--muted)">—</span>');
+      return '<tr><td class="lft">'+w.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})+(now?' <b style="color:var(--purple)">· now</b>':'')+(nn?' 🗣️':'')+'</td>'
         +'<td class="'+(t?'mx-cell '+t:'')+'" style="text-align:center;">'+inp+'</td>'
-        +'<td style="text-align:center;color:var(--muted);">'+goalCell+'</td></tr>';
+        +'<td style="text-align:center;color:var(--muted);">'+goalCell+'</td>'
+        +'<td class="note">'+noteCell+'</td></tr>';
     }).join('');
     const goalHdr = cum ? 'Should be at' : 'Weekly goal';
-    return '<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Value</th><th>'+goalHdr+'</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    return '<div class="ch-scroll"><table class="ch-tbl"><thead><tr><th class="lft">Week of</th><th>Value</th><th>'+goalHdr+'</th><th class="lft">Comment</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function closeChartModal(){ document.getElementById('chartModal').classList.remove('show'); }
   function openMetricModal(id){
@@ -5684,10 +5758,10 @@ Herd Life`;
       return '<div class="rock-row">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
         +'<span class="caret">▶</span>'
-        +'<span class="rk-title">'+dot+esc(m.name)+'</span>'
+        +'<span class="rk-title">'+dot+esc(m.name)+noteBadge(m,noteKeysNow())+'</span>'
         +av
         +'<span class="v" style="font-weight:700;">'+valHtml+'</span>'
-        +'</div><div class="rock-gantt">'+chart+'</div></div>';
+        +'</div><div class="rock-gantt">'+noteSummaryHtml(m,noteKeysNow())+chart+'</div></div>';
       }catch(err){ console.warn('metric row failed', m&&m.id, err); return '<div class="rock-row"><div class="rock-hd"><span class="rk-title">'+esc((m&&m.name)||'Metric')+'</span><span class="v" style="color:var(--muted);font-weight:400;">couldn’t load</span></div></div>'; }
     }).join(''); }
   /* pick which metrics appear in a meeting's scorecard section (e.g. one person's metrics for a 1-1) */
@@ -7276,7 +7350,7 @@ Herd Life`;
       body='<div class="mg-hd"><span class="sp">Week of '+esc(wkLabel(weekStarts(1,weekStartDay)[0]))+'</span>'
         +'<span class="c">Week</span><span class="c">'+esc(mon)+'</span><span class="c">Quarter</span></div>'
         + mine.map(m=>'<div class="mg" onclick="openMetricChart(\''+m.id+'\')" title="Open history and trend">'
-            +'<div class="nm">'+esc(m.name||'Untitled')+'<small>'+esc(m.dept||'No function yet')+'</small></div>'
+            +'<div class="nm">'+esc(m.name||'Untitled')+noteBadge(m,noteKeysNow())+'<small>'+esc(m.dept||'No function yet')+'</small></div>'
             + cell(m,'wk') + cell(m,'mtd','q') + cell(m,'q','q') + '</div>').join('');
     }
     box.innerHTML='<div class="panel"><div class="panel-hd">'+avatarHtml(resolvePerson(myEmail))
