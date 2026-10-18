@@ -3508,7 +3508,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function cgLevelMode(m){ return (m.levelMode==='climb') ? 'climb' : 'hold'; }
   function cgClimbs(m){ return cgIsLevel(m) && cgLevelMode(m)==='climb'; }
   function cgLatestAt(m,date){ let bd=null,val=null; const V=metricValues(m);
-    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; const n=Number(V[k]); if(isNaN(n)) return;
+    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>date) return; if(V[k]===''||V[k]==null) return; const n=Number(V[k]); if(isNaN(n)) return;
       if(!bd||d>bd){ bd=d; val=n; } });
     return val; }
   /* What a metric was sitting at when the quarter began. An entered starting
@@ -4108,6 +4108,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     Q.concat(M).forEach(p=>{ p.partial=p.weeks.length<p.full; p.current=p.weeks.some(w=>w.getTime()===nowT); });
     return { weeks, Q, M };
   }
+  /* A metric's default target reaches back only to the first quarter that has a
+     target of its own (or, without any, the quarter the metric was made), so 2023
+     isn't graded against a goal that was set in 2026. */
+  function hxGoalFrom(m){
+    const qg=m.quarterGoals||{}, ks=Object.keys(qg).filter(k=>hxHas(qg[k])).sort();
+    if(ks.length) return ks[0];
+    return m.t ? weekQuarter(new Date(m.t)) : null;
+  }
   /* one period's number and goal, read the way the scorecard reads the metric */
   function hxAgg(m,weeks){
     const ks={}; weeks.forEach(w=>{ ks[wkKey(w)]=1; });
@@ -4124,7 +4132,9 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       else v=sum();
     }
     let g=null;
-    if(isCumulative(m) && m.cumEntry==='absolute') g=hxNum(cumPaceTarget(m,last));
+    const gFrom=hxGoalFrom(m), gOk=w=>!gFrom || weekQuarter(w)>=gFrom;
+    if(!gOk(weeks[0])) g=null;
+    else if(isCumulative(m) && m.cumEntry==='absolute') g=hxNum(cumPaceTarget(m,last));
     else if(cgClimbs(m)) g=hxNum(effectiveGoal(m,last));
     else if(cgIsLevel(m)) g=hxNum(goalForDate(m,last));
     else { let t=0; for(const w of weeks){ const e=hxNum(effectiveGoal(m,w)); if(e===null){ t=null; break; } t+=e; } g=t; }
