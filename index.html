@@ -581,6 +581,34 @@
   .ch-tbl th.lft,.ch-tbl td.lft{text-align:left;}
   .ch-scroll{max-height:280px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;}
   .ch-pill{display:inline-block;color:#fff;font-weight:700;font-size:10.5px;padding:2px 9px;border-radius:999px;}
+  /* History & graph by week / month / quarter */
+  .hx-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 0 12px;}
+  .hx-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:20px 0 4px;}
+  .hx-hd h4{margin:0;color:var(--heading);}
+  .hx-btns{display:flex;gap:6px;flex-wrap:wrap;}
+  .hx-note{margin:0 0 8px;font-size:12.5px;color:var(--muted);text-align:left;}
+  .hx-scroll{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+  .hx-scroll table.ch-tbl{margin-top:0;}
+  .hx-tbl td{white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .hx-tbl td:not(.lft){text-align:right;}
+  .hx-tbl th:not(.lft){text-align:right;}
+  .hx-tbl tr.hx-q td{font-weight:800;border-top:2px solid var(--line);}
+  .hx-tbl tr.hx-m td{font-weight:700;}
+  .hx-tbl tr.hx-m td.lft{padding-left:28px;}
+  .hx-tbl tr.hx-w td.lft{padding-left:58px;font-weight:500;}
+  .hx-tbl tr.is-now td.lft{color:var(--purple);}
+  .hx-tbl td.hx-g{color:var(--muted);font-weight:500;}
+  .hx-tbl input.mx-val{width:84px;margin:0;padding:3px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit;font-weight:600;text-align:right;}
+  .hx-tbl input.mx-val:focus{outline:none;border-color:var(--purple-light);box-shadow:0 0 0 2px rgba(142,79,184,.2);}
+  .hx-col{font-size:11px;color:var(--muted);margin-left:6px;font-weight:500;}
+  .hx-todate{font-size:10.5px;font-weight:800;color:var(--purple);margin-left:6px;text-transform:uppercase;letter-spacing:.05em;}
+  .hx-caret{border:none;background:transparent;color:var(--purple);cursor:pointer;width:22px;height:22px;border-radius:6px;font-size:11px;margin:0 4px 0 0;padding:0;vertical-align:middle;transition:transform .15s;}
+  .hx-caret[aria-expanded="true"]{transform:rotate(90deg);}
+  .hx-caret:hover{background:var(--lilac);}
+  .hx-caret:focus-visible{outline:2px solid var(--purple);outline-offset:1px;}
+  @media (prefers-reduced-motion:reduce){ .hx-caret{transition:none;} }
+  @media (max-width:560px){ .hx-col{display:block;margin-left:0;} .hx-tbl tr.hx-m td.lft{padding-left:18px;} .hx-tbl tr.hx-w td.lft{padding-left:40px;}
+    .hx-tbl input.mx-val{width:64px;} }
   .tm-cell{display:flex;align-items:center;gap:9px;}
   .tm-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--lilac-2);}
   .tm-initials{width:28px;height:28px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-size:.66rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
@@ -3051,8 +3079,9 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function fmtVal(m,v){ if(v===''||v===null||v===undefined||isNaN(Number(v))) return '—'; const n=Number(v); const s=(Math.round(n*100)/100).toLocaleString(); if(m.unit==='currency') return '$'+s; if(m.unit==='percent') return s+'%'; return s; }
   /* goal model: target + direction (higher/lower is better) + step % between tiers */
   /* Every metric works the same way: a QUARTERLY target, recorded WEEKLY.
-     A "total" goal is spread across the 13 weeks; a "level" goal applies in full each week. */
-  const WEEKS_PER_QUARTER=13;
+     A "total" goal is spread across the quarter's weeks (weeksInQuarter: 13 most
+     quarters, 12 or 14 now and then); a "level" goal applies in full each week. */
+  const WEEKS_PER_QUARTER=13;   /* only a fallback now — see weeksInQuarter() */
   function normalizeMetric(m){ if(!m) return m;
     if(!m.direction) m.direction = (m.goalType==='lte') ? 'lower' : 'higher';
     if(m.tierPct===undefined||m.tierPct===null||m.tierPct==='') m.tierPct=10;
@@ -3085,7 +3114,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     cols.forEach((c,i)=>{
       c.isNow = today>=c.start && today<=c.end;
       c.isFuture = c.start>today;
-      const q=quarterKeyOf(c.start);
+      const q=(period==='monthly'||period==='quarterly') ? quarterKeyOf(c.start) : weekQuarter(c.start);
       c.qNew = (i>0 && q!==prevQ);
       c.qTag = (period!=='quarterly' && (i===0 || c.qNew)) ? quarterLabel(q).replace(' 20',' ') : '';
       prevQ=q;
@@ -3172,19 +3201,34 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(!y||!q) return null; return { start:new Date(y,(q-1)*3,1), end:new Date(y,q*3,0) }; }
   function quarterList(back,fwd){ const out=[]; const t=new Date(); const cy=t.getFullYear(), cq=Math.floor(t.getMonth()/3)+1;
     for(let i=-back;i<=fwd;i++){ let q=cq+i, y=cy; while(q<1){q+=4;y--;} while(q>4){q-=4;y++;} out.push(y+'-Q'+q); } return out; }
-  function goalForDate(m,d){ const qg=m.quarterGoals||{}; const v=qg[quarterKeyOf(d)];
+  /* Which month and quarter a week counts in: the one where most of its days fall.
+     A Sunday column holds the week before it (Monday's meeting reports last week),
+     so that's the Wednesday four days back. The Oct 4 column is Sep 27 – Oct 3,
+     mostly September, so it counts in September and Q3. */
+  function weekMid(d){ const k=alignWeekStart(d); return new Date(k.getFullYear(),k.getMonth(),k.getDate()-4); }
+  function weekQuarter(d){ return quarterKeyOf(weekMid(d)); }
+  function weekMonth(d){ const w=weekMid(d); return new Date(w.getFullYear(),w.getMonth(),1); }
+  /* the Sunday columns that count in a calendar window — one per Wednesday in it */
+  function weekKeysIn(s,e){ const out=[]; const d=new Date(s.getFullYear(),s.getMonth(),s.getDate()+((3-s.getDay()+7)%7));
+    while(d<=e){ out.push(new Date(d.getFullYear(),d.getMonth(),d.getDate()+4)); d.setDate(d.getDate()+7); } return out; }
+  const _qWeeks={};
+  function quarterWeeks(qk){ if(!_qWeeks[qk]){ const r=mxQuarterRange(qk); _qWeeks[qk]=r?weekKeysIn(r.start,r.end):[]; } return _qWeeks[qk]; }
+  /* 13 for most quarters, 12 or 14 now and then, depending on where the Wednesdays fall */
+  function weeksInQuarter(qk){ return quarterWeeks(qk).length||WEEKS_PER_QUARTER; }
+  function goalForQuarter(m,qk){ const qg=m.quarterGoals||{}; const v=qg[qk];
     if(v!==undefined && v!==null && v!=='') return Number(v);
     return (m.goal===''||m.goal===undefined||m.goal===null)?'':Number(m.goal); }
+  function goalForDate(m,d){ return goalForQuarter(m,weekQuarter(d)); }
   /* A target can be stated per week/month/quarter/year while the numbers are
      recorded more often. For counts that add up we spread the target across the
      recording periods (1,826 a quarter = 140.5 a week). For rates and levels
      (rollup = average) the target applies as-is to every period. */
-  function goalScale(m){ return (m.goalKind==='level') ? 1 : 1/WEEKS_PER_QUARTER; }
-  /* which week of the quarter a date falls in, 1..13 */
+  function goalScale(m,qk){ return (m.goalKind==='level') ? 1 : 1/weeksInQuarter(qk||weekQuarter(new Date())); }
+  /* which week of its quarter a week is, 1..13 (12 or 14 in some quarters) */
   function weekIndexInQuarter(date){
-    const r=mxQuarterRange(quarterKeyOf(date)); if(!r) return 1;
-    const we=Math.round((alignWeekStart(date).getTime()-alignWeekStart(r.start).getTime())/(7*86400000))+1;
-    return Math.max(1,Math.min(WEEKS_PER_QUARTER,we));
+    const k=wkKey(alignWeekStart(date)), ws=quarterWeeks(weekQuarter(date));
+    const i=ws.findIndex(w=>wkKey(w)===k);
+    return i>=0 ? i+1 : 1;
   }
   /* The number to beat this week.
      A balance that climbs (customers, subscribers) gets a MILESTONE: start at 2,000,
@@ -3194,12 +3238,13 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const base=goalForDate(m,date);
     if(base===''||base===null||base===undefined||isNaN(Number(base))) return '';
     const G=Number(base);
+    const qk=weekQuarter(date);
     if(cgClimbs(m)){
-      const S=metricBaseline(m,quarterKeyOf(date));
-      if(S!==null) return S+(G-S)*weekIndexInQuarter(date)/WEEKS_PER_QUARTER;
+      const S=metricBaseline(m,qk);
+      if(S!==null) return S+(G-S)*weekIndexInQuarter(date)/weeksInQuarter(qk);
       return G;
     }
-    return G*goalScale(m);
+    return G*goalScale(m,qk);
   }
   function fmtTgt(m,v){ if(v===''||v===null||isNaN(Number(v))) return '';
     return (m.unit==='percent') ? fmtVal(m,Math.round(Number(v)*10)/10) : fmtVal(m,Math.round(Number(v))); }
@@ -3216,21 +3261,22 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(m.goalKind==='cumulative'){
       /* only an ENTERED start counts here: a running total legitimately starts at
          zero, so guessing one from the first reading would misprice the pace */
-      const S=metricStart(m,quarterKeyOf(new Date()));
+      const qkNow=weekQuarter(new Date()), nW=weeksInQuarter(qkNow);
+      const S=metricStart(m,qkNow);
       const climb=(S===null)?Number(g):(Number(g)-S);
       return fmtVal(m,g)+'<span class="mx-per"> by qtr-end</span><div class="mx-pace">'
-        + (S===null ? 'pace '+fmtTgt(m,climb/WEEKS_PER_QUARTER)+'/wk'
-                    : 'from '+fmtVal(m,S)+' · '+fmtTgt(m,climb/WEEKS_PER_QUARTER)+'/wk')+'</div>';
+        + (S===null ? 'pace '+fmtTgt(m,climb/nW)+'/wk'
+                    : 'from '+fmtVal(m,S)+' · '+fmtTgt(m,climb/nW)+'/wk')+'</div>';
     }
     let out=op+fmtVal(m,g)+'<span class="mx-per"> /qtr</span>';
     if(cgClimbs(m)){ const wk=effectiveGoal(m,new Date());
       out+='<div class="mx-pace">week '+weekIndexInQuarter(new Date())+' milestone '+fmtTgt(m,wk)+'</div>'; }
-    else if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/WEEKS_PER_QUARTER)+' a week</div>';
+    else if(m.goalKind!=='level') out+='<div class="mx-pace">'+op+fmtTgt(m,Number(g)/weeksInQuarter(weekQuarter(new Date())))+' a week</div>';
     return out; }
   const TIER_COLORS={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b'};
   /* the starting number typed into the current quarter's box, for the live preview */
   function mxLegendStart(){
-    const el=document.getElementById('mxqs-'+quarterKeyOf(new Date()));
+    const el=document.getElementById('mxqs-'+weekQuarter(new Date()));
     if(!el) return null; const v=(el.value||'').trim();
     if(v===''||isNaN(Number(v))) return null; return Number(v);
   }
@@ -3245,7 +3291,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       if(m.goal===''||isNaN(Number(m.goal))){ box.innerHTML='<p class="lg-tt">Enter the quarter-end total to preview the pace.</p>'; return; }
       const S0=mxLegendStart();
       const climb=(S0===null)?Number(m.goal):(Number(m.goal)-S0);
-      const per=climb/WEEKS_PER_QUARTER;
+      const per=climb/weeksInQuarter(weekQuarter(new Date()));
       const from=(S0===null)?'0':fmtVal(m,S0);
       const how = (m.cumEntry==='absolute')
         ? 'You enter the running total to date each week. It climbs from '+from+' to '+fmtVal(m,m.goal)+' across the quarter, about '+fmtTgt(m,per)+' a week, and we show whether you\'re ahead or behind that line — no weekly pass/fail.'
@@ -3262,7 +3308,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(!b){ box.innerHTML='<p class="lg-tt">Enter a quarterly target to preview the colour bands.</p>'; return; }
     const low = m.direction==='lower';
     const paceNote = (m.goalKind!=='level')
-      ? '<p class="lg-tt">'+fmtVal(m,m.goal)+' A QUARTER ÷ 13 = <b>'+fmtTgt(m,Number(m.goal)*sc)+' A WEEK</b></p>'
+      ? '<p class="lg-tt">'+fmtVal(m,m.goal)+' A QUARTER ÷ '+weeksInQuarter(weekQuarter(new Date()))+' WEEKS = <b>'+fmtTgt(m,Number(m.goal)*sc)+' A WEEK</b></p>'
       : '<p class="lg-tt">EVERY WEEK IS MEASURED AGAINST THE FULL '+fmtVal(m,m.goal)+'</p>';
     const row=(color,op,val,lab)=>'<div class="lg-row"><span class="lg-sw" style="background:'+color+'"></span><span class="lg-op">'+op+'</span><span class="lg-num">'+fmtVal(m,val)+'</span><span class="lg-lab">'+lab+'</span></div>';
     box.innerHTML=paceNote+'<p class="lg-tt">HOW EACH WEEK WILL BE GRADED</p>'
@@ -3283,28 +3329,27 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function metricQuarterInfo(m,date){
     const G=goalForDate(m,date);
     if(G===''||G==null||isNaN(Number(G))) return null;
-    const qk=quarterKeyOf(date), r=mxQuarterRange(qk); if(!r) return null;
+    const qk=weekQuarter(date), nW=weeksInQuarter(qk);
     const wkStart=alignWeekStart(date);
-    const firstWk=alignWeekStart(r.start);
-    let we=Math.round((wkStart.getTime()-firstWk.getTime())/(7*86400000))+1;
-    we=Math.max(1,Math.min(WEEKS_PER_QUARTER,we));
+    const we=weekIndexInQuarter(date);
+    const inQ=d=>weekQuarter(d)===qk;
     let cum=0, any=false;
     if(m.cumEntry==='absolute'){ let bestD=null;
       Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
-        if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ any=true; if(!bestD||d>bestD){ bestD=d; cum=n; } } } });
+        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ any=true; if(!bestD||d>bestD){ bestD=d; cum=n; } } } });
     } else {
       Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
-        if(d>=r.start && d<=r.end && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
+        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
     }
     /* If the quarter opened at a number (43,439 herd members), pace runs from there
        to the goal — not from zero, which makes any large running total look finished. */
     const S=metricStart(m,qk);
     const base=(S===null)?0:S;
-    const expected=base+(Number(G)-base)*we/WEEKS_PER_QUARTER;
+    const expected=base+(Number(G)-base)*we/nW;
     const diff=cum-expected;
-    const projected= we>0 ? base+(cum-base)/we*WEEKS_PER_QUARTER : 0;
+    const projected= we>0 ? base+(cum-base)/we*nW : 0;
     const onTrack=(m.direction==='lower')?(cum<=expected):(cum>=expected);
-    return { qk, G:Number(G), weeksElapsed:we, weeksTotal:WEEKS_PER_QUARTER, cum, expected, diff, projected, any, onTrack };
+    return { qk, G:Number(G), weeksElapsed:we, weeksTotal:nW, cum, expected, diff, projected, any, onTrack };
   }
   function cumTier(m,qi){ if(!qi) return ''; if(qi.onTrack) return 'great';
     const tol=Math.abs(qi.expected)*(Number(m.tierPct)||0)/100; return (Math.abs(qi.diff)<=tol)?'warn':'bad'; }
@@ -3418,45 +3463,43 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   let mxQuarterSel='';     // quarter key when mxPeriod==='q'; '' = current quarter
   function loadMxPeriod(){ try{ const v=localStorage.getItem(KEY+'_mxperiod'); if(v) mxPeriod=(v==='wk'||v==='mtd')?v:'q'; }catch(e){} }
   function setMxPeriod(p){ mxPeriod=p; if(p!=='q') mxQuarterSel=''; try{ localStorage.setItem(KEY+'_mxperiod',p); }catch(e){} renderCompanyTargets(); }
-  function setMxQuarter(k){ mxPeriod='q'; mxQuarterSel=(k===quarterKeyOf(new Date()))?'':k;
+  function setMxQuarter(k){ mxPeriod='q'; mxQuarterSel=(k===weekQuarter(new Date()))?'':k;
     try{ localStorage.setItem(KEY+'_mxperiod','q'); }catch(e){} renderCompanyTargets(); }
   loadMxPeriod();
   function cgRange(){ return mxRangeFor(mxPeriod, mxQuarterSel); }
-  /* A period's window. period is 'wk' | 'mtd' | 'q'; qsel picks a quarter for 'q'. */
+  /* A period's window, as the Sunday columns that count in it. A week counts in the
+     month and quarter where most of its days fall, so MTD and Quarter read exactly
+     the weeks that History & graph adds up for that month and quarter.
+     period is 'wk' | 'mtd' | 'q'; qsel picks a quarter for 'q'. */
   function mxRangeFor(period,qsel){
     const t=new Date(); t.setHours(0,0,0,0);
+    const nowK=alignWeekStart(t);
+    const upTo=ws=>ws.filter(w=>w<=nowK);
     if(period==='wk'){ const s=weekStarts(2,weekStartDay)[1];
-      return { period:'wk', start:s, end:t, partial:true, future:false, label:'Week of '+wkLabel(s) }; }
-    if(period==='mtd'){ const s=new Date(t.getFullYear(),t.getMonth(),1);
-      return { period:'mtd', start:s, end:t, partial:true, future:false, label:t.toLocaleDateString(undefined,{month:'long'}) }; }
-    const qk=qsel||quarterKeyOf(t);
-    const r=mxQuarterRange(qk);
-    if(r.end<t)   return { period:'q', start:r.start, end:r.end, partial:false, future:false, qk, label:quarterLabel(qk) };
-    if(r.start>t) return { period:'q', start:r.start, end:r.end, partial:false, future:true,  qk, label:quarterLabel(qk)+' · upcoming' };
-    return { period:'q', start:r.start, end:t, partial:true, future:false, qk, label:quarterLabel(qk) };
+      return { period:'wk', start:s, end:t, keys:[s], qk:weekQuarter(s), partial:true, future:false, label:'Week of '+wkLabel(s) }; }
+    if(period==='mtd'){ const mo=weekMonth(nowK), all=weekKeysIn(mo,new Date(mo.getFullYear(),mo.getMonth()+1,0)), ks=upTo(all);
+      return { period:'mtd', start:mo, end:t, keys:ks, qk:quarterKeyOf(mo), partial:ks.length<all.length, future:false,
+               label:mo.toLocaleDateString(undefined,{month:'long'}), short:mo.toLocaleDateString(undefined,{month:'short'}) }; }
+    const qk=qsel||weekQuarter(t);
+    const r=mxQuarterRange(qk), all=quarterWeeks(qk);
+    if(!all.length || all[0]>nowK) return { period:'q', start:r.start, end:r.end, keys:[], partial:false, future:true, qk, label:quarterLabel(qk)+' · upcoming' };
+    const ks=upTo(all);
+    if(ks.length===all.length) return { period:'q', start:r.start, end:ks[ks.length-1], keys:ks, partial:false, future:false, qk, label:quarterLabel(qk) };
+    return { period:'q', start:r.start, end:t, keys:ks, partial:true, future:false, qk, label:quarterLabel(qk) };
   }
-  /* These numbers move in whole weeks, so a window is worth however many weeks
-     STARTED inside it. That keeps the target covering exactly the same ground as
-     the number it is judging — five weeks of sales get read against five weeks of
-     target, not against a 30-day slice of the quarter. */
-  function cgFirstWeek(r){
-    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return null;
-    let d=alignWeekStart(new Date(q.start));
-    while(d<r.start) d=new Date(d.getTime()+7*86400000);
-    return (d<=r.end)?d:null;
+  /* is this week's column inside the window? */
+  function cgInWin(r,d){
+    if(!r.keys) return d>=r.start && d<=r.end;
+    if(!r._ks){ r._ks={}; r.keys.forEach(w=>{ r._ks[wkKey(w)]=1; }); }
+    return !!r._ks[wkKey(alignWeekStart(d))];
   }
-  function cgWeeksIn(r){
-    let d=cgFirstWeek(r); if(!d) return 0;
-    let n=0; while(d<=r.end){ n++; d=new Date(d.getTime()+7*86400000); }
-    return n;
-  }
-  /* How much of the quarterly target should be in the bank by the end of this window. */
+  function cgFirstWeek(r){ return (r.keys&&r.keys.length) ? r.keys[0] : null; }
+  function cgWeeksIn(r){ return (r.keys||[]).length; }
+  /* How much of the quarterly target should be in the bank by the end of this window:
+     the weeks in it over the weeks in its quarter. */
   function cgShare(r){
-    const q=mxQuarterRange(r.qk||quarterKeyOf(r.end)); if(!q) return 1;
-    const qDays=(q.end-q.start)/86400000+1;
-    const n=cgWeeksIn(r);
-    if(n>0) return Math.min(1,7*n/qDays);
-    return Math.min(1,((r.end-r.start)/86400000+1)/qDays);
+    if(r.future) return 1;
+    return Math.min(1, cgWeeksIn(r)/weeksInQuarter(r.qk||weekQuarter(r.end)));
   }
   function cgIsLevel(m){ return (m.goalKind||'total')==='level'; }
   /* Two kinds of "level": a count that climbs toward the target (herd members),
@@ -3478,16 +3521,20 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   }
   function metricBaseline(m,qk){
     const explicit=metricStart(m,qk); if(explicit!==null) return explicit;
-    const q=mxQuarterRange(qk); if(!q) return null;
-    let v=cgLatestAt(m,new Date(q.start.getTime()-86400000));
+    /* the reading on the column before the quarter's first week */
+    const ws=quarterWeeks(qk); if(!ws.length) return null;
+    const q={ start:ws[0], end:ws[ws.length-1] };
+    let v=cgLatestAt(m,new Date(q.start.getFullYear(),q.start.getMonth(),q.start.getDate()-1));
     if(v===null){ let bd=null; const V=metricValues(m);   /* metric younger than the quarter — use its earliest number */
       Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d>q.end) return; const n=Number(V[k]); if(isNaN(n)) return;
         if(!bd||d<bd){ bd=d; v=n; } }); }
     return v;
   }
-  function cgBaseline(m,r){ return metricBaseline(m, r.qk||quarterKeyOf(r.end)); }
+  function cgBaseline(m,r){ return metricBaseline(m, r.qk||weekQuarter(r.end)); }
   function cgActual(m,r){
     normalizeMetric(m);
+    /* a calculated rate over more than a week is its two sums divided */
+    if(cgWeeksIn(r)>1){ const cr=calcRatioOver(m,d=>cgInWin(r,d)); if(cr) return cr.v; }
     if(cgClimbs(m)){   /* the net change across this window, measured week to week
                           from the reading before the first week in it */
       const fw=cgFirstWeek(r);
@@ -3506,24 +3553,24 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
          percentages (NPS) opt in to averaging with levelAgg:'avg'. */
       if(m.unit==='percent' || m.levelAgg==='avg'){
         const V=metricValues(m); let sum=0,cnt=0;
-        Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return;
+        Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return;
           const n=Number(V[k]); if(isNaN(n)) return; sum+=n; cnt++; });
         if(cnt) return sum/cnt;
       }
       return cgLatestAt(m,r.end);
     }
     if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null; const V=metricValues(m);
-      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return;
+      Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return; const n=Number(V[k]); if(isNaN(n)) return;
         if(!bd||d>bd){ bd=d; val=n; } });
       return val; }
     let sum=0, any=false; const V=metricValues(m);
-    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<r.start||d>r.end) return; const n=Number(V[k]); if(isNaN(n)) return; sum+=n; any=true; });
+    Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return; const n=Number(V[k]); if(isNaN(n)) return; sum+=n; any=true; });
     return any?sum:null;
   }
   /* The number to beat over this window, already pro-rated — so the target on
      screen and the one deciding red or green are the same figure. */
   function cgTarget(m,r){
-    const base=goalForDate(m,r.end);
+    const base=goalForQuarter(m, r.qk||weekQuarter(r.end));
     if(base===''||base===null||base===undefined||isNaN(Number(base))) return null;
     const G=Number(base);
     if(cgClimbs(m)){ const b=cgBaseline(m,r); if(b===null) return null; return (G-b)*cgShare(r); }
@@ -3568,7 +3615,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     /* a climbing count keeps its actual level on a second line — that's the number people ask for */
     let sub='';
     if(signed && !r.future){
-      const now=cgLatestAt(m,r.end), b=cgBaseline(m,r), G=goalForDate(m,r.end);
+      const now=cgLatestAt(m,r.end), b=cgBaseline(m,r), G=goalForQuarter(m, r.qk||weekQuarter(r.end));
       if(now!==null){
         const qr=mxRangeFor('q', r.qk||'');
         const pace=(b!==null && G!==''&&G!==null&&!isNaN(Number(G))) ? b+(Number(G)-b)*cgShare(qr) : null;
@@ -3594,10 +3641,12 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     let behind=null;
     if(herd && !r.future){
       const today=new Date(); today.setHours(0,0,0,0);
-      const qk=(mxPeriod==='q' && r.qk) ? r.qk : quarterKeyOf(today);
-      const qr=mxQuarterRange(qk);
-      const runStart=qr.start, runEnd=(qr.end<today)?qr.end:today, runGoalDate=new Date(qr.start.getTime()+45*86400000);
-      const paceFrac=Math.min(1,((runEnd-qr.start)/86400000+1)/(((qr.end-qr.start)/86400000)+1));
+      const qk=(mxPeriod==='q' && r.qk) ? r.qk : weekQuarter(today);
+      const qr=mxRangeFor('q',qk), qws=quarterWeeks(qk);
+      /* start = the reading just before the quarter's first week; pace = weeks in so far */
+      const runStart=qws.length ? new Date(qws[0].getFullYear(),qws[0].getMonth(),qws[0].getDate()-1) : qr.start;
+      const runEnd=qr.end;
+      const paceFrac=Math.min(1,cgWeeksIn(qr)/weeksInQuarter(qk));
       let startVal=metricStart(herd,qk);
       if(startVal===null) startVal=cgLatestAt(herd,runStart);
       if(startVal===null){ /* metric younger than the period — use its earliest number instead */
@@ -3605,7 +3654,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
         Object.keys(HV).forEach(k=>{ const d=parseAnyDate(k); if(!d||d<runStart||d>runEnd) return; const n=Number(HV[k]); if(isNaN(n)) return;
           if(!bd||d<bd){ bd=d; startVal=n; } });
       }
-      const goal=goalForDate(herd,runGoalDate);
+      const goal=goalForQuarter(herd,qk);
       const cur=cgLatestAt(herd,runEnd);
       if(startVal!==null && cur!==null && !(goal===''||goal===null||isNaN(Number(goal))) && Number(goal)>startVal){
         const p=Math.max(0,Math.min(1,(cur-startVal)/(Number(goal)-startVal)));
@@ -3623,7 +3672,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const stateHtml = behind===null ? '' : '<span class="cg-state '+(behind?'behind':'ahead')+'">'
       +(done ? (behind?'✕ Missed':'✓ Hit') : (behind?'▼ Behind pace':'▲ On pace'))+'</span>';
     const btn=p=>'<button class="'+(mxPeriod===p?'on':'')+'" onclick="setMxPeriod(\''+p+'\')">'+({wk:'This week',mtd:'MTD',q:'Quarter'}[p])+'</button>';
-    const curQk=(mxPeriod==='q'&&r.qk)?r.qk:quarterKeyOf(new Date());
+    const curQk=(mxPeriod==='q'&&r.qk)?r.qk:weekQuarter(new Date());
     const qsel='<select class="cg-qsel" onchange="setMxQuarter(this.value)" title="See any quarter, past or future">'
       + quarterList(4,4).map(k=>'<option value="'+esc(k)+'"'+(k===curQk?' selected':'')+'>'+esc(quarterLabel(k))+'</option>').join('')
       + '</select>';
@@ -3631,11 +3680,10 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
        without gluing it onto a number */
     let wkChip='';
     const tNow=new Date(); tNow.setHours(0,0,0,0);
-    const qrNow=mxQuarterRange(curQk);
-    if(qrNow && !r.future){
-      const endD=(qrNow.end<tNow)?qrNow.end:tNow;
-      const wkEl=Math.max(1,Math.min(WEEKS_PER_QUARTER,Math.ceil(((endD-qrNow.start)/86400000+1)/7)));
-      wkChip='<span class="cg-wk">Week '+wkEl+' of '+WEEKS_PER_QUARTER+'</span>';
+    const qrNow=mxRangeFor('q',curQk);
+    if(qrNow && !qrNow.future && !r.future){
+      const nQ=weeksInQuarter(curQk), wkEl=Math.max(1,Math.min(nQ,cgWeeksIn(qrNow)));
+      wkChip='<span class="cg-wk">Week '+wkEl+' of '+nQ+'</span>';
     }
     box.innerHTML='<div class="cg-tile">'
       +'<div class="cg-top"><div class="cg-title"><span style="font-size:1.35rem;">🐄</span><span>Company Targets<span class="cg-sub">'+esc(r.label)+'</span></span></div>'
@@ -3735,7 +3783,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   /* ----- quarterly target inputs inside the metric modal ----- */
   function mxRenderQuarters(m){
     const box=document.getElementById('mxQuarters'); if(!box) return;
-    const nowQ=quarterKeyOf(new Date()); const qg=(m&&m.quarterGoals)||{}; const qs=(m&&m.quarterStarts)||{};
+    const nowQ=weekQuarter(new Date()); const qg=(m&&m.quarterGoals)||{}; const qs=(m&&m.quarterStarts)||{};
     box.innerHTML=quarterList(2,3).map(k=>{
       const v=(qg[k]===undefined||qg[k]===null)?'':qg[k];
       const sv=(qs[k]===undefined||qs[k]===null)?'':qs[k];
@@ -3814,7 +3862,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   }
   /* ----- trend chart: quarterly goals (back and forward) vs actuals ----- */
   function alignWeekStart(d){ const x=new Date(d); x.setHours(0,0,0,0); const back=(x.getDay()-weekStartDay+7)%7; x.setDate(x.getDate()-back); return x; }
-  function metricChartPoints(m){
+  function metricChartPoints(m,maxN){
     normalizeMetric(m);
     const qg=m.quarterGoals||{}, vals=metricValues(m);
     const dates=[];
@@ -3827,15 +3875,15 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const per=m.period||'weekly';
     const span=Math.max(1,(max-min)/86400000);
     const need = per==='quarterly' ? Math.ceil(span/90)+2 : per==='monthly' ? Math.ceil(span/30)+2 : Math.ceil(span/7)+2;
-    const cols=periodCols(per, Math.min(need>PERIOD_COUNTS[per]?need:PERIOD_COUNTS[per], 200));
+    const cols=periodCols(per, Math.min(need>PERIOD_COUNTS[per]?need:PERIOD_COUNTS[per], maxN||200));
     return cols.map(c=>{ const cv=cellValue(m,c); const g=effectiveGoal(m,c.start);
       return { date:c.start, key:c.key, label:c.label,
                actual:(cv.eff===null||isNaN(cv.eff))?null:cv.eff,
                goal:(g===''||g===null||g===undefined||isNaN(Number(g)))?null:Number(g) }; });
   }
-  function renderMetricChart(m){
-    if(isCumulative(m)) return renderCumulativeChart(m);
-    const pts=metricChartPoints(m);
+  function renderMetricChart(m,opts){
+    if(isCumulative(m)) return renderCumulativeChart(m,opts);
+    const pts=metricChartPoints(m,52);   /* the last year of weeks; Month and Quarter go back further */
     const nums=[]; pts.forEach(p=>{ if(p.actual!==null) nums.push(p.actual); if(p.goal!==null) nums.push(p.goal); });
     if(!nums.length) return '<p class="empty">No targets or results recorded yet — set a quarterly target or enter a weekly number first.</p>';
     const W=820,H=330,PL=58,PR=18,PT=16,PB=52;
@@ -3852,14 +3900,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
          + '<text x="'+(PL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#6b5e78">'+esc(fmtVal(m,v))+'</text>'; }
     // quarter separators + labels
     let lastQ='';
-    pts.forEach((p,i)=>{ const q=quarterKeyOf(p.date);
+    pts.forEach((p,i)=>{ const q=weekQuarter(p.date);
       if(q!==lastQ){ if(i>0) svg+='<line x1="'+X(i)+'" y1="'+PT+'" x2="'+X(i)+'" y2="'+(H-PB)+'" stroke="#e3d6ef" stroke-dasharray="3,3"/>';
         svg+='<text x="'+(X(i)+4)+'" y="'+(H-PB+16)+'" font-size="10.5" fill="#6b5e78" font-weight="700">'+esc(quarterLabel(q))+'</text>'; lastQ=q; } });
     // today marker
     const todayIdx=pts.findIndex(p=>p.date>=alignWeekStart(new Date()));
     if(todayIdx>0){ const x=X(todayIdx);
       svg+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8e4fb8" stroke-width="1.5"/>'
-         + '<text x="'+(x+4)+'" y="'+(PT+12)+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
+         + '<text x="'+(x>W-60?x-4:x+4)+'" y="'+(PT+12)+'" text-anchor="'+(x>W-60?'end':'start')+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
     // shade the "beating target" side of the goal line
     let bi=0;
     while(bi<n){
@@ -3912,20 +3960,19 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return hint
          + '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> What we did each week</span>'
          + '<span class="ch-key"><i class="ch-swatch dash"></i> Weekly goal'
-         + (m.goalKind!=='level' ? ' ('+esc(fmtVal(m,goalForDate(m,new Date())))+' a quarter ÷ 13)' : '')
+         + (m.goalKind!=='level' ? ' ('+esc(fmtVal(m,goalForDate(m,new Date())))+' a quarter ÷ '+weeksInQuarter(weekQuarter(new Date()))+' weeks)' : '')
          + '</span><span class="ch-key">Shaded area = beating the goal</span></div>'
-         + svg + summary + tbl;
+         + svg + summary + ((opts&&opts.chartOnly)?'':tbl);
   }
   /* cumulative chart: running total vs the straight-line pace to the quarter-end goal */
-  function renderCumulativeChart(m){
+  function renderCumulativeChart(m,opts){
     const today=new Date(); today.setHours(0,0,0,0);
-    const qk=quarterKeyOf(today), r=mxQuarterRange(qk);
+    const qk=weekQuarter(today), r=mxQuarterRange(qk);
     const G=goalForDate(m,today);
     if(G===''||G==null||isNaN(Number(G))) return '<p class="empty">Set a quarter-end total for this metric to see the pace chart. Edit the metric and enter a <b>Quarterly target</b>.</p>';
     if(!r) return '<p class="empty">Couldn’t work out the current quarter to chart this metric.</p>';
-    const firstWk=alignWeekStart(r.start);
     const nowWk=alignWeekStart(today);
-    const weeks=[]; for(let i=0;i<WEEKS_PER_QUARTER;i++){ weeks.push(new Date(firstWk.getTime()+i*7*86400000)); }
+    const weeks=quarterWeeks(qk).map(w=>new Date(w));
     // cumulative actual per week (null for future / no data yet)
     const absolute = m.cumEntry==='absolute';
     let running=0, sawAny=false, lastAbs=null;
@@ -3936,7 +3983,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       let cumVal;
       if(absolute){ if(has){ lastAbs=Number(raw); sawAny=true; } cumVal=(isFuture&&!has)?null:(sawAny?lastAbs:null); }
       else { if(has){ running+=Number(raw); sawAny=true; } cumVal=(isFuture&&!has)?null:(sawAny||has?running:null); }
-      const pace=Number(G)*(i+1)/WEEKS_PER_QUARTER;
+      const pace=Number(G)*(i+1)/weeks.length;
       return { i, date:w, added:has?Number(raw):null, cum:cumVal, pace, isFuture, isNow:(w.getTime()===nowWk.getTime()) };
     });
     const qi=metricQuarterInfo(m,today);
@@ -3960,7 +4007,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     // today marker
     const nowIdx=rows.findIndex(p=>p.isNow);
     if(nowIdx>=0){ const x=X(nowIdx); svg+='<line x1="'+x+'" y1="'+PT+'" x2="'+x+'" y2="'+(H-PB)+'" stroke="#8e4fb8" stroke-width="1.5"/>'
-      +'<text x="'+(x+4)+'" y="'+(PT+12)+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
+      +'<text x="'+(x>W-60?x-4:x+4)+'" y="'+(PT+12)+'" text-anchor="'+(x>W-60?'end':'start')+'" font-size="10.5" fill="#8e4fb8" font-weight="700">today</text>'; }
     // actual cumulative (solid)
     let aseg=[]; rows.forEach((p,i)=>{ if(p.cum===null){ return; } aseg.push(X(i)+','+Y(p.cum)); });
     if(aseg.length>1) svg+='<polyline fill="none" stroke="#6a2c8f" stroke-width="2.8" points="'+aseg.join(' ')+'"/>';
@@ -3998,28 +4045,234 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Running total</span>'
       +'<span class="ch-key"><i class="ch-swatch dash"></i> Straight-line pace to '+esc(fmtVal(m,G))+'</span>'
       +'<span class="ch-key">Green dot = at/ahead of pace</span></div>'
-      + svg + banner + tbl;
+      + svg + banner + ((opts&&opts.chartOnly)?'':tbl);
   }
   let curChartMetricId=null;
+  /* ================= History & graph: by week, month or quarter =================
+     A week counts in the month (and so the quarter) where most of its days fall —
+     see weekMonth / weekQuarter. Months add up their weeks and quarters add up
+     their months, so every level ties out when you open it. */
+  let chPeriod='week';
+  try{ const v=localStorage.getItem(KEY+'_chperiod'); if(v==='week'||v==='month'||v==='quarter') chPeriod=v; }catch(e){}
+  let chOpen=null, chOpenFor=null;   // which quarters / months are open in the history table
+  function setChPeriod(p){ chPeriod=p; try{ localStorage.setItem(KEY+'_chperiod',p); }catch(e){} if(curChartMetricId) openMetricChart(curChartMetricId); }
+  function hxHas(v){ return !(v===undefined||v===null||v==='') && !isNaN(Number(v)); }
+  function hxNum(v){ return hxHas(v) ? Number(v) : null; }
+  /* A calculated rate over several weeks is its two sums divided: Breakage % for a
+     month is that month's breakage ÷ its sales × 100, not an average of weekly
+     percentages, so a big week weighs what its sales weigh. Weeks need both numbers. */
+  function calcRatioOver(m,inWin){
+    if(!isCalc(m) || ['add','sub','mul'].indexOf(m.calc.op)>=0) return null;
+    const A=metricsStore.find(x=>x.id===m.calc.a), B=metricsStore.find(x=>x.id===m.calc.b);
+    if(!A||!B||A.id===m.id||B.id===m.id) return null;
+    const VA=metricValues(A), VB=metricValues(B); let sa=0, sb=0, n=0;
+    Object.keys(VA).forEach(k=>{ if(!hxHas(VA[k])||!hxHas(VB[k])) return; const d=parseAnyDate(k); if(!d||!inWin(d)) return;
+      sa+=Number(VA[k]); sb+=Number(VB[k]); n++; });
+    if(!n||!sb) return null;
+    return { v:sa/sb*(m.calc.x100?100:1), a:sa, b:sb, n, A, B };
+  }
+  /* every Sunday column from the metric's first number up to this week */
+  function hxWeeks(m){
+    const V=metricValues(m); let first=null;
+    Object.keys(V).forEach(k=>{ if(!hxHas(V[k])) return; const d=parseAnyDate(k); if(!d) return; const a=alignWeekStart(d); if(!first||a<first) first=a; });
+    const nowK=alignWeekStart(new Date());
+    if(!first||first>nowK) first=new Date(nowK.getFullYear(),nowK.getMonth(),nowK.getDate()-12*7);
+    const out=[]; const d=new Date(first);
+    while(d<=nowK){ out.push(new Date(d)); d.setDate(d.getDate()+7); }
+    return out;
+  }
+  function hxModel(m){
+    const weeks=hxWeeks(m), Q=[], M=[], byQ={}, byM={};
+    weeks.forEach(w=>{
+      const qk=weekQuarter(w), mo=weekMonth(w), mk=wkKey(mo);
+      if(!byQ[qk]){ byQ[qk]={ id:'q:'+qk, qk, label:quarterLabel(qk), weeks:[], months:[], full:weeksInQuarter(qk) }; Q.push(byQ[qk]); }
+      if(!byM[mk]){ byM[mk]={ id:'m:'+mk.slice(0,7), mo, label:mo.toLocaleDateString(undefined,{month:'long',year:'numeric'}),
+                              weeks:[], full:weekKeysIn(mo,new Date(mo.getFullYear(),mo.getMonth()+1,0)).length };
+                    M.push(byM[mk]); byQ[qk].months.push(byM[mk]); }
+      byQ[qk].weeks.push(w); byM[mk].weeks.push(w);
+    });
+    const nowT=alignWeekStart(new Date()).getTime();
+    Q.concat(M).forEach(p=>{ p.partial=p.weeks.length<p.full; p.current=p.weeks.some(w=>w.getTime()===nowT); });
+    return { weeks, Q, M };
+  }
+  /* one period's number and goal, read the way the scorecard reads the metric */
+  function hxAgg(m,weeks){
+    const ks={}; weeks.forEach(w=>{ ks[wkKey(w)]=1; });
+    const inWin=d=>!!ks[wkKey(alignWeekStart(d))];
+    const last=weeks[weeks.length-1];
+    const vals=[]; weeks.forEach(w=>{ const cv=cellValue(m,colFor(w)); if(cv.eff!==null && !isNaN(cv.eff)) vals.push(Number(cv.eff)); });
+    const sum=()=>vals.reduce((a,b)=>a+b,0);
+    const cr=calcRatioOver(m,inWin);
+    let v=null;
+    if(cr && weeks.length>1) v=cr.v;
+    else if(vals.length){
+      if(isCumulative(m)) v=(m.cumEntry==='absolute') ? vals[vals.length-1] : sum();
+      else if(cgIsLevel(m)) v=(m.unit==='percent'||m.levelAgg==='avg') ? sum()/vals.length : vals[vals.length-1];
+      else v=sum();
+    }
+    let g=null;
+    if(isCumulative(m) && m.cumEntry==='absolute') g=hxNum(cumPaceTarget(m,last));
+    else if(cgClimbs(m)) g=hxNum(effectiveGoal(m,last));
+    else if(cgIsLevel(m)) g=hxNum(goalForDate(m,last));
+    else { let t=0; for(const w of weeks){ const e=hxNum(effectiveGoal(m,w)); if(e===null){ t=null; break; } t+=e; } g=t; }
+    return { v, g, n:vals.length, cr };
+  }
+  function hxFmt(m,v){ if(v===null||v===undefined||isNaN(v)) return '—';
+    return fmtVal(m, (m.unit==='percent') ? Math.round(v*10)/10 : Math.round(v*100)/100); }
+  /* a round top for the y axis: 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8 or 10 × a power of ten */
+  function hxNice(v){ if(!(v>0)) return 1; const p=Math.pow(10,Math.floor(Math.log10(v))), f=v/p;
+    const n=f<=1?1:f<=1.5?1.5:f<=2?2:f<=2.5?2.5:f<=3?3:f<=4?4:f<=5?5:f<=6?6:f<=8?8:10; return n*p; }
+  function hxTick(m,v,step){ const st=Math.round(step*1000)/1000, dp=Number.isInteger(st)?0:Number.isInteger(st*10)?1:2;
+    const r=Math.round(v*Math.pow(10,dp))/Math.pow(10,dp); return fmtVal(m,r); }
+  function hxWeekLabel(w){
+    const s=new Date(w.getFullYear(),w.getMonth(),w.getDate()-7), e=new Date(w.getFullYear(),w.getMonth(),w.getDate()-1);
+    const md=d=>d.toLocaleDateString(undefined,{month:'short',day:'numeric'});
+    return md(s)+' – '+(s.getMonth()===e.getMonth() ? e.getDate() : md(e));
+  }
+  const HX_TC={great:'#176935',good:'#2e9e6b',warn:'#e9c227',bad:'#d8533b','':'#6a2c8f'};
+  /* month or quarter graph: the line runs through whole periods; the one still
+     filling in is a hollow dot marked "so far" */
+  function hxChart(m,periods,per){
+    const pts=periods.map(p=>{ const a=hxAgg(m,p.weeks); return { p, v:a.v, g:a.g, cr:a.cr, n:a.n }; });
+    const nums=[]; pts.forEach(x=>{ if(x.v!==null) nums.push(x.v); if(x.g!==null) nums.push(x.g); });
+    if(!nums.length) return '<p class="empty">No numbers yet to graph by '+per+'.</p>';
+    /* drawn at the width it will show at, so the labels stay readable on a phone */
+    const W=Math.max(320,Math.min(820,(window.innerWidth||820)-64)), H=W<560?250:320, PL=W<560?44:58, PR=W<560?44:60, PT=16, PB=40;
+    let mn=Math.min.apply(null,nums), mx=Math.max.apply(null,nums);
+    if(mn>=0 && !cgClimbs(m)){ mn=0; mx=hxNice(mx*1.05/4)*4; }   /* round steps: 0, 6, 12, 18, 24 */
+    else { if(mn===mx) mx=mn+Math.abs(mn||1)*0.2; const pad=(mx-mn)*0.08; mx+=pad; mn-=pad; }
+    const n=pts.length;
+    const X=i=>PL+(n<=1?(W-PL-PR)/2:i*(W-PL-PR)/(n-1));
+    const Y=v=>PT+(mx-v)*(H-PT-PB)/(mx-mn);
+    const unitWord=per==='month'?'month':'quarter';
+    let svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" style="max-width:100%;height:auto;font-family:inherit;" role="img" aria-label="'+esc((m.name||'Metric')+' by '+unitWord)+'">';
+    for(let i=0;i<=4;i++){ const v=mn+(mx-mn)*i/4, y=Y(v);
+      svg+='<line x1="'+PL+'" y1="'+y+'" x2="'+(W-PR)+'" y2="'+y+'" stroke="#e3d6ef" stroke-width="1"/>'
+         + '<text x="'+(PL-8)+'" y="'+(y+4)+'" text-anchor="end" font-size="11" fill="#6b5e78">'+esc(hxTick(m,v,(mx-mn)/4))+'</text>'; }
+    svg+='<line x1="'+PL+'" y1="'+(H-PB)+'" x2="'+(W-PR)+'" y2="'+(H-PB)+'" stroke="#e3d6ef" stroke-width="1"/>';
+    pts.forEach((x,i)=>{ let lab='';
+      if(per==='quarter'){ const q=String(x.p.qk).split('-Q'); if(q[1]==='1'||i===0) lab=q[0]; }
+      else if(x.p.mo.getMonth()===0||i===0) lab=String(x.p.mo.getFullYear());
+      if(lab) svg+='<line x1="'+X(i)+'" y1="'+(H-PB)+'" x2="'+X(i)+'" y2="'+(H-PB+5)+'" stroke="#c9bcd9"/>'
+        +'<text x="'+X(i)+'" y="'+(H-PB+19)+'" font-size="11" fill="#6b5e78" font-weight="700">'+esc(lab)+'</text>'; });
+    /* goal: one step per period */
+    const half=n>1?(X(1)-X(0))/2:20; let gp='', prev=false;
+    pts.forEach((x,i)=>{ if(x.g===null||x.p.partial){ prev=false; return; }
+      const y=Y(x.g), x1=Math.max(PL,X(i)-half), x2=Math.min(W-PR,X(i)+half);
+      gp+=(prev?'L':'M')+x1+','+y+' L'+x2+','+y+' '; prev=true; });
+    if(gp) svg+='<path d="'+gp+'" fill="none" stroke="#6b5e78" stroke-width="2" stroke-dasharray="6,4"/>';
+    /* actual */
+    let d='', pen=false;
+    pts.forEach((x,i)=>{ if(x.v===null||x.p.partial){ pen=false; return; } d+=(pen?'L':'M')+X(i)+','+Y(x.v)+' '; pen=true; });
+    if(d) svg+='<path d="'+d+'" fill="none" stroke="#6a2c8f" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    pts.forEach((x,i)=>{ if(x.v===null) return;
+      const t=x.g===null?'':tierOfGoal(m,x.v,x.g);
+      let tt=x.p.label+(x.p.partial?' (so far)':'')+' · '+hxFmt(m,x.v)+(x.g!==null?' · goal '+fmtTgt(m,x.g):'');
+      if(x.cr) tt+=' · '+fmtVal(x.cr.A,Math.round(x.cr.a))+' ÷ '+fmtVal(x.cr.B,Math.round(x.cr.b));
+      svg+= x.p.partial
+        ? '<circle cx="'+X(i)+'" cy="'+Y(x.v)+'" r="4.5" fill="var(--card)" stroke="#6a2c8f" stroke-width="2"><title>'+esc(tt)+'</title></circle>'
+        : '<circle cx="'+X(i)+'" cy="'+Y(x.v)+'" r="'+(n>30||W<560?3.2:4.2)+'" fill="'+(HX_TC[t]||HX_TC[''])+'"><title>'+esc(tt)+'</title></circle>'; });
+    const li=n-1, lp=pts[li];
+    if(lp && lp.v!==null){
+      svg+='<text x="'+(X(li)+9)+'" y="'+(Y(lp.v)+4)+'" font-size="12" font-weight="700" fill="var(--heading)">'+esc(hxFmt(m,lp.v))+'</text>';
+      if(lp.p.partial) svg+='<text x="'+(X(li)+9)+'" y="'+(Y(lp.v)+18)+'" font-size="10.5" fill="#6b5e78">so far</text>';
+    }
+    svg+='</svg>';
+    let hit=0, graded=0;
+    pts.forEach(x=>{ if(x.p.partial||x.v===null||x.g===null) return; graded++; const t=tierOfGoal(m,x.v,x.g); if(t==='great'||t==='good') hit++; });
+    const summary = graded ? '<p class="ch-summary">Hit the goal in <b>'+hit+' of '+graded+'</b> '+unitWord+'s with both a goal and a result.</p>' : '';
+    const goalNote = (isCumulative(m)||cgIsLevel(m)) ? 'Goal' : 'Goal (quarter target spread over its weeks)';
+    return '<div class="ch-legend"><span class="ch-key"><i class="ch-swatch"></i> Each '+unitWord+'</span>'
+      + '<span class="ch-key"><i class="ch-swatch dash"></i> '+esc(goalNote)+'</span>'
+      + '<span class="ch-key">Hollow dot = '+unitWord+' so far</span></div>'
+      + svg + summary;
+  }
+  function hxCaret(id,open,label){
+    return '<button type="button" class="hx-caret" data-hx="'+esc(id)+'" aria-expanded="'+(open?'true':'false')+'" aria-label="'+(open?'Collapse ':'Expand ')+esc(label)+'" onclick="hxToggle(\''+esc(id)+'\')">▶</button>';
+  }
+  function hxTableHtml(m,model){
+    const editable=canTypeMetric(m);
+    const nowK=wkKey(alignWeekStart(new Date()));
+    const ratio=isCalc(m) && ['add','sub','mul'].indexOf(m.calc.op)<0;
+    const A=ratio?metricsStore.find(x=>x.id===m.calc.a):null, B=ratio?metricsStore.find(x=>x.id===m.calc.b):null;
+    const parts=!!(A&&B);
+    if(chOpen===null){ chOpen={}; const lq=model.Q[model.Q.length-1], lm=model.M[model.M.length-1]; if(lq) chOpen[lq.id]=1; if(lm) chOpen[lm.id]=1; }
+    const cells=(weeks,w)=>{
+      const a=hxAgg(m,weeks), t=(a.v===null||a.g===null)?'':tierOfGoal(m,a.v,a.g);
+      let val;
+      if(w && editable){ const cv=cellValue(m,colFor(w));
+        val='<input class="mx-val" value="'+esc(cv.direct)+'" aria-label="'+esc((m.name||'Value')+', '+hxWeekLabel(w))+'" onkeydown="if(event.key===\'Enter\')this.blur()" onchange="setMetricValue(\''+m.id+'\',\''+wkKey(w)+'\',this.value)">'; }
+      else val=esc(hxFmt(m,a.v));
+      let h='<td class="'+(t?'mx-cell '+t:'')+'"'+(t?' title="'+esc(TIER_LABEL[t])+'"':'')+'>'+val+'</td>'
+        + '<td class="hx-g">'+(a.g===null?'—':esc(fmtTgt(m,a.g)))+'</td>';
+      if(parts) h+='<td>'+(a.cr?esc(fmtVal(A,Math.round(a.cr.a*100)/100)):'—')+'</td><td>'+(a.cr?esc(fmtVal(B,Math.round(a.cr.b*100)/100)):'—')+'</td>';
+      return h; };
+    const tag=p=>p.partial ? '<span class="hx-todate">'+(p.current?'so far':'partial')+'</span>' : '';
+    let rows='';
+    model.Q.slice().reverse().forEach(q=>{
+      const qo=!!chOpen[q.id];
+      rows+='<tr class="hx-q"><td class="lft">'+hxCaret(q.id,qo,q.label)+esc(q.label)+tag(q)+'</td>'+cells(q.weeks)+'</tr>';
+      if(!qo) return;
+      q.months.slice().reverse().forEach(mo=>{
+        const oo=!!chOpen[mo.id];
+        rows+='<tr class="hx-m"><td class="lft">'+hxCaret(mo.id,oo,mo.label)+esc(mo.label)+tag(mo)+'</td>'+cells(mo.weeks)+'</tr>';
+        if(!oo) return;
+        mo.weeks.slice().reverse().forEach(w=>{
+          const isNow=wkKey(w)===nowK;
+          rows+='<tr class="hx-w'+(isNow?' is-now':'')+'"><td class="lft">'+esc(hxWeekLabel(w))
+            +'<span class="hx-col">'+esc(w.toLocaleDateString(undefined,{month:'short',day:'numeric'}))+' column'+(isNow?' · now':'')+'</span></td>'
+            +cells([w],w)+'</tr>';
+        });
+      });
+    });
+    const goalHd = (cgIsLevel(m)&&!cgClimbs(m)) ? 'Target' : 'Goal';
+    return '<div class="hx-scroll"><table class="ch-tbl hx-tbl"><thead><tr><th class="lft">Period</th><th>'+esc(m.name||'Actual')+'</th><th>'+goalHd+'</th>'
+      + (parts ? '<th>'+esc(A.name||'A')+'</th><th>'+esc(B.name||'B')+'</th>' : '')
+      + '</tr></thead><tbody>'+rows+'</tbody></table></div>';
+  }
+  function hxRedraw(focusId){
+    const m=metricsStore.find(x=>x.id===curChartMetricId); const box=document.getElementById('hxBox'); if(!m||!box) return;
+    box.innerHTML=hxTableHtml(m,hxModel(m));
+    if(focusId){ const b=box.querySelector('[data-hx="'+focusId+'"]'); if(b) b.focus(); }
+  }
+  function hxToggle(id){ if(!chOpen) chOpen={}; if(chOpen[id]) delete chOpen[id]; else chOpen[id]=1; hxRedraw(id); }
+  function hxAll(open){
+    const m=metricsStore.find(x=>x.id===curChartMetricId); if(!m) return;
+    chOpen={};
+    if(open){ const md=hxModel(m); md.Q.forEach(q=>{ chOpen[q.id]=1; }); md.M.forEach(x=>{ chOpen[x.id]=1; }); }
+    hxRedraw();
+  }
   function openMetricChart(id){
-    const m=metricsStore.find(x=>x.id===id); if(!m) return; curChartMetricId=id;
+    const m=metricsStore.find(x=>x.id===id); if(!m) return;
+    const modal=document.getElementById('chartModal'), scroller=modal.querySelector('.modal');
+    const same=(curChartMetricId===id && modal.classList.contains('show'));
+    const keepTop=(same&&scroller)?scroller.scrollTop:0;
+    curChartMetricId=id;
+    if(chOpenFor!==id){ chOpen=null; chOpenFor=id; }
+    normalizeMetric(m);
     document.getElementById('chTitle').textContent='📈 '+m.name;
     document.getElementById('chSub').textContent=(m.direction==='lower'?'Lower is better':'Higher is better')+' · owner '+(pmName(m.owner)||'—');
-    const tools = canEditMetric(m) ? '<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:12px;"><button class="btn ghost sm" onclick="openMetricModal(\''+id+'\')">✎ Edit metric &amp; targets</button></div>' : '';
-    let chartHtml, histHtml='';
-    try{ chartHtml=renderMetricChart(m); }catch(e){ console.warn('metric chart failed', id, e); chartHtml='<p class="empty">The graph couldn’t render for this metric — its data may need a fix. You can still edit it above.</p>'; }
-    try{ histHtml=editableHistoryTable(m); }catch(e){ console.warn('metric history failed', id, e); histHtml=''; }
-    document.getElementById('chBody').innerHTML=tools+chartHtml
-      + '<h4 style="margin:20px 0 8px;color:var(--heading);">Weekly history <span style="font-weight:400;color:var(--muted);font-size:.85rem;">— type to add or correct past weeks</span></h4>'
-      + histHtml;
-    document.getElementById('chartModal').classList.add('show');
+    const tools = canEditMetric(m) ? '<button class="btn ghost sm" onclick="openMetricModal(\''+id+'\')">✎ Edit metric &amp; targets</button>' : '';
+    const seg='<div class="cg-ptoggle" role="group" aria-label="Graph by">'
+      + [['week','Week'],['month','Month'],['quarter','Quarter']].map(p=>'<button type="button" class="'+(chPeriod===p[0]?'on':'')+'" aria-pressed="'+(chPeriod===p[0])+'" onclick="setChPeriod(\''+p[0]+'\')">'+p[1]+'</button>').join('')
+      + '</div>';
+    let model=null, chartHtml, histHtml='';
+    try{ model=hxModel(m); }catch(e){ console.warn('metric history model failed', id, e); }
+    try{ chartHtml = (chPeriod==='week'||!model) ? renderMetricChart(m,{chartOnly:true}) : hxChart(m, chPeriod==='month'?model.M:model.Q, chPeriod); }
+    catch(e){ console.warn('metric chart failed', id, e); chartHtml='<p class="empty">The graph couldn’t render for this metric — its data may need a fix. You can still edit it above.</p>'; }
+    try{ histHtml = model ? hxTableHtml(m,model) : editableHistoryTable(m); }
+    catch(e){ console.warn('metric history failed', id, e); try{ histHtml=editableHistoryTable(m); }catch(_){ histHtml=''; } }
+    document.getElementById('chBody').innerHTML='<div class="hx-bar">'+seg+tools+'</div>'+chartHtml
+      + '<div class="hx-hd"><h4>History</h4><div class="hx-btns"><button type="button" class="btn ghost sm" onclick="hxAll(true)">Expand all</button><button type="button" class="btn ghost sm" onclick="hxAll(false)">Collapse all</button></div></div>'
+      + '<p class="hx-note">Open a quarter for its months and a month for its weeks. A week counts in the month where most of its days fall'
+      + (canTypeMetric(m) ? '. Type in a week to add or correct it.' : '.')+'</p>'
+      + '<div id="hxBox">'+histHtml+'</div>';
+    modal.classList.add('show');
+    if(same&&scroller) scroller.scrollTop=keepTop;
   }
   /* where a running total should be BY a given week — the pace ramp: goal × week-in-quarter ÷ 13 */
   function cumPaceTarget(m,w){ const g=goalForDate(m,w); if(g===''||g==null||isNaN(Number(g))) return null;
-    const r=mxQuarterRange(quarterKeyOf(w)); if(!r) return null;
-    const firstWk=alignWeekStart(r.start);
-    let pos=Math.round((alignWeekStart(w).getTime()-firstWk.getTime())/(7*86400000))+1; pos=Math.max(1,Math.min(WEEKS_PER_QUARTER,pos));
-    return Number(g)*pos/WEEKS_PER_QUARTER; }
+    return Number(g)*weekIndexInQuarter(w)/weeksInQuarter(weekQuarter(w)); }
   function editableHistoryTable(m){
     const weeks=weekStarts(13,weekStartDay).slice().reverse(); const editable=canTypeMetric(m);
     const cum=isCumulative(m); const absolute=m.cumEntry==='absolute';
@@ -5317,7 +5570,7 @@ Herd Life`;
      tab, so a meeting doesn't have to leave the page to see how a metric is doing.
      Running-total metrics keep their own on-pace line; they already answer this. */
   function mtgBreakdown(m){
-    const mon=new Date().toLocaleDateString(undefined,{month:'short'});
+    const mon=mxRangeFor('mtd','').short;
     const cols=[['Week','wk'],[mon,'mtd'],['Quarter','q']];
     return '<span class="mx-brk">'+cols.map(function(c){
       let a=null,t=null,ok=null,signed=false;
@@ -6520,7 +6773,8 @@ Herd Life`;
      way the scorecard reads them (cgActual: the average of the weeks for a percent,
      the latest reading otherwise), not as a running total of every weekly entry. */
   function rvQuarterActual(m,qk){
-    const qi=metricQuarterInfo(m,(mxQuarterRange(qk)||{}).end||new Date()); if(!qi) return null;
+    const qws=quarterWeeks(qk), qLast=qws.length?qws[qws.length-1]:null;
+    const qi=metricQuarterInfo(m,(qLast && qLast<=alignWeekStart(new Date()))?qLast:new Date()); if(!qi) return null;
     if(cgIsLevel(m) && !isCumulative(m)){
       const a=cgActual(m,mxRangeFor('q',qk));
       if(a===null||a===undefined||isNaN(a)) return { G:qi.G, actual:null, onTrack:null };
@@ -6986,7 +7240,7 @@ Herd Life`;
     const box=document.getElementById('homeMetrics'); if(!box) return;
     const mine=metricsStore.filter(metricVisible).filter(m=>sameEmail(m.owner,myEmail));
     mine.forEach(normalizeMetric);
-    const mon=new Date().toLocaleDateString(undefined,{month:'short'});
+    const mon=mxRangeFor('mtd','').short;
     let body;
     if(!mine.length){ body='<div class="mtg-empty">No metrics are assigned to you yet.</div>'; }
     else {
@@ -7167,7 +7421,7 @@ Herd Life`;
       if(hasGoal){ const G=Number(g); onTrack=(cur!=null)?((m.direction==='lower')?cur<=G:cur>=G):null; offBy=(cur!=null)?Math.abs(cur-G):null; pct=G?Math.max(0,Math.min(100,Math.round((cur||0)/G*100))):0;
         statusTxt=(onTrack==null)?'—':(onTrack?'On target':'Off target'); detail='<b>'+esc(cur!=null?fmtVal(m,cur):'—')+'</b> of '+esc(fmtVal(m,G)); goalLine=esc(fmtVal(m,G))+' target'; }
     } else {
-      if(hasGoal){ const wt=Number(g)/WEEKS_PER_QUARTER; onTrack=(cur!=null)?((m.direction==='lower')?cur<=wt:cur>=wt):null; offBy=(cur!=null)?Math.abs(cur-wt):null; pct=wt?Math.max(0,Math.min(100,Math.round((cur||0)/wt*100))):0;
+      if(hasGoal){ const wt=Number(g)/weeksInQuarter(weekQuarter(thisW)); onTrack=(cur!=null)?((m.direction==='lower')?cur<=wt:cur>=wt):null; offBy=(cur!=null)?Math.abs(cur-wt):null; pct=wt?Math.max(0,Math.min(100,Math.round((cur||0)/wt*100))):0;
         statusTxt=(onTrack==null)?'—':(onTrack?'On pace':'Behind'); detail='this week <b>'+esc(cur!=null?fmtVal(m,cur):'—')+'</b> vs '+esc(fmtTgt(m,wt))+'/wk'; goalLine=esc(fmtVal(m,g))+'/qtr'; }
     }
     const color=(onTrack==null)?'#c9bcd9':(onTrack?'#2e9e6b':'#d8533b');
