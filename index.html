@@ -1840,7 +1840,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     <div style="margin-top:10px;">
       <label>What kind of metric is this?</label>
       <select id="mx-kind" onchange="mxKindChange()" style="width:100%;">
-        <option value="total">Weekly target — hit the same number every week, target ÷ 13 (weekly sales, churn count)</option>
+        <option value="total">Weekly target — hit the same number every week, target ÷ the quarter's weeks (weekly sales, churn count)</option>
         <option value="rate">A rate that has to hold — measured against the full target every week (NPS, uptime %, breakage %)</option>
         <option value="balance">A balance that grows — starts at a number and climbs to the target, so every week has its own milestone (active subs, herd members)</option>
         <option value="cumulative">A running total by quarter-end — just track on or off pace, no weekly pass/fail (e.g. 1,500 units signed)</option>
@@ -3335,11 +3335,11 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const inQ=d=>weekQuarter(d)===qk;
     let cum=0, any=false;
     if(m.cumEntry==='absolute'){ let bestD=null;
-      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
-        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ any=true; if(!bestD||d>bestD){ bestD=d; cum=n; } } } });
+      const WV=weekValues(m); Object.keys(WV).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
+        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=WV[k]; if(!isNaN(n)){ any=true; if(!bestD||d>bestD){ bestD=d; cum=n; } } } });
     } else {
-      Object.keys(m.values||{}).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
-        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=Number(m.values[k]); if(!isNaN(n)){ cum+=n; any=true; } } });
+      const WV=weekValues(m); Object.keys(WV).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
+        if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=WV[k]; if(!isNaN(n)){ cum+=n; any=true; } } });
     }
     /* If the quarter opened at a number (43,439 herd members), pace runs from there
        to the goal — not from zero, which makes any large running total look finished. */
@@ -3552,18 +3552,18 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
          level keeps its latest reading, exactly as before. Scores that aren't
          percentages (NPS) opt in to averaging with levelAgg:'avg'. */
       if(m.unit==='percent' || m.levelAgg==='avg'){
-        const V=metricValues(m); let sum=0,cnt=0;
+        const V=weekValues(m); let sum=0,cnt=0;
         Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return;
           const n=Number(V[k]); if(isNaN(n)) return; sum+=n; cnt++; });
         if(cnt) return sum/cnt;
       }
       return cgLatestAt(m,r.end);
     }
-    if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null; const V=metricValues(m);
+    if(isCumulative(m) && m.cumEntry==='absolute'){ let bd=null,val=null; const V=weekValues(m);
       Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return; const n=Number(V[k]); if(isNaN(n)) return;
         if(!bd||d>bd){ bd=d; val=n; } });
       return val; }
-    let sum=0, any=false; const V=metricValues(m);
+    let sum=0, any=false; const V=weekValues(m);
     Object.keys(V).forEach(k=>{ const d=parseAnyDate(k); if(!d||!cgInWin(r,d)) return; const n=Number(V[k]); if(isNaN(n)) return; sum+=n; any=true; });
     return any?sum:null;
   }
@@ -4057,6 +4057,19 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   let chOpen=null, chOpenFor=null;   // which quarters / months are open in the history table
   function setChPeriod(p){ chPeriod=p; try{ localStorage.setItem(KEY+'_chperiod',p); }catch(e){} if(curChartMetricId) openMetricChart(curChartMetricId); }
   function hxHas(v){ return !(v===undefined||v===null||v==='') && !isNaN(Number(v)); }
+  /* One number per week, keyed by its Sunday column. Some metrics still carry a
+     Monday-keyed copy of a week from when the week start was a per-browser setting;
+     the Sunday column wins, so a week is never counted twice. */
+  var _wvc=null;   // per-render cache (var: cgActual can run before this line on first render)
+  function weekValues(m){
+    if(_wvc && _wvc[m.id]) return _wvc[m.id];
+    const V=metricValues(m), out={}, exact={};
+    Object.keys(V).forEach(k=>{ if(!hxHas(V[k])) return; const d=parseAnyDate(k); if(!d) return;
+      const wk=wkKey(alignWeekStart(d)), isExact=(wk===k);
+      if(out[wk]===undefined || (isExact && !exact[wk])){ out[wk]=Number(V[k]); if(isExact) exact[wk]=1; } });
+    if(_wvc) _wvc[m.id]=out;
+    return out;
+  }
   function hxNum(v){ return hxHas(v) ? Number(v) : null; }
   /* A calculated rate over several weeks is its two sums divided: Breakage % for a
      month is that month's breakage ÷ its sales × 100, not an average of weekly
@@ -4065,16 +4078,16 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(!isCalc(m) || ['add','sub','mul'].indexOf(m.calc.op)>=0) return null;
     const A=metricsStore.find(x=>x.id===m.calc.a), B=metricsStore.find(x=>x.id===m.calc.b);
     if(!A||!B||A.id===m.id||B.id===m.id) return null;
-    const VA=metricValues(A), VB=metricValues(B); let sa=0, sb=0, n=0;
-    Object.keys(VA).forEach(k=>{ if(!hxHas(VA[k])||!hxHas(VB[k])) return; const d=parseAnyDate(k); if(!d||!inWin(d)) return;
-      sa+=Number(VA[k]); sb+=Number(VB[k]); n++; });
+    const VA=weekValues(A), VB=weekValues(B); let sa=0, sb=0, n=0;
+    Object.keys(VA).forEach(k=>{ if(VB[k]===undefined) return; const d=parseAnyDate(k); if(!d||!inWin(d)) return;
+      sa+=VA[k]; sb+=VB[k]; n++; });
     if(!n||!sb) return null;
     return { v:sa/sb*(m.calc.x100?100:1), a:sa, b:sb, n, A, B };
   }
   /* every Sunday column from the metric's first number up to this week */
   function hxWeeks(m){
-    const V=metricValues(m); let first=null;
-    Object.keys(V).forEach(k=>{ if(!hxHas(V[k])) return; const d=parseAnyDate(k); if(!d) return; const a=alignWeekStart(d); if(!first||a<first) first=a; });
+    const V=weekValues(m); let first=null;
+    Object.keys(V).forEach(k=>{ const a=parseAnyDate(k); if(a && (!first||a<first)) first=a; });
     const nowK=alignWeekStart(new Date());
     if(!first||first>nowK) first=new Date(nowK.getFullYear(),nowK.getMonth(),nowK.getDate()-12*7);
     const out=[]; const d=new Date(first);
@@ -4100,7 +4113,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const ks={}; weeks.forEach(w=>{ ks[wkKey(w)]=1; });
     const inWin=d=>!!ks[wkKey(alignWeekStart(d))];
     const last=weeks[weeks.length-1];
-    const vals=[]; weeks.forEach(w=>{ const cv=cellValue(m,colFor(w)); if(cv.eff!==null && !isNaN(cv.eff)) vals.push(Number(cv.eff)); });
+    const WV=weekValues(m), vals=[]; weeks.forEach(w=>{ const v=WV[wkKey(w)]; if(v!==undefined) vals.push(v); });
     const sum=()=>vals.reduce((a,b)=>a+b,0);
     const cr=calcRatioOver(m,inWin);
     let v=null;
@@ -4232,14 +4245,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   }
   function hxRedraw(focusId){
     const m=metricsStore.find(x=>x.id===curChartMetricId); const box=document.getElementById('hxBox'); if(!m||!box) return;
-    box.innerHTML=hxTableHtml(m,hxModel(m));
+    _wvc={}; try{ box.innerHTML=hxTableHtml(m,hxModel(m)); } finally{ _wvc=null; }
     if(focusId){ const b=box.querySelector('[data-hx="'+focusId+'"]'); if(b) b.focus(); }
   }
   function hxToggle(id){ if(!chOpen) chOpen={}; if(chOpen[id]) delete chOpen[id]; else chOpen[id]=1; hxRedraw(id); }
   function hxAll(open){
     const m=metricsStore.find(x=>x.id===curChartMetricId); if(!m) return;
     chOpen={};
-    if(open){ const md=hxModel(m); md.Q.forEach(q=>{ chOpen[q.id]=1; }); md.M.forEach(x=>{ chOpen[x.id]=1; }); }
+    if(open){ const md=hxModel(m);   /* ids only */ md.Q.forEach(q=>{ chOpen[q.id]=1; }); md.M.forEach(x=>{ chOpen[x.id]=1; }); }
     hxRedraw();
   }
   function openMetricChart(id){
@@ -4257,11 +4270,13 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       + [['week','Week'],['month','Month'],['quarter','Quarter']].map(p=>'<button type="button" class="'+(chPeriod===p[0]?'on':'')+'" aria-pressed="'+(chPeriod===p[0])+'" onclick="setChPeriod(\''+p[0]+'\')">'+p[1]+'</button>').join('')
       + '</div>';
     let model=null, chartHtml, histHtml='';
+    _wvc={};
     try{ model=hxModel(m); }catch(e){ console.warn('metric history model failed', id, e); }
     try{ chartHtml = (chPeriod==='week'||!model) ? renderMetricChart(m,{chartOnly:true}) : hxChart(m, chPeriod==='month'?model.M:model.Q, chPeriod); }
     catch(e){ console.warn('metric chart failed', id, e); chartHtml='<p class="empty">The graph couldn’t render for this metric — its data may need a fix. You can still edit it above.</p>'; }
     try{ histHtml = model ? hxTableHtml(m,model) : editableHistoryTable(m); }
     catch(e){ console.warn('metric history failed', id, e); try{ histHtml=editableHistoryTable(m); }catch(_){ histHtml=''; } }
+    _wvc=null;
     document.getElementById('chBody').innerHTML='<div class="hx-bar">'+seg+tools+'</div>'+chartHtml
       + '<div class="hx-hd"><h4>History</h4><div class="hx-btns"><button type="button" class="btn ghost sm" onclick="hxAll(true)">Expand all</button><button type="button" class="btn ghost sm" onclick="hxAll(false)">Collapse all</button></div></div>'
       + '<p class="hx-note">Open a quarter for its months and a month for its weeks. A week counts in the month where most of its days fall'
@@ -4529,7 +4544,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
      just the single choice that sets them, because they were never independent. */
   const MX_KINDS={
     total:     {goalKind:'total',      levelMode:'hold',
-                note:'Each week is judged on its own: the quarterly target split across 13 weeks.'},
+                note:'Each week is judged on its own: the quarterly target split across the weeks in the quarter (13 most quarters; 12 or 14 when the calendar falls that way).'},
     rate:      {goalKind:'level',      levelMode:'hold',
                 note:'The full target applies every week, so This week, MTD and Quarter all read the same number. Right for a rate, wrong for a customer count.'},
     balance:   {goalKind:'level',      levelMode:'climb',
