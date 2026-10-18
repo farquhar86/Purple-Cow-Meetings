@@ -8,9 +8,11 @@ Connects Claude to Round Up so you can ask things like:
 - "What are my open to-dos?"
 - "Tick off the venue task on the training priority." (stage 2)
 - "Put 22.2 in Breakage % for last week." (stage 2)
+- "Add the Christmas gift boxes to my 1:1 with Brad." (stage 2)
 
 **Stage 2 adds a few updates.** Claude can tick or update tasks, tick Definition of Done lines,
-add and tick off to-dos, move issue cards and enter weekly metric numbers. It checks with you
+add and tick off to-dos, move issue cards, enter weekly metric numbers and add items to a
+meeting's agenda. It checks with you
 before each change, follows the same rules as the app about who can change what, never saves
 over an edit someone made in the meantime, and logs every change (see `list_recent_changes`).
 Filling in weekly metrics automatically (stage 3) comes later.
@@ -169,6 +171,8 @@ app's Team panel for anyone who shouldn't be an Admin.
 | `get_metric` | One metric's weekly history |
 | `list_todos` | To-dos (yours by default; Admins can see everyone's) |
 | `list_issues` | Issues board cards from meetings you can see |
+| `list_meetings` | Meetings you're in: when they run, the next date, who's in them, and which sections take entries |
+| `get_meeting` | One meeting's agenda for a date (the next one by default): notes, topics and their points, to-dos, open issue cards |
 | `list_special_projects` | Special projects by status |
 | `get_core_values` | The Core Values / Vision page |
 | `list_recent_changes` | Changes made through Claude: who, when, what (Admins see everyone's) |
@@ -185,8 +189,9 @@ Claude confirms each change with you first, and does one change per call.
 | `complete_todo` | Mark a to-do done or not done. | The to-do's owner, plus Admins and Super Admins |
 | `move_issue` | Move an issue card between Not started, In progress, Has update and Done. | Anyone who can see that meeting |
 | `set_metric_value` | Enter or clear one week's number. Defaults to last week (Monday's number is last week's). Won't fill calculated or roll-up metrics. | The metric's owner (Team users); everyone else for any metric |
+| `add_to_meeting` | Put an item on a meeting's agenda: a topic (with points under it), a note, a to-do for someone in the meeting, or an issue card. Goes on the next meeting that hasn't ended yet unless a date is given. With no section named it goes in Topics, or the Issues list if there's no Topics section. Won't add the same thing twice. | Anyone in that meeting (as in the app) |
 
-Not yet: creating or deleting priorities, changing owners or departments, or editing meeting notes.
+Not yet: creating or deleting priorities, changing owners or departments, or editing or removing what's already in a meeting.
 
 "Off track" and "behind" use the same rules as the app: off track means a task is past its
 end date and not at 100%, and behind means progress is more than 10 points under where the

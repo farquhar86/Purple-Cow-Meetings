@@ -3,7 +3,8 @@
 // metrics scorecard, to-dos, issues, special projects and the core values page.
 //
 // Stage 2 adds a few updates: tick or change a task, tick a Definition of Done line, add or
-// complete a to-do, move an issue card, and enter a weekly metric number. Each one follows the
+// complete a to-do, move an issue card, enter a weekly metric number, and put an item on a
+// meeting's agenda (list_meetings / get_meeting / add_to_meeting). Each one follows the
 // same rules as the app (a Team-role user can only change what the app lets them change), saves
 // only if nobody else changed that record since Claude read it, and is written to connector_log.
 // Updates need supabase-role-rules.sql to have been run once (it adds ru_save_if_unchanged and
@@ -39,16 +40,16 @@ const AUTH_SERVER = `${SUPABASE_URL}/auth/v1`;
 const APP_URL = "https://farquhar86.github.io/Purple-Cow-Meetings/";
 const TZ = "America/Halifax";
 
-const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.2.0" };
+const SERVER_INFO = { name: "round-up", title: "Round Up", version: "0.3.0" };
 const PROTOCOL_VERSIONS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const INSTRUCTIONS = [
   "Round Up is Purple Cow Internet's planning app (" + APP_URL + ").",
   "It holds quarterly priorities (also called rocks) with their tasks, the weekly metrics scorecard,",
-  "to-dos from meetings, the issues board, special projects and the core values page.",
+  "meetings and their agendas, to-dos from meetings, the issues board, special projects and the core values page.",
   "'me' means the person who connected it.",
   "It can also make a few updates (update_task, set_dod_line, add_todo, complete_todo, move_issue,",
-  "set_metric_value). Before calling any of them, tell the person exactly what will change and wait",
+  "set_metric_value, add_to_meeting). Before calling any of them, tell the person exactly what will change and wait",
   "for them to say yes; make one change per call. Each update follows the app's own rules about who",
   "can change what, and reports what it changed. list_recent_changes shows changes made through Claude.",
   "Dates are Atlantic time; metric weeks start on Sunday and are keyed by that Sunday's date.",
@@ -1753,6 +1754,419 @@ TOOLS.push(
         what: str(x.summary),
       }));
       return { days, count: rows.length, changes: rows };
+    },
+  },
+);
+
+// ============================================================================================
+// Meetings and their agendas
+//
+// A meeting (a row in mtgs) has a list of sections. Whatever people type into a section is one
+// mtg_items row each, filed under the meeting date it belongs to (inst = that date, YYYY-MM-DD),
+// so each week's agenda starts fresh. Issues boards are the exception: their cards carry over
+// from meeting to meeting (inst = "static"). Meeting dates follow the app's occurrenceOnOrAfter
+// and occStep, so "the next meeting" here is the same date the app shows.
+// ============================================================================================
+
+// The section types people type into, and what they're called here.
+const SECTION_KIND: Record<string, string> = { notes: "notes", topics: "topics", priorities: "todos", issues: "issues" };
+const KIND_ALIAS: Record<string, string> = {
+  note: "notes", notes: "notes", topic: "topics", topics: "topics", agenda: "topics",
+  todo: "todos", todos: "todos", "to-do": "todos", "to-dos": "todos",
+  issue: "issues", issues: "issues", ids: "issues",
+};
+// Sections that show something from elsewhere in the app rather than taking entries.
+const SECTION_SHOWS: Record<string, string> = {
+  text: "Shared text (the same in every meeting).",
+  vision: "The Core Values page.",
+  metrics: "The weekly scorecard.",
+  qpriorities: "This quarter's priorities.",
+  qpriOwners: "Quarterly priority items by owner.",
+  prioritiesPrev: "Last meeting's to-dos, ticked done or not done.",
+};
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const weekday = (s: string) => new Date(dayNum(s) * 86400000).getUTCDay();
+
+// Same roll-over as the app's setMonth (Jan 31 + 1 month = Mar 3).
+function addMonths(s: string, n: number): string {
+  const [y, m, d] = s.split("-").map(Number);
+  const x = new Date(Date.UTC(y, m - 1 + n, d));
+  return `${x.getUTCFullYear()}-${p2(x.getUTCMonth() + 1)}-${p2(x.getUTCDate())}`;
+}
+
+// For a daily meeting, which weekdays it runs on (0 = Sunday); null = every day.
+const mtgDays = (m: Json): number[] | null =>
+  m && m.type === "daily" && Array.isArray(m.days) && m.days.length ? m.days.map(Number) : null;
+
+// The app's stepDate: one meeting forward (dir 1) or back (dir -1), ignoring weekday choices.
+function stepDate(m: Json, s: string, dir: number): string {
+  if (m.type === "monthly") return addMonths(s, dir);
+  const days = ({ daily: 1, weekly: 7, biweekly: 14 } as Record<string, number>)[str(m.type)] || 0;
+  return days ? addDays(s, dir * days) : s;
+}
+
+// The app's occurrenceOnOrAfter: the first meeting date on or after t.
+function occOnOrAfter(m: Json, t: string, fallback: string): string {
+  const base = ymd(m.date) || fallback;
+  if (!m.type || m.type === "once") return base;
+  if (m.type === "daily") {
+    const days = mtgDays(m);
+    let d = t >= base ? t : base;
+    for (let g = 0; days && !days.includes(weekday(d)) && g < 14; g++) d = addDays(d, 1);
+    return d;
+  }
+  let d = base;
+  for (let g = 0; d < t && g < 600; g++) {
+    const n = stepDate(m, d, 1);
+    if (n === d) break;
+    d = n;
+  }
+  return d;
+}
+
+// The date and minute of the day right now in a meeting's time zone.
+function nowIn(tz: string): { day: string; mins: number } {
+  let parts: Intl.DateTimeFormatPart[];
+  try {
+    parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23",
+    }).formatToParts(new Date());
+  } catch {
+    return tz === TZ ? { day: todayYMD(), mins: 0 } : nowIn(TZ);
+  }
+  const get = (t: string) => parts.find((p) => p.type === t)?.value || "00";
+  return { day: `${get("year")}-${get("month")}-${get("day")}`, mins: Number(get("hour")) * 60 + Number(get("minute")) };
+}
+
+function clockMins(v: unknown): number | null {
+  const m = str(v).match(/^(\d{1,2}):(\d{2})/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+// The next meeting that hasn't ended yet. Today's counts until its end time has passed.
+function nextMeetingDate(m: Json): string {
+  const now = nowIn(str(m.tz) || TZ);
+  let d = occOnOrAfter(m, now.day, now.day);
+  const start = clockMins(m.time);
+  if (d === now.day && m.type && m.type !== "once" && start !== null && now.mins >= start + (Number(m.dur) || 30)) {
+    d = occOnOrAfter(m, addDays(now.day, 1), now.day);
+  }
+  return d;
+}
+
+// Which meeting date to use: the next one by default, or the first one on or after a given date.
+function meetingDateArg(m: Json, v: unknown): string {
+  const want = dateArg(v, "date");
+  if (!want) return nextMeetingDate(m);
+  return occOnOrAfter(m, want, want);
+}
+
+function scheduleText(m: Json): string {
+  const at = clockMins(m.time) !== null ? ` at ${str(m.time).slice(0, 5)}` : "";
+  const len = Number(m.dur) ? ` (${Number(m.dur)} min)` : "";
+  const base = ymd(m.date);
+  const on = base ? ` on ${WEEKDAY[weekday(base)]}s` : "";
+  switch (m.type) {
+    case "daily": {
+      const d = mtgDays(m);
+      return (d ? d.slice().sort((x, y) => x - y).map((i) => WEEKDAY[i]?.slice(0, 3)).join(", ") : "Every day") + at + len;
+    }
+    case "weekly": return "Weekly" + on + at + len;
+    case "biweekly": return "Every 2 weeks" + on + at + len;
+    case "monthly": return "Monthly" + (base ? ` on the ${Number(base.slice(8))}${ordSuffix(Number(base.slice(8)))}` : "") + at + len;
+    default: return "Once" + (base ? `, ${base}` : "") + at + len;
+  }
+}
+
+function ordSuffix(n: number): string {
+  if (n % 100 >= 11 && n % 100 <= 13) return "th";
+  return ["th", "st", "nd", "rd"][n % 10] || "th";
+}
+
+const addableSections = (m: Json) => arr(m.sections).filter((s) => s && SECTION_KIND[s.type]);
+const sectionList = (m: Json) =>
+  addableSections(m).map((s) => `"${str(s.title)}" (${SECTION_KIND[s.type]})`).join(", ") || "none";
+
+async function myMeetings(ctx: Ctx): Promise<Json[]> {
+  const all = await ctx.meetings();
+  return all.filter((m) => mtgVisible(m, ctx.me, ctx.dir));
+}
+
+// Which meeting: its id (from list_meetings), its exact title, or words from its title.
+function findMeeting(list: Json[], q: unknown): Json {
+  const s = str(q).trim();
+  if (!s) throw new ToolError("Say which meeting: its id from list_meetings, or its title.");
+  let hits = list.filter((m) => m.id === s);
+  if (!hits.length) hits = list.filter((m) => lc(m.title) === lc(s));
+  if (!hits.length) hits = list.filter((m) => textMatches([m.title], s));
+  if (hits.length === 1) return hits[0];
+  if (!hits.length) {
+    throw new ToolError(`No meeting matching "${s}" that you're in. Your meetings: ${list.map((m) => `"${str(m.title)}"`).join(", ") || "none"}.`);
+  }
+  throw new ToolError(`More than one meeting matches: ${hits.slice(0, 8).map((m) => `"${str(m.title)}" (id ${m.id})`).join("; ")}. Use the id.`);
+}
+
+// Which section: its title (or part of it), or a kind (topics, notes, todos, issues). With nothing
+// named, an agenda item goes in the meeting's Topics section, or its Issues list if it has no Topics.
+function findSection(m: Json, q: unknown): Json {
+  const secs = addableSections(m);
+  if (!secs.length) {
+    throw new ToolError(`"${str(m.title)}" has no section that takes entries. Its sections: ${arr(m.sections).map((s) => `"${str(s?.title)}"`).join(", ")}.`);
+  }
+  const s = str(q).trim();
+  if (s) {
+    let hits = secs.filter((x) => x.id === s || lc(x.title) === lc(s));
+    if (!hits.length) hits = secs.filter((x) => textMatches([x.title], s));
+    if (!hits.length && KIND_ALIAS[lc(s)]) hits = secs.filter((x) => SECTION_KIND[x.type] === KIND_ALIAS[lc(s)]);
+    if (hits.length === 1) return hits[0];
+    if (!hits.length) throw new ToolError(`No section matching "${s}" on "${str(m.title)}". Sections you can add to: ${sectionList(m)}.`);
+    throw new ToolError(`More than one section on "${str(m.title)}" matches "${s}": ${hits.map((x) => `"${str(x.title)}"`).join(", ")}. Use the full title.`);
+  }
+  for (const kind of ["topics", "issues"]) {
+    const ks = secs.filter((x) => SECTION_KIND[x.type] === kind);
+    if (ks.length === 1) return ks[0];
+    if (ks.length > 1) break;
+  }
+  if (secs.length === 1) return secs[0];
+  throw new ToolError(`Which section of "${str(m.title)}"? Sections you can add to: ${sectionList(m)}. Pass section.`);
+}
+
+// The people a meeting's to-dos can go to: its attendees and organizer.
+function meetingPeople(m: Json, dir: Directory): string[] {
+  const out: string[] = [];
+  [...arr(m.attendees), m.organizer].forEach((p) => {
+    const e = dir.resolve(p);
+    if (e && e.includes("@") && !out.includes(e)) out.push(e);
+  });
+  return out;
+}
+
+const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Drop a leading "-", "•" or "1." the way the app does when topics are pasted in.
+const cleanPoint = (s: unknown) => str(s).replace(/^\s*(?:[-*•‣◦·▪]|\d+[.)])\s+/, "").trim();
+
+TOOLS.push(
+  {
+    name: "list_meetings",
+    title: "List meetings",
+    description:
+      "The meetings the signed-in person is in (Super Admins: every meeting): when each one runs, the date of the next one, " +
+      "who's in it, and which sections take entries (topics, notes, to-dos, issues). Use it to find the meeting and section before add_to_meeting.",
+    inputSchema: {
+      type: "object",
+      properties: { search: { type: "string", description: "Words from the meeting's title." } },
+    },
+    run: async (a, ctx) => {
+      let list = await myMeetings(ctx);
+      if (a.search) list = list.filter((m) => textMatches([m.title], str(a.search)));
+      const rows = list.map((m) => {
+        const next = nextMeetingDate(m);
+        return compact({
+          id: str(m.id),
+          meeting: str(m.title),
+          when: scheduleText(m),
+          next_meeting: next + (!m.type || m.type === "once" ? (next < ctx.today ? " (already happened)" : "") : ""),
+          organizer: ctx.dir.resolve(m.organizer) || "",
+          people: arr(m.attendees).map(str),
+          add_to: addableSections(m).map((s) => ({ section: str(s.title), kind: SECTION_KIND[s.type] })),
+          also_shows: arr(m.sections).filter((s) => s && !SECTION_KIND[s.type]).map((s) => str(s.title)),
+        });
+      });
+      rows.sort((x, y) => str(x.next_meeting).localeCompare(str(y.next_meeting)));
+      return { count: rows.length, meetings: rows };
+    },
+  },
+  {
+    name: "get_meeting",
+    title: "See a meeting's agenda",
+    description:
+      "What's on one meeting's agenda for a date, section by section: notes, topics with their points, to-dos and open issue cards. " +
+      "Defaults to the next meeting that hasn't ended yet. Check it before adding something so nothing goes on twice.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        meeting: { type: "string", description: "The meeting's id from list_meetings, or its title (or part of it)." },
+        date: { type: "string", description: "YYYY-MM-DD: the first meeting on or after this date. Default: the next meeting." },
+      },
+      required: ["meeting"],
+    },
+    run: async (a, ctx) => {
+      const m = findMeeting(await myMeetings(ctx), a.meeting);
+      const date = meetingDateArg(m, a.date);
+      const [own, issues] = await Promise.all([
+        selectAll(ctx.me, "mtg_items", "id,meeting_id,section,inst,data", { meeting_id: `eq.${m.id}` }),
+        ctx.items("issue"),
+      ]);
+      own.forEach((r) => { ctx.dir.add(r.data?.author); ctx.dir.add(r.data?.assignee); });
+      const byT = (x: Json, y: Json) => (Number(x.data?.t) || 0) - (Number(y.data?.t) || 0);
+      const dated = (sid: string) => own.filter((r) => r.data && r.section === sid && r.inst === date).sort(byT);
+      const firstIssues = arr(m.sections).find((s) => s?.type === "issues");
+      const sections = arr(m.sections).filter(Boolean).map((s) => {
+        const head = { section: str(s.title), kind: SECTION_KIND[s.type] || "shows" };
+        if (s.type === "notes") {
+          return { ...head, notes: dated(s.id).map((r) => compact({ note: clip(r.data.text, 300), by: str(r.data.author), image: r.data.img ? "yes" : "" })) };
+        }
+        if (s.type === "topics") {
+          const rows = dated(s.id);
+          const topics = rows.filter((r) => r.data.type !== "bullet");
+          return {
+            ...head,
+            topics: topics.map((t) => compact({
+              topic: clip(t.data.text, 300),
+              by: str(t.data.author),
+              points: rows.filter((r) => r.data.type === "bullet" && r.data.parent === t.id).map((r) => clip(r.data.text, 300)),
+            })),
+          };
+        }
+        if (s.type === "priorities") {
+          return {
+            ...head,
+            todos: dated(s.id).map((r) => compact({
+              id: str(r.id),
+              todo: clip(r.data.text, 300),
+              for: str(r.data.assignee || r.data.author),
+              done: r.data.done ? "yes" : "",
+              due: ymd(r.data.due) || "",
+            })),
+          };
+        }
+        if (s.type === "issues") {
+          let cards = own.filter((r) => r.data && r.section === s.id && r.inst === "static");
+          if (firstIssues && firstIssues.id === s.id) {
+            const seen = new Set(cards.map((r) => r.id));
+            issues.forEach((r) => {
+              if (r.meeting_id !== m.id && r.inst === "static" && arr(r.data.alsoIn).includes(m.id) && !seen.has(r.id)) cards.push(r);
+            });
+          }
+          const open = cards.filter((r) => (str(r.data.status) || "notstarted") !== "done");
+          return {
+            ...head,
+            open_issues: open.map((r) => compact({
+              id: str(r.id),
+              issue: clip(r.data.text, 200),
+              status: ISSUE_LABEL[str(r.data.status) || "notstarted"] || str(r.data.status),
+              raised_by: str(r.data.author),
+              shared_from: r.meeting_id !== m.id ? "another meeting" : "",
+            })),
+            done_count: cards.length - open.length,
+          };
+        }
+        return { ...head, shows: SECTION_SHOWS[s.type] || "Something from elsewhere in the app." };
+      });
+      return { id: str(m.id), meeting: str(m.title), date, when: scheduleText(m), sections, app: APP_URL + "#section=meetings" };
+    },
+  },
+  {
+    name: "add_to_meeting",
+    title: "Add to a meeting's agenda",
+    write: true,
+    description:
+      "Put an item on a meeting's agenda, in a meeting the signed-in person is in: a topic (with optional points under it), a note, " +
+      "a to-do for someone in the meeting, or an issue card on its issues board. Goes on the next meeting that hasn't ended yet unless a date is given; " +
+      "issue cards stay on the board until they're done. With no section named it goes in the meeting's Topics section, or its Issues list if it has no Topics. " +
+      "Use list_meetings and get_meeting first, then confirm the meeting, date, section and wording with the person.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        meeting: { type: "string", description: "The meeting's id from list_meetings (best), or its title." },
+        text: { type: "string", description: "The item itself: the topic, note, to-do or issue title." },
+        section: { type: "string", description: "Section title from list_meetings, or a kind: topics, notes, todos or issues." },
+        points: { type: "array", items: { type: "string" }, description: "Topics: bullet points under it. Issues: bullet points in the card's notes." },
+        for: { ...personArg, description: "To-dos only: who it's for (someone in the meeting). Default: the signed-in person." },
+        due: { type: "string", description: "To-dos only: due date, YYYY-MM-DD. Default: none, like the app." },
+        date: { type: "string", description: "YYYY-MM-DD: goes on the first meeting on or after this date. Default: the next meeting." },
+      },
+      required: ["meeting", "text"],
+    },
+    run: async (a, ctx) => {
+      const me = ctx.me;
+      const text = str(a.text).trim();
+      if (!text) throw new ToolError("Say what goes on the agenda: pass text.");
+      if (text.length > 1000) throw new ToolError("That's too long for one item; keep it under 1,000 characters and put detail in points.");
+      const points = arr(a.points).map(cleanPoint).filter(Boolean);
+      if (points.length > 25) throw new ToolError("That's a lot of points; keep it to 25 or fewer.");
+      if (points.some((p) => p.length > 1000)) throw new ToolError("Keep each point under 1,000 characters.");
+
+      const m = findMeeting(await myMeetings(ctx), a.meeting);
+      const sec = findSection(m, a.section);
+      const kind = SECTION_KIND[sec.type];
+      if (points.length && kind !== "topics" && kind !== "issues") {
+        throw new ToolError(`Points only go under a topic or in an issue card. "${str(sec.title)}" is a ${kind} section, so put it all in text.`);
+      }
+      if ((a.for || a.due) && kind !== "todos") throw new ToolError(`for and due are for to-dos; "${str(sec.title)}" is a ${kind} section.`);
+
+      const date = kind === "issues" ? "" : meetingDateArg(m, a.date);
+      const inst = kind === "issues" ? "static" : date;
+      const now = Date.now();
+      const base = { author: me.email, t: now, via: "claude" };
+
+      let assignee = "";
+      if (kind === "todos") {
+        const people = meetingPeople(m, ctx.dir);
+        const who = ctx.person(a.for);
+        if (lc(who) !== me.email) {
+          const hit = people.filter((p) => ctx.dir.matches(p, who));
+          if (hit.length !== 1) {
+            throw new ToolError(
+              hit.length
+                ? `"${who}" could be ${hit.join(" or ")}. Use their email.`
+                : `"${who}" isn't in "${str(m.title)}", so the to-do can't go to them here. People in it: ${people.join(", ")}.`,
+            );
+          }
+          if (hit[0] !== me.email) assignee = hit[0];
+        }
+      }
+
+      // Already on there? Same wording in the same section of the same meeting date (or an open issue card).
+      const existing = await selectAll(me, "mtg_items", "id,inst,data", { meeting_id: `eq.${m.id}`, section: `eq.${sec.id}`, inst: `eq.${inst}` });
+      const dupe = existing.find((r) => r.data && r.data.type !== "bullet" && lc(r.data.text) === lc(text) &&
+        (kind !== "issues" || (str(r.data.status) || "notstarted") !== "done"));
+      if (dupe) {
+        return { saved: "no", summary: `Nothing added: "${clip(text, 120)}" is already in "${str(sec.title)}" on ${kind === "issues" ? "the board" : date}.`, id: str(dupe.id) };
+      }
+
+      const id = newId();
+      let data: Json;
+      if (kind === "notes") data = { type: "note", text, ...base };
+      else if (kind === "topics") data = { type: "topic", text, ...base };
+      else if (kind === "todos") {
+        data = { type: "pri", text, done: false, ...base };
+        if (assignee) data.assignee = assignee;
+        const due = dateArg(a.due, "due");
+        if (due) data.due = due;
+      } else {
+        const notes = points.length ? "<ul>" + points.map((p) => `<li>${escHtml(p)}</li>`).join("") + "</ul>" : "";
+        data = { type: "issue", text, status: "notstarted", notes, ord: now, ...base };
+      }
+      const rows: Json[] = [{ id, meeting_id: m.id, section: sec.id, inst, data }];
+      if (kind === "topics") {
+        points.forEach((p, i) => rows.push({
+          id: newId() + i,
+          meeting_id: m.id,
+          section: sec.id,
+          inst,
+          data: { type: "bullet", parent: id, text: p, author: me.email, t: now + i + 1, via: "claude" },
+        }));
+      }
+      const r = await rest(me, "POST", "mtg_items", rows, "return=minimal");
+      if (!r.ok) {
+        if (r.status === 401 || r.status === 403 || /row-level security/i.test(r.text)) {
+          throw new ToolError("The database refused this for your account (you may not be in that meeting any more). Nothing was added.");
+        }
+        throw new ToolError(`The database didn't accept it (${r.status}): ${r.text.slice(0, 200)}`);
+      }
+
+      const what = ({ notes: "note", topics: "topic", todos: "to-do", issues: "issue card" } as Record<string, string>)[kind];
+      const extra = points.length ? ` with ${points.length} point${points.length === 1 ? "" : "s"}` : "";
+      const forWho = kind === "todos" ? ` for ${assignee ? firstName(assignee) : "you"}${data.due ? `, due ${data.due}` : ""}` : "";
+      const where = kind === "issues"
+        ? `to the "${str(sec.title)}" board in "${str(m.title)}" (Not started)`
+        : `to "${str(m.title)}" on ${WEEKDAY[weekday(date)]} ${date}, under "${str(sec.title)}"`;
+      const summary = `Added ${what} "${clip(text, 120)}"${extra}${forWho} ${where}.`;
+      const logged = await logChange(me, "add_to_meeting", `mtg_items:${id}`, summary, null, { ...data, points });
+      return saved(summary, logged, { id, app: APP_URL + "#section=meetings" });
     },
   },
 );
