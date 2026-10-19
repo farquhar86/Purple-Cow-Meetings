@@ -609,6 +609,36 @@
   @media (prefers-reduced-motion:reduce){ .hx-caret{transition:none;} }
   @media (max-width:560px){ .hx-col{display:block;margin-left:0;} .hx-tbl tr.hx-m td.lft{padding-left:18px;} .hx-tbl tr.hx-w td.lft{padding-left:40px;}
     .hx-tbl input.mx-val{width:64px;} }
+  /* Trends view on Metrics: active herd, sales, churn and breakage by month or quarter */
+  .tr-wrap{--tr-herd:#6a2c8f;--tr-sales:#2e9e6b;--tr-churn:#d8533b;--tr-break:#e0a32e;--tr-goal:#6b5e78;--tr-grid:#e3d6ef;--tr-axis:#6b5e78;}
+  html[data-theme="dark"] .tr-wrap{--tr-herd:#b47fe0;--tr-sales:#3ecf8e;--tr-churn:#e97462;--tr-break:#e8b347;--tr-goal:#a996b9;--tr-grid:#3c3049;--tr-axis:#a996b9;}
+  .tr-panel{background:var(--card);border:1.5px solid var(--cardborder);border-radius:14px;box-shadow:var(--hard-lg);padding:18px 20px 16px;margin:4px 0 24px;}
+  .tr-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+  .tr-head h3{margin:0;font-size:1.35rem;color:var(--heading);}
+  .tr-sub{font-size:.82rem;color:var(--muted);font-weight:600;margin-top:2px;}
+  .tr-ctrls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .tr-tiles{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:14px;}
+  .tr-tile{background:var(--lilac);border-radius:10px;padding:10px 12px;min-width:0;}
+  .tr-tile .l{font-size:.72rem;color:var(--muted);font-weight:800;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tr-tile .n{font-family:var(--font-display);font-size:1.6rem;line-height:1.15;color:var(--heading);font-variant-numeric:tabular-nums;}
+  .tr-tile .d{font-size:.74rem;color:var(--muted);font-weight:700;}
+  .tr-sw{width:9px;height:9px;border-radius:2px;display:inline-block;flex:0 0 auto;}
+  .tr-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px;}
+  .tr-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .tr-legend i{width:18px;height:0;display:inline-block;border-top:3px solid;}
+  .tr-chart{position:relative;}
+  .tr-chart svg{display:block;width:100%;height:auto;font-family:inherit;}
+  .tr-tip{position:absolute;pointer-events:none;background:var(--card);border:1.5px solid var(--cardborder);border-radius:10px;padding:8px 10px;font-size:12px;min-width:220px;box-shadow:var(--hard);z-index:2;}
+  .tr-tip table{border-collapse:collapse;width:100%;}
+  .tr-tip td{padding:1px 0;font-variant-numeric:tabular-nums;}
+  .tr-hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:18px 0 6px;}
+  .tr-hd h4{margin:0;color:var(--heading);}
+  .tr-tbl{min-width:640px;}
+  .tr-tbl tr.tr-yr td{border-bottom:2px solid var(--line);}
+  .tr-foot{font-size:.74rem;color:var(--muted);line-height:1.55;margin:8px 0 0;}
+  .tr-wrap{container-type:inline-size;}
+  @container (max-width:820px){ .tr-tiles{grid-template-columns:repeat(3,minmax(0,1fr));} }
+  @container (max-width:460px){ .tr-tiles{grid-template-columns:repeat(2,minmax(0,1fr));} .tr-panel{padding:14px 12px;} .tr-tile .n{font-size:1.35rem;} }
   .tm-cell{display:flex;align-items:center;gap:9px;}
   .tm-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:var(--lilac-2);}
   .tm-initials{width:28px;height:28px;border-radius:50%;flex:0 0 auto;background:linear-gradient(135deg,var(--purple),var(--purple-dark));color:#fff;font-size:.66rem;font-weight:700;display:inline-flex;align-items:center;justify-content:center;}
@@ -3181,12 +3211,32 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
      as both inputs have a number for that week. Typing over it still wins. */
   const CALC_OPS={ div:'\u00f7', mul:'\u00d7', add:'+', sub:'\u2212' };
   function isCalc(m){ return !!(m && m.source==='calc' && m.calc && m.calc.a && m.calc.b); }
+  /* A calculated rate whose bottom number is a BALANCE (Active Herd Members is a headcount,
+     not a count of things that happened) divides by that balance at the start of the period:
+     the reading on the week before. It never adds the balance up across weeks. So Churn % for
+     a week is that week's churn ÷ the herd going into the week, and for a month or quarter it's
+     all of that period's churn ÷ the herd going into the period, judged against the target. */
+  function isBalanceMetric(m){ return !!m && (cgClimbs(m) || (isCumulative(m) && m.cumEntry==='absolute')); }
+  function calcBalanceB(m){
+    if(!isCalc(m) || ['add','sub','mul'].indexOf(m.calc.op)>=0) return null;
+    const B=metricsStore.find(x=>x.id===m.calc.b);
+    return (B && B.id!==m.id && isBalanceMetric(B)) ? B : null;
+  }
+  /* the balance's latest reading on a week before the one d falls in */
+  function balanceBefore(B,d){
+    const VB=weekValues(B), cut=alignWeekStart(d).getTime(); let bt=null, bv=null;
+    Object.keys(VB).forEach(k=>{ const x=parseAnyDate(k); if(!x) return; const t=alignWeekStart(x).getTime();
+      if(t<cut && (bt===null||t>bt)){ bt=t; bv=VB[k]; } });
+    return bv;
+  }
   function calcValue(m,col,depth){
     if(!isCalc(m) || (depth||0)>4) return null;
     const c=m.calc;
     const A=metricsStore.find(x=>x.id===c.a), B=metricsStore.find(x=>x.id===c.b);
     if(!A||!B||A.id===m.id||B.id===m.id) return null;
-    const av=cellValue(A,col,(depth||0)+1).eff, bv=cellValue(B,col,(depth||0)+1).eff;
+    const av=cellValue(A,col,(depth||0)+1).eff;
+    const bv=calcBalanceB(m) ? balanceBefore(B,col.start) : cellValue(B,col,(depth||0)+1).eff;
+    if(bv===undefined) return null;
     if(av===null||bv===null||isNaN(av)||isNaN(bv)) return null;
     let v;
     if(c.op==='add') v=av+bv;
@@ -3229,7 +3279,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function calcLabel(m){
     if(!isCalc(m)) return '';
     const nm=id=>{ const x=metricsStore.find(y=>y.id===id); return x?(x.name||'Untitled'):'(missing metric)'; };
-    return nm(m.calc.a)+' '+(CALC_OPS[m.calc.op]||'\u00f7')+' '+nm(m.calc.b)+(m.calc.x100?' \u00d7 100':'');
+    return nm(m.calc.a)+' '+(CALC_OPS[m.calc.op]||'\u00f7')+' '+nm(m.calc.b)+(calcBalanceB(m)?' at the start':'')+(m.calc.x100?' \u00d7 100':'');
   }
 
   /* a cell's value: typed in directly, calculated, or rolled up from the weekly numbers */
@@ -3396,6 +3446,10 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       const WV=weekValues(m); Object.keys(WV).forEach(k=>{ const d=parseAnyDate(k); if(!d) return;
         if(inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime()){ const n=WV[k]; if(!isNaN(n)){ cum+=n; any=true; } } });
     }
+    if(calcBalanceB(m)){   /* a rate over a balance: the quarter so far, worked out as one period */
+      const cr=calcRatioOver(m,d=>inQ(d) && alignWeekStart(d).getTime()<=wkStart.getTime());
+      cum=cr?cr.v:0; any=!!cr;
+    }
     /* If the quarter opened at a number (43,439 herd members), pace runs from there
        to the goal — not from zero, which makes any large running total look finished. */
     const S=metricStart(m,qk);
@@ -3510,7 +3564,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       +'<div class="sc-kids"><div class="sc-kids-hd">Channels that roll into '+esc(m.name||'this')+'</div>'+kidCards+'</div>'
       +'</div>';
   }
-  let mxGroupMode='func';   // 'func' | 'owner' | 'all'
+  let mxGroupMode='func';   // 'func' | 'owner' | 'all' | 'trends' (Leadership and Admin)
   function setMxGroup(v){ mxGroupMode = (v===true)?'owner':(v===false)?'all':v; renderMetrics(); }
 
   /* ---------- Company Targets tile (the five 🐄 goals up top) ---------- */
@@ -3760,9 +3814,20 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const list=all.filter(m=>{ const p=rollupParentOf(m); return !(p && visIds[p.id]); });
     const ws=weekStarts(2,weekStartDay); const lastW=ws[0], thisW=ws[1];
     const gbtn=(mode,label)=>'<button class="btn '+(mxGroupMode===mode?'':'ghost')+' sm" onclick="setMxGroup(\''+mode+'\')">'+label+'</button>';
-    const hasRolls=list.some(isRollup);
+    if(mxGroupMode==='trends' && !canSeeTrends()) mxGroupMode='func';
+    const hasRolls=list.some(isRollup) && mxGroupMode!=='trends';
     const rollBtns = hasRolls ? '<span style="flex:1"></span><button class="btn ghost sm" onclick="setAllRolls(true)">Expand roll-ups</button><button class="btn ghost sm" onclick="setAllRolls(false)">Collapse roll-ups</button>' : '';
-    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+rollBtns+'</div>';
+    const trendBtn = canSeeTrends() ? gbtn('trends','📊 Trends') : '';
+    const toggle='<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;align-items:center;">'+gbtn('func','By function')+gbtn('owner','By owner')+gbtn('all','All together')+trendBtn+rollBtns+'</div>';
+    if(mxGroupMode==='trends'){
+      let h; _wvc={};
+      try{ h=trendsHtml(); }
+      catch(e){ console.warn('trends view failed', e); trState=null; h='<div class="mx-empty">Trends couldn’t load. Try ↻ Refresh.</div>'; }
+      finally{ _wvc=null; }
+      wrap.innerHTML=toggle+h;
+      try{ trDraw(); }catch(e){ console.warn('trends chart failed', e); }
+      return;
+    }
     if(mxGroupMode==='all'){ wrap.innerHTML=toggle+'<div class="sc-cards">'+list.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div>'; return; }
     if(mxGroupMode==='func'){
       const cfg=ensureFnConfig();
@@ -3807,6 +3872,209 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
         +'<div class="sc-cards">'+items.map(m=>scCardHtml(m,lastW,thisW)).join('')+'</div></div>';
     }).join('');
     wrap.innerHTML=toggle+html;
+  }
+  /* ================= Trends: active herd, sales, churn and breakage by month or quarter =================
+     A fourth Metrics view beside By function / By owner / All together, for Leadership and Admin.
+     Periods are built from the weekly numbers with the same rules as History & graph (hxAgg and
+     weekMonth / weekQuarter), so every month and quarter here ties out to those views.
+     Breakage % is the period's breakage ÷ its sales. Churn % is the period's churn ÷ active herd at
+     the end of the period before, the same rule the Churn % metric follows (see calcBalanceB). It's
+     worked out here so the view never depends on that metric; its targets come from it when it exists.
+     var (not let/const): renderMetrics can run before this block on first load. */
+  var TREND_IDS={herd:'mrtdpy4q998fd', sales:'ms4t6qrb90tor', churn:'mvcg3mwb901k7', breakage:'mve96ufvbumuo', bpct:'ms4twfhi8vuro', cpct:''};
+  var TREND_NAMES={herd:'Active Herd Members', sales:'Marketing Sales Numbers', churn:'Churn', breakage:'Breakage', bpct:'Breakage %', cpct:'Churn %'};
+  var trPer=null, trMode=null, trState=null, trResizeHooked=false;
+  function canSeeTrends(){ return myRole!=='team'; }
+  function trLoadPrefs(){
+    if(trPer) return;
+    trPer='month'; trMode='tot';
+    try{ const p=localStorage.getItem(KEY+'_trper'), w=localStorage.getItem(KEY+'_trmode');
+      if(p==='month'||p==='quarter') trPer=p; if(w==='tot'||w==='wk') trMode=w; }catch(e){}
+  }
+  function setTrPer(p){ trPer=p; try{ localStorage.setItem(KEY+'_trper',p); }catch(e){} renderMetrics(); }
+  function setTrMode(w){ trMode=w; try{ localStorage.setItem(KEY+'_trmode',w); }catch(e){} renderMetrics(); }
+  function trMetric(k){ return metricsStore.find(m=>m && m.id===TREND_IDS[k]) || metricsStore.find(m=>m && !m.deleted && m.name===TREND_NAMES[k]) || null; }
+  function trModel(){
+    const M={}; Object.keys(TREND_IDS).forEach(k=>{ M[k]=trMetric(k); if(M[k]) normalizeMetric(M[k]); });
+    const missing=['herd','sales','churn','breakage'].filter(k=>!M[k]).map(k=>TREND_NAMES[k]);
+    if(missing.length) return { missing };
+    let first=null;
+    ['sales','churn','breakage'].forEach(k=>{ Object.keys(weekValues(M[k])).forEach(key=>{ const d=parseAnyDate(key); if(d && (!first||d<first)) first=d; }); });
+    if(!first) return { missing:[] , empty:true };
+    const nowK=alignWeekStart(new Date()), weeks=[], d=new Date(first);
+    while(d<=nowK){ weeks.push(new Date(d)); d.setDate(d.getDate()+7); }
+    const P=[], by={}, MS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    weeks.forEach(w=>{
+      let id, lab, short, yr, isFirst, full, long;
+      if(trPer==='quarter'){ const qk=weekQuarter(w), q=Number(String(qk).split('-Q')[1]);
+        id='q:'+qk; yr=Number(String(qk).split('-Q')[0]); lab=quarterLabel(qk); short='Q'+q; long=lab; isFirst=(q===1); full=weeksInQuarter(qk); }
+      else { const mo=weekMonth(w);
+        id='m:'+wkKey(mo).slice(0,7); yr=mo.getFullYear(); short=MS[mo.getMonth()]; lab=short+' '+yr;
+        long=mo.toLocaleDateString(undefined,{month:'long',year:'numeric'}); isFirst=(mo.getMonth()===0);
+        full=weekKeysIn(mo,new Date(mo.getFullYear(),mo.getMonth()+1,0)).length; }
+      if(!by[id]){ by[id]={ id, lab, short, long, yr, isFirst, full, weeks:[] }; P.push(by[id]); }
+      by[id].weeks.push(w);
+    });
+    const WS=weekValues(M.sales), WB=weekValues(M.breakage);
+    P.forEach((p,i)=>{
+      p.partial=p.weeks.length<p.full;
+      ['herd','sales','churn','breakage'].forEach(k=>{ const a=hxAgg(M[k],p.weeks); p[k]=a.v; p['n_'+k]=a.n; });
+      /* Breakage % over weeks that have both numbers, the way Round Up works out the calculated metric */
+      let sb=0, ss=0;
+      p.weeks.forEach(w=>{ const k=wkKey(w); if(WS[k]!==undefined && WB[k]!==undefined){ sb+=WB[k]; ss+=WS[k]; } });
+      p.bpct = ss ? sb/ss*100 : null;
+      p.goal = M.bpct ? hxAgg(M.bpct,p.weeks).g : null;
+      /* Churn % target: the quarter target, or a month's share of it (its weeks ÷ the quarter's) */
+      p.cgoal = M.cpct ? hxAgg(M.cpct,p.weeks).g : null;
+      p.prevHerd = i ? P[i-1].herd : null;
+    });
+    return { M, P };
+  }
+  function trVal(p,k){
+    const wk=trMode==='wk';
+    if(k==='herd') return p.herd;
+    if(k==='bpct') return p.bpct;
+    if(k==='cpct'){ if(p.churn===null||!p.prevHerd) return null; return (wk ? p.churn/Math.max(1,p.n_churn) : p.churn)/p.prevHerd*100; }
+    const v=p[k]; if(v===null||v===undefined) return null;
+    return wk ? v/Math.max(1,p['n_'+k]) : v;
+  }
+  function trCGoal(p){ if(p.cgoal===null||p.cgoal===undefined||isNaN(p.cgoal)) return null; return trMode==='wk' ? p.cgoal/Math.max(1,p.weeks.length) : p.cgoal; }
+  function trFmt(v,dp){ if(v===null||v===undefined||isNaN(v)) return '—'; return Number(v).toLocaleString(undefined,{minimumFractionDigits:dp||0,maximumFractionDigits:dp||0}); }
+  function trSign(n,dp){ if(n===null||n===undefined||isNaN(n)) return ''; const r=Number(Math.abs(n).toFixed(dp||0));
+    return (r===0?'':(n>0?'+':'−'))+trFmt(Math.abs(n),dp); }
+  function trPct(a,b){ return (a===null||b===null||!b) ? null : (a/b-1)*100; }
+  function trNice(m){ if(!(m>0)) return 1; const e=Math.pow(10,Math.floor(Math.log10(m))), f=m/e;
+    return (f<=1.5?1.5:f<=2?2:f<=2.5?2.5:f<=3?3:f<=4?4:f<=5?5:f<=6?6:f<=8?8:10)*e; }
+  function trendsHtml(){
+    trLoadPrefs();
+    const mdl=trModel();
+    if(mdl.missing && mdl.missing.length) return '<div class="mx-empty">Trends needs '+esc(mdl.missing.join(', '))+' on the scorecard.</div>';
+    if(mdl.empty) return '<div class="mx-empty">No weekly numbers yet for sales, churn or breakage.</div>';
+    const P=mdl.P, L=P.length-1, LC=(P[L].partial && L>0) ? L-1 : L, c=P[LC], b=LC>0?P[LC-1]:null;
+    const wk=trMode==='wk', u=wk?' / wk':'', per=trPer==='quarter'?'quarter':'month', cdp=wk?3:2;
+    const seg=(cur,opts,fn,label)=>'<div class="cg-ptoggle" role="group" aria-label="'+label+'">'
+      + opts.map(o=>'<button type="button" class="'+(cur===o[0]?'on':'')+'" aria-pressed="'+(cur===o[0])+'" onclick="'+fn+'(\''+o[0]+'\')">'+o[1]+'</button>').join('')+'</div>';
+    const pn=c.short, bn=b?b.short:'';
+    const vs=(k)=>{ if(!b) return ''; const p=trPct(trVal(c,k),trVal(b,k)); return p===null?'':trSign(p)+'% vs '+bn; };
+    const tile=(col,l,v,d)=>'<div class="tr-tile"><div class="l"><span class="tr-sw" style="background:var(--tr-'+col+')"></span>'+l+'</div><div class="n">'+v+'</div><div class="d">'+d+'</div></div>';
+    const cNow=trVal(c,'cpct'), cWas=b?trVal(b,'cpct'):null;
+    const tiles='<div class="tr-tiles">'
+      + tile('herd','Active herd, '+esc(pn),trFmt(c.herd),b&&b.herd!==null&&c.herd!==null?trSign(c.herd-b.herd)+' vs '+esc(bn):'')
+      + tile('sales','Sales'+u,trFmt(trVal(c,'sales')),esc(vs('sales')))
+      + tile('churn','Churn'+u,trFmt(trVal(c,'churn')),esc(vs('churn')))
+      + tile('churn','Churn %'+u,cNow===null?'—':trFmt(cNow,cdp)+'%',trCGoal(c)!==null?'target '+trFmt(trCGoal(c),cdp)+'%':(cNow!==null&&cWas!==null?trSign(cNow-cWas,cdp)+' pts':''))
+      + tile('break','Breakage'+u,trFmt(trVal(c,'breakage')),esc(vs('breakage')))
+      + tile('break','Breakage %',c.bpct===null?'—':trFmt(c.bpct,1)+'%',c.goal!==null?'target '+trFmt(c.goal,c.goal%1?1:0)+'%':'no target')
+      + '</div>';
+    const legend='<div class="tr-legend"><span><i style="border-color:var(--tr-herd)"></i>Active herd</span><span><i style="border-color:var(--tr-sales)"></i>Sales</span>'
+      + '<span><i style="border-color:var(--tr-churn)"></i>Churn</span><span><i style="border-top-style:dashed;border-color:var(--tr-break)"></i>Breakage</span>'
+      + '<span><i style="border-top-style:dashed;border-color:var(--tr-goal)"></i>Target</span>'+(P[L].partial?'<span>Hollow dot = '+per+' so far</span>':'')+'</div>';
+    /* history table, newest first */
+    let rows='';
+    for(let i=L;i>=0;i--){ const p=P[i], cp=trVal(p,'cpct'), cg=trCGoal(p);
+      const t=(p.partial||p.bpct===null||p.goal===null)?'':tierOfGoal(mdl.M.bpct||{direction:'lower'},p.bpct,p.goal);
+      const ct=(p.partial||cp===null||cg===null)?'':tierOfGoal(mdl.M.cpct||{direction:'lower'},cp,cg);
+      rows+='<tr'+(trPer==='quarter'&&p.isFirst&&i!==L?' class="tr-yr"':'')+'><td class="lft">'+esc(p.lab)+(p.partial?'<span class="hx-todate">so far</span>':'')+'</td>'
+        + '<td>'+p.weeks.length+'</td><td>'+trFmt(p.herd)+'</td><td>'+trFmt(trVal(p,'sales'))+'</td><td>'+trFmt(trVal(p,'churn'))+'</td>'
+        + '<td class="'+(ct?'mx-cell '+ct:'')+'"'+(ct?' title="'+esc(TIER_LABEL[ct])+'"':'')+'>'+(cp===null?'—':trFmt(cp,cdp)+'%')+'</td>'
+        + '<td class="hx-g">'+(cg===null?'—':trFmt(cg,cdp)+'%')+'</td><td>'+trFmt(trVal(p,'breakage'))+'</td>'
+        + '<td class="'+(t?'mx-cell '+t:'')+'"'+(t?' title="'+esc(TIER_LABEL[t])+'"':'')+'>'+(p.bpct===null?'—':trFmt(p.bpct,1)+'%')+'</td>'
+        + '<td class="hx-g">'+(p.goal===null?'—':trFmt(p.goal,p.goal%1?1:0)+'%')+'</td></tr>';
+    }
+    const table='<div class="tr-hd"><h4>By '+per+'</h4><span class="tr-sub">Newest first</span></div>'
+      + '<div class="hx-scroll"><table class="ch-tbl hx-tbl tr-tbl"><thead><tr><th class="lft">'+(per==='quarter'?'Quarter':'Month')+'</th><th>Weeks</th><th>Active herd</th>'
+      + '<th>Sales'+u+'</th><th>Churn'+u+'</th><th>Churn %</th><th>Target</th><th>Breakage'+u+'</th><th>Breakage %</th><th>Target</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+    trState={ P, L, LC };
+    return '<div class="tr-wrap"><section class="tr-panel" aria-labelledby="trTitle">'
+      + '<div class="tr-head"><div><h3 id="trTitle">Company trends</h3><div class="tr-sub">Active herd, sales, churn and breakage by '+per+' since '+esc(P[0].lab)+'</div></div>'
+      + '<div class="tr-ctrls">'+seg(trPer,[['month','Month'],['quarter','Quarter']],'setTrPer','Group by')+seg(trMode,[['tot','Totals'],['wk','Per week']],'setTrMode','Show')+'</div></div>'
+      + tiles + legend
+      + '<div class="tr-chart" id="trChart"><svg id="trSvg" role="img" aria-label="Active herd; sales, churn and breakage; breakage % of sales against target; churn % of the starting herd, by '+per+'"></svg><div class="tr-tip" id="trTip" hidden></div></div>'
+      + table
+      + '<p class="tr-foot">Sales is Marketing Sales Numbers (the Salesforce Sales Last Week basis). A week counts in the '+per+' where most of its days fall, so months have 4 or 5 weeks and quarters 12 to 14; Per week divides by the weeks with a number. '
+      + 'Active herd is the last week of each '+per+'. Breakage % is breakage ÷ sales. Churn % is churn ÷ active herd at the end of the '+per+' before. Targets come from the Churn % and Breakage % quarter targets; a month\u2019s Churn % target is its weeks\u2019 share of the quarter\u2019s.</p>'
+      + '</section></div>';
+  }
+  function trDraw(){
+    const svg=document.getElementById('trSvg'), box=document.getElementById('trChart'); if(!svg||!box||!trState) return;
+    const { P, L, LC }=trState, N=P.length, wk=trMode==='wk';
+    const W=Math.max(340,Math.min(1100,box.clientWidth||900)), narrow=W<600;
+    const PL=narrow?46:58, PR=narrow?78:96, fs=narrow?11:12;
+    const A={t:30,h:narrow?96:118}; const B={t:A.t+A.h+38,h:narrow?150:190}; const C={t:B.t+B.h+38,h:narrow?80:96}; const D={t:C.t+C.h+38,h:narrow?72:84};
+    const H=D.t+D.h+30;
+    svg.setAttribute('viewBox','0 0 '+W+' '+H);
+    const X=i=>PL+(N<2?(W-PL-PR)/2:i*(W-PL-PR)/(N-1));
+    const vals=k=>P.map(p=>trVal(p,k)).filter(v=>v!==null&&!isNaN(v));
+    const hv=vals('herd'); let hMin=Math.min.apply(null,hv), hMax=Math.max.apply(null,hv);
+    const hStep=trNice((hMax-hMin)/3||1); hMin=Math.floor(hMin/hStep)*hStep; hMax=Math.ceil(hMax/hStep)*hStep; if(hMax===hMin) hMax=hMin+hStep;
+    const fl=['sales','churn','breakage'], bMax=trNice(Math.max.apply(null,fl.flatMap(vals).concat([1]))*1.04/4)*4;
+    const pv=vals('bpct').concat(P.map(p=>p.goal).filter(g=>g!==null)), pMax=trNice(Math.max.apply(null,pv.concat([1]))*1.04/3)*3;
+    const cMax=trNice(Math.max.apply(null,vals('cpct').concat(P.map(trCGoal).filter(g=>g!==null)).concat([0.01]))*1.04/3)*3;
+    const tdp=step=>{ const r=Math.round(step*1000)/1000; return Number.isInteger(r)?0:Number.isInteger(r*10)?1:2; };
+    const yA=v=>A.t+(hMax-v)*A.h/(hMax-hMin), yB=v=>B.t+(bMax-v)*B.h/bMax, yC=v=>C.t+(pMax-v)*C.h/pMax, yD=v=>D.t+(cMax-v)*D.h/cMax;
+    const T=(x,y,t,o)=>'<text x="'+x+'" y="'+y+'" font-size="'+fs+'" fill="var(--tr-axis)" '+(o||'')+'>'+t+'</text>';
+    const grid=(arr,y,f)=>arr.map(v=>'<line x1="'+PL+'" x2="'+(W-PR)+'" y1="'+y(v)+'" y2="'+y(v)+'" stroke="var(--tr-grid)"/>'+T(PL-8,y(v)+4,f(v),'text-anchor="end"')).join('');
+    let s='';
+    const hTicks=[]; for(let v=hMin; v<=hMax+1e-6; v+=hStep) hTicks.push(v);
+    s+=grid(hTicks,yA,v=>v>=1000?trFmt(v/1000,v%1000?1:0)+'k':trFmt(v));
+    s+=grid([0,1,2,3,4].map(j=>bMax*j/4),yB,v=>trFmt(v,tdp(bMax/4)));
+    s+=grid([0,1,2,3].map(j=>pMax*j/3),yC,v=>trFmt(v,tdp(pMax/3))+'%');
+    s+=grid([0,1,2,3].map(j=>cMax*j/3),yD,v=>trFmt(v,tdp(cMax/3))+'%');
+    const ttl=(t,y)=>T(PL,y,t,'font-weight="800"');
+    s+=ttl('Active herd',A.t-10)+ttl(wk?'Sales, churn and breakage per week':'Sales, churn and breakage',B.t-10)+ttl('Breakage % of sales',C.t-10)+ttl(wk?'Churn % of starting herd, per week':'Churn % of starting herd',D.t-10);
+    const by=D.t+D.h;
+    P.forEach((p,i)=>{ if(p.isFirst||i===0) s+='<line x1="'+X(i)+'" x2="'+X(i)+'" y1="'+by+'" y2="'+(by+5)+'" stroke="var(--tr-axis)"/>'+T(X(i),by+19,p.yr,'font-weight="800"'); });
+    const line=(k,y)=>{ let d='', pen=false; for(let i=0;i<=LC;i++){ const v=trVal(P[i],k); if(v===null||isNaN(v)){ pen=false; continue; } d+=(pen?'L':'M')+X(i).toFixed(1)+','+y(v).toFixed(1); pen=true; } return d; };
+    const hl=line('herd',yA);
+    if(hl){ const fi=P.findIndex(p=>p.herd!==null); s+='<path d="'+hl+'L'+X(LC)+','+(A.t+A.h)+'L'+X(fi)+','+(A.t+A.h)+'Z" fill="var(--tr-herd)" fill-opacity=".1"/>'; }
+    s+='<path d="'+hl+'" fill="none" stroke="var(--tr-herd)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    const FL=[['sales','sales',''],['churn','churn',''],['breakage','break','5,3']];
+    FL.forEach(f=>{ s+='<path d="'+line(f[0],yB)+'" fill="none" stroke="var(--tr-'+f[1]+')" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"'+(f[2]?' stroke-dasharray="'+f[2]+'"':'')+'/>'; });
+    const half=N>1?(X(1)-X(0))/2:20; let gp='';
+    P.forEach((p,i)=>{ if(p.goal===null) return; const cont=i>0&&P[i-1].goal===p.goal;
+      gp+=(cont?'L':'M')+Math.max(PL,X(i)-half).toFixed(1)+','+yC(p.goal).toFixed(1)+'L'+Math.min(W-PR,X(i)+half).toFixed(1)+','+yC(p.goal).toFixed(1); });
+    if(gp) s+='<path d="'+gp+'" fill="none" stroke="var(--tr-goal)" stroke-width="2" stroke-dasharray="6,4"/>';
+    s+='<path d="'+line('bpct',yC)+'" fill="none" stroke="var(--tr-break)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    let cgp='';
+    P.forEach((p,i)=>{ const g=trCGoal(p); if(g===null) return; const pg=i>0?trCGoal(P[i-1]):null, cont=pg!==null&&Math.abs(pg-g)<1e-9;
+      cgp+=(cont?'L':'M')+Math.max(PL,X(i)-half).toFixed(1)+','+yD(g).toFixed(1)+'L'+Math.min(W-PR,X(i)+half).toFixed(1)+','+yD(g).toFixed(1); });
+    if(cgp) s+='<path d="'+cgp+'" fill="none" stroke="var(--tr-goal)" stroke-width="2" stroke-dasharray="6,4"/>';
+    s+='<path d="'+line('cpct',yD)+'" fill="none" stroke="var(--tr-churn)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    const r=N>30?3.4:4.2;
+    const end=(k,col,y,lab,ly)=>{ const v=trVal(P[LC],k); if(v===null||isNaN(v)) return ''; let o='<circle cx="'+X(LC)+'" cy="'+y(v)+'" r="'+(r+0.4)+'" fill="var(--tr-'+col+')" stroke="var(--card)" stroke-width="1.5"/>';
+      const pv2=trVal(P[L],k); if(LC<L && pv2!==null && !isNaN(pv2)) o+='<circle cx="'+X(L)+'" cy="'+y(pv2)+'" r="4.5" fill="var(--card)" stroke="var(--tr-'+col+')" stroke-width="2"><title>'+esc(P[L].lab+' so far')+'</title></circle>';
+      return o+'<text x="'+(X(L)+10)+'" y="'+((ly===undefined?y(v):ly)+4)+'" font-size="'+fs+'" font-weight="800" fill="var(--heading)">'+lab+'</text>'; };
+    s+=end('herd','herd',yA,'Herd');
+    const ly=FL.map(f=>{ const v=trVal(P[LC],f[0]); return v===null?B.t:yB(v); });
+    for(let rr=0;rr<3;rr++) for(let a=0;a<3;a++) for(let q=a+1;q<3;q++) if(Math.abs(ly[a]-ly[q])<14){ const m=(ly[a]+ly[q])/2, up=ly[a]<ly[q]; ly[a]=m+(up?-7:7); ly[q]=m+(up?7:-7); }
+    FL.forEach((f,j)=>{ s+=end(f[0],f[1],yB,f[0].charAt(0).toUpperCase()+f[0].slice(1),ly[j]); });
+    s+=end('bpct','break',yC,'Breakage %')+end('cpct','churn',yD,'Churn %');
+    s+='<g id="trHov" visibility="hidden"><line id="trHl" y1="'+A.t+'" y2="'+by+'" stroke="var(--tr-axis)" stroke-dasharray="3,3"/><g id="trHd"></g></g>'
+      + '<rect id="trOv" x="'+(PL-8)+'" y="'+A.t+'" width="'+(W-PL-PR+16)+'" height="'+(by-A.t)+'" fill="transparent"/>';
+    svg.innerHTML=s;
+    const tip=document.getElementById('trTip'), hov=document.getElementById('trHov'), ov=document.getElementById('trOv');
+    const show=(cx,cy)=>{ const rc=svg.getBoundingClientRect(); if(!rc.width) return;
+      let i=Math.round(((cx-rc.left)*W/rc.width-PL)/((W-PL-PR)/Math.max(1,N-1))); i=Math.max(0,Math.min(L,i));
+      const x=X(i), p=P[i], q=i?P[i-1]:null, cdp2=wk?3:2;
+      hov.setAttribute('visibility','visible'); const hl2=document.getElementById('trHl'); hl2.setAttribute('x1',x); hl2.setAttribute('x2',x);
+      document.getElementById('trHd').innerHTML=[['herd','herd',yA],['sales','sales',yB],['churn','churn',yB],['breakage','break',yB],['bpct','break',yC],['cpct','churn',yD]]
+        .map(z=>{ const v=trVal(p,z[0]); return (v===null||isNaN(v))?'':'<circle cx="'+x+'" cy="'+z[2](v)+'" r="5" fill="var(--tr-'+z[1]+')" stroke="var(--card)" stroke-width="2"/>'; }).join('');
+      const ch=k=>{ if(!q||p.partial) return ''; const a=trVal(p,k), bb=trVal(q,k); if(a===null||bb===null) return '';
+        if(k==='herd') return trSign(a-bb); if(k==='bpct') return trSign(a-bb,1)+' pts'; if(k==='cpct') return trSign(a-bb,cdp2)+' pts'; const pc=trPct(a,bb); return pc===null?'':trSign(pc)+'%'; };
+      const row=(col,l,v,d)=>'<tr><td><span class="tr-sw" style="background:var(--tr-'+col+');margin-right:6px"></span>'+l+'</td><td style="text-align:right;font-weight:800;padding-left:12px">'+v+'</td><td style="text-align:right;color:var(--muted);padding-left:8px;font-weight:700">'+d+'</td></tr>';
+      const cp=trVal(p,'cpct');
+      tip.innerHTML='<div style="font-weight:800;margin-bottom:4px">'+esc(p.long)+(p.partial?' so far':'')+' <span style="color:var(--muted);font-weight:700">· '+p.weeks.length+' weeks</span></div><table>'
+        + row('herd','Active herd',trFmt(p.herd),ch('herd'))+row('sales','Sales',trFmt(trVal(p,'sales')),ch('sales'))+row('churn','Churn',trFmt(trVal(p,'churn')),ch('churn'))
+        + row('churn','Churn %',cp===null?'—':trFmt(cp,cdp2)+'%',ch('cpct'))+row('break','Breakage',trFmt(trVal(p,'breakage')),ch('breakage'))
+        + row('break','Breakage %',p.bpct===null?'—':trFmt(p.bpct,1)+'%',ch('bpct'))
+        + '</table><div style="color:var(--muted);font-weight:700;margin-top:3px">'+(trCGoal(p)!==null?'Churn % target '+trFmt(trCGoal(p),cdp2)+'% · ':'')+(p.goal!==null?'Breakage % target '+trFmt(p.goal,p.goal%1?1:0)+'%':'No breakage % target set')+(q&&!p.partial?' · change vs '+esc(q.lab):'')+'</div>';
+      tip.hidden=false; const px=x*rc.width/W, tw=tip.offsetWidth; tip.style.left=(px+14+tw>rc.width?Math.max(0,px-tw-14):px+14)+'px'; const th=tip.offsetHeight, top=(cy||rc.top+60)-rc.top+14; tip.style.top=Math.max(0,Math.min(rc.height-th,top))+'px'; };
+    const hide=()=>{ hov.setAttribute('visibility','hidden'); tip.hidden=true; };
+    ov.addEventListener('mousemove',e=>show(e.clientX,e.clientY)); ov.addEventListener('mouseleave',hide);
+    ov.addEventListener('touchstart',e=>{ if(e.touches[0]) show(e.touches[0].clientX,e.touches[0].clientY); },{passive:true});
+    ov.addEventListener('touchmove',e=>{ if(e.touches[0]) show(e.touches[0].clientX,e.touches[0].clientY); },{passive:true});
+    if(!trResizeHooked){ trResizeHooked=true; let t=null;
+      window.addEventListener('resize',()=>{ clearTimeout(t); t=setTimeout(()=>{ if(mxGroupMode==='trends' && document.getElementById('trSvg')) trDraw(); },150); }); }
   }
   function buildScorecard(items,cols){
     let head='<tr><th class="lft mx-c1">Metric</th><th class="lft mx-c2">Owner</th><th class="lft mx-c3">Goal</th>';
@@ -4134,6 +4402,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const A=metricsStore.find(x=>x.id===m.calc.a), B=metricsStore.find(x=>x.id===m.calc.b);
     if(!A||!B||A.id===m.id||B.id===m.id) return null;
     const VA=weekValues(A), VB=weekValues(B); let sa=0, sb=0, n=0;
+    if(calcBalanceB(m)){
+      let first=null;
+      Object.keys(VA).forEach(k=>{ const d=parseAnyDate(k); if(!d||!inWin(d)) return; sa+=VA[k]; n++; if(!first||d<first) first=d; });
+      Object.keys(VB).forEach(k=>{ const d=parseAnyDate(k); if(!d||!inWin(d)) return; if(!first||d<first) first=d; });
+      if(!n) return null;
+      const base=balanceBefore(B,first); if(!base) return null;
+      return { v:sa/base*(m.calc.x100?100:1), a:sa, b:base, n, A, B, start:true };
+    }
     Object.keys(VA).forEach(k=>{ if(VB[k]===undefined) return; const d=parseAnyDate(k); if(!d||!inWin(d)) return;
       sa+=VA[k]; sb+=VB[k]; n++; });
     if(!n||!sb) return null;
@@ -4314,7 +4590,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     });
     const goalHd = (cgIsLevel(m)&&!cgClimbs(m)) ? 'Target' : 'Goal';
     return '<div class="hx-scroll"><table class="ch-tbl hx-tbl"><thead><tr><th class="lft">Period</th><th>'+esc(m.name||'Actual')+'</th><th>'+goalHd+'</th>'
-      + (parts ? '<th>'+esc(A.name||'A')+'</th><th>'+esc(B.name||'B')+'</th>' : '')
+      + (parts ? '<th>'+esc(A.name||'A')+'</th><th>'+esc(B.name||'B')+(calcBalanceB(m)?' at start':'')+'</th>' : '')
       + '<th class="note">Comment</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
   }
   function hxRedraw(focusId){
@@ -4617,12 +4893,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const w=weekStarts(2,weekStartDay)[1], col={key:wkKey(w),start:w,end:new Date(w.getTime()+6*86400000)};
     const probe={ id:'__preview__', source:'calc', calc:{a,op,b,x100}, unit:(document.getElementById('mx-unit')||{}).value||'number' };
     const v=calcValue(probe,col,0);
-    const av=A?cellValue(A,col).eff:null, bv=B?cellValue(B,col).eff:null;
+    const bal=calcBalanceB(probe);
+    const av=A?cellValue(A,col).eff:null, bv=B?(bal?(balanceBefore(B,w)??null):cellValue(B,col).eff):null;
     if(v===null){ note.innerHTML='Waiting on this week&rsquo;s numbers for '
       + (av===null?'<b>'+esc((A&&A.name)||'?')+'</b>':'') + (av===null&&bv===null?' and ':'')
       + (bv===null?'<b>'+esc((B&&B.name)||'?')+'</b>':'') + '. The answer fills in on its own once they are there.'; return; }
     note.innerHTML='This week: <b>'+esc(fmtVal(probe,av))+' '+(CALC_OPS[op]||'\u00f7')+' '+esc(fmtVal(probe,bv))
-      + (x100?' \u00d7 100':'') + ' = ' + esc(fmtVal(probe,v))+'</b>';
+      + (x100?' \u00d7 100':'') + ' = ' + esc(fmtVal(probe,v))+'</b>'
+      + (bal?'<br>'+esc(B.name||'That metric')+' is a balance, so it divides by its number going into each week, month or quarter.':'');
   }
   /* One question, four answers. goalKind + levelMode are what get stored; this is
      just the single choice that sets them, because they were never independent. */
