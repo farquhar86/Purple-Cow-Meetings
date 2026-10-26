@@ -848,6 +848,10 @@
   .tp-add input:focus{border-bottom-color:var(--purple);}
   .tp-img{margin-top:4px;}
   .tp-editta{min-height:36px;margin-top:0;}
+  /* who added each topic (always) and each point (when it isn't the topic's author) */
+  .tp-by{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;color:var(--muted);font-size:.76rem;font-weight:600;line-height:1.4;white-space:nowrap;padding-top:1px;}
+  .tp-by img,.tp-by .tm-initials{width:18px;height:18px;border-radius:50%;font-size:.5rem;}
+  .tp-bby{color:var(--muted);font-size:.76rem;margin-left:6px;white-space:nowrap;}
   /* "copy an answer you already gave in another meeting" picker */
   .cpa-row{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);}
   .cpa-row:last-child{border-bottom:none;}
@@ -6594,6 +6598,7 @@ Herd Life`;
     const head = t.id===mtgEditItemId
       ? '<div>'+tpEditHtml(t)+'</div>'
       : '<div class="tp-head" title="Added by '+esc(pmName(t.data.author))+'"><span class="tp-title">'+esc(t.data.text||'')+'</span>'
+        +(t.data.author?'<span class="tp-by">'+avatarHtml(t.data.author)+esc(pmName(t.data.author))+'</span>':'')
         +(canEditItem(t)?'<span class="tp-tools"><span title="Edit topic" onclick="editItem(\''+t.id+'\')">✎</span><span title="Delete topic" onclick="delTopic(\''+t.id+'\')">✕</span></span>':'')
         +'</div>';
     const img = t.data.img
@@ -6605,6 +6610,7 @@ Herd Life`;
     const lis=bullets.map(b=> b.id===mtgEditItemId
       ? '<li class="tp-b">'+tpEditHtml(b)+'</li>'
       : '<li class="tp-b" title="Added by '+esc(pmName(b.data.author))+'"><span class="tp-btxt">'+esc(b.data.text||'')+'</span>'
+        +((b.data.author && !sameEmail(b.data.author,t.data.author))?'<span class="tp-bby">· '+esc(pmName(b.data.author))+'</span>':'')
         +(canEditItem(b)?'<span class="tp-tools"><span title="Edit" onclick="editItem(\''+b.id+'\')">✎</span><span title="Delete" onclick="delItem(\''+b.id+'\');renderMeetingView()">✕</span></span>':'')
         +'</li>').join('');
     const add = canEdit ? '<li class="tp-b tp-add"><input id="in-b-'+t.id+'" placeholder="+ Add a point" onkeydown="bulletKey(event,\''+t.id+'\')" onpaste="bulletPaste(event,\''+t.id+'\')"></li>' : '';
