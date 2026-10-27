@@ -2697,7 +2697,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     });
   }
   function saveNote(id, val){
-    const e=findEntry(id); if(!e) return; e.notes=val;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return; e.notes=val;
     e.notesAt=Date.now(); if(typeof myEmail!=='undefined' && myEmail) e.notesBy=myEmail;
     persistNote(e);
     const f=document.getElementById('flash-'+id); if(f){ f.classList.add('show'); clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove('show'),1200); }
@@ -2902,6 +2902,8 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function isSuperAdmin(){ return myRole==='superadmin'; }
   function canManageUsers(){ return myRole==='admin' || myRole==='superadmin'; }
   function teamVisible(e){ if(myRole!=='team') return true; if(!e||e.type!=='priority') return true; return e.pm===myEmail || e.assignee===myEmail || (e.plan||[]).some(p=>p&&p.owner===myEmail); }
+  /* a team-role user can open someone else's priority (from a meeting section) but only to look at it */
+  function prioReadOnly(e){ return !!e && !teamVisible(e); }
   function applyRoleUI(){ if(typeof document==='undefined') return; document.body.classList.toggle('role-team', myRole==='team'); document.body.classList.toggle('can-manage', canManageUsers()); document.body.classList.toggle('is-super', isSuperAdmin()); const rl=document.getElementById('roleLabel'); if(rl) rl.textContent = roleName(myRole); if(typeof updateSidebarAccount==='function') updateSidebarAccount(); }
   function roleName(r){ r=r||'admin'; if(r==='superadmin') return 'Super Admin'; return r.charAt(0).toUpperCase()+r.slice(1); }
   async function loadTeamUsersCache(){ if(!USE_DB) return; try{ const {users}=await callUserFn({action:'list'}); teamUsers=users||[]; if(screen==='prio') renderPrioPage(); if(screen==='special') renderSpBoard(); }catch(e){ /* function may not be deployed yet */ } }
@@ -6163,7 +6165,9 @@ Herd Life`;
     if(!attendees.length) return '<div class="mtg-empty">Nobody is on this meeting yet — add attendees and their priorities will show up here.</div>';
 
     /* same set of rocks the Quarterly Priorities section shows: things actually committed to */
-    const prios=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e))).filter(teamVisible);
+    /* not filtered by teamVisible: the attendee list scopes this section, so a team-role viewer
+       sees everyone in the meeting, not just their own items */
+    const prios=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
     const tasksAll=pvAllTasks(prios);
 
     /* owners = the people in this meeting, deduped through resolvePerson so a name and an
@@ -8189,7 +8193,7 @@ Herd Life`;
   }
   function closeEditModal(){ document.getElementById('editModal').classList.remove('show'); _editCb=null; }
   function saveEditModal(){ const v=document.getElementById('editModalInput').value; const cb=_editCb; closeEditModal(); if(cb) cb(v); }
-  function confirmRemovePriority(id){ const e=findEntry(id); if(e&&e.special){ confirmModal('Remove this project entirely? This cannot be undone.', ()=>{ removeSp(id); navTo('special'); }, 'Remove project'); return; }
+  function confirmRemovePriority(id){ const e=findEntry(id); if(prioReadOnly(e)) return; if(e&&e.special){ confirmModal('Remove this project entirely? This cannot be undone.', ()=>{ removeSp(id); navTo('special'); }, 'Remove project'); return; }
     confirmModal('Remove this priority entirely? This cannot be undone.', ()=>{ remove(id); gotoDash(); }, 'Remove priority'); }
 
   /* ---------- roadmap: combined Gantt of committed priorities ---------- */
@@ -8397,14 +8401,14 @@ Herd Life`;
     }).join('<span class="stage-arrow">›</span>')+'</div>';
   }
   function setStageClick(id,key){
-    const e=findEntry(id); if(!e) return;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return;
     if(key==='complete' && dodLines(e).length && !dodAllMet(e)){ infoModal('This priority completes when every Definition of Done line is ticked. '+(dodStatus(e).n-dodStatus(e).met)+' still to go.'); return; }
     e.stage=key; syncStageFlags(e); persist(e); refreshPrio();
     if(key==='sized' && !e.size){ infoModal('Tip: pick a size (S / M / L) below so this stage reflects an estimate.'); }
     else if(key==='scheduled' && !isScheduled(e)){ infoModal('Tip: add start & end dates to the tasks below so the timeline shows up.'); }
   }
-  function setField(id,field,val){ const e=findEntry(id); if(!e) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
-  function setDod(id,val){ const e=findEntry(id); if(!e) return; e.dod=val.split('\n').map(s=>s.trim()).filter(Boolean); persist(e); }
+  function setField(id,field,val){ const e=findEntry(id); if(!e||prioReadOnly(e)) return; e[field]=val; if(field==='size') autoStage(e); persist(e); refreshPrio(); }
+  function setDod(id,val){ const e=findEntry(id); if(!e||prioReadOnly(e)) return; e.dod=val.split('\n').map(s=>s.trim()).filter(Boolean); persist(e); }
 
   /* ---------- date helpers ---------- */
   function parseD(s){ if(!s) return null; const d=new Date(s+'T00:00:00'); return isNaN(d.getTime())?null:d; }
@@ -8414,7 +8418,7 @@ Herd Life`;
 
   /* ---------- priority detail + Gantt ---------- */
   let prioOpenId=null;
-  function openPrio(id){ if(!reviewUnlocked) return; rvPrioReturn=rvPrioPending; rvPrioPending=null; const ent=findEntry(id); if(ent && !teamVisible(ent)){ infoModal('You can only open priorities you own or have a task on.'); return; } prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); routeSet(sectionHash(ent&&ent.special?'special':'priorities')+'&prio='+encodeURIComponent(id)); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
+  function openPrio(id){ if(!reviewUnlocked) return; rvPrioReturn=rvPrioPending; rvPrioPending=null; const ent=findEntry(id); prioOpenId=id; prioDetailView='tasks'; showScreen('prio'); renderPrioPage(); window.scrollTo({top:0}); routeSet(sectionHash(ent&&ent.special?'special':'priorities')+'&prio='+encodeURIComponent(id)); if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
   /* a priority may live in the active quarter or on the Special Projects board */
   function findEntry(id){ return cur().entries.find(x=>x.id===id) || spProjects.find(x=>x.id===id); }
   function refreshPrio(){ if(prioOpenId && screen==='prio') renderPrioPage(); const e=prioOpenId?findEntry(prioOpenId):null; if(e&&e.special){ if(screen==='special') renderSpBoard(); } else renderDashBody(); }
@@ -8478,18 +8482,18 @@ Herd Life`;
   let dodEditing=null;
   function toggleDodMet(id,lineId,ev){
     if(ev){ ev.stopPropagation(); ev.preventDefault(); }
-    const e=findEntry(id); if(!e) return; ensureDodIds(e); e.dodMet=e.dodMet||{};
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return; ensureDodIds(e); e.dodMet=e.dodMet||{};
     if(e.dodMet[lineId]) delete e.dodMet[lineId]; else e.dodMet[lineId]={by:myEmail||'', at:toISO(new Date())};
     autoStage(e); persist(e); refreshPrio();
   }
   function addDodLine(id){
-    const e=findEntry(id); if(!e) return; const inp=document.getElementById('dod-new'); const v=(inp&&inp.value||'').trim(); if(!v) return;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return; const inp=document.getElementById('dod-new'); const v=(inp&&inp.value||'').trim(); if(!v) return;
     ensureDodIds(e); e.dod=dodLines(e).slice(); e.dod.push(v); e.dodIds.push(uid());
     autoStage(e); persist(e); refreshPrio();
     setTimeout(()=>{ const x=document.getElementById('dod-new'); if(x) x.focus(); },40);
   }
   function startDodFromTasks(id){
-    const e=findEntry(id); if(!e) return; e.dod=(e.done||[]).filter(Boolean).slice(); e.dodIds=[]; ensureDodIds(e);
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return; e.dod=(e.done||[]).filter(Boolean).slice(); e.dodIds=[]; ensureDodIds(e);
     autoStage(e); persist(e); refreshPrio();
   }
   function dropDodLine(e,lineId){
@@ -8499,16 +8503,16 @@ Herd Life`;
     (e.plan||[]).forEach(p=>{ if(p&&Array.isArray(p.ocs)) p.ocs=p.ocs.filter(x=>x!==lineId); });
   }
   function removeDodLine(id,lineId){
-    const e=findEntry(id); if(!e) return;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return;
     const linked=(e.plan||[]).filter(p=>planSupports(p,lineId)).length;
     confirmModal('Remove this Definition of Done line?'+(linked?' '+linked+' task'+(linked===1?' is':'s are')+' linked to it and will be unlinked.':''), ()=>{
       dropDodLine(e,lineId); autoStage(e); persist(e); refreshPrio();
     }, 'Remove line');
   }
-  function openDodEdit(id){ dodEditing=id; renderPrioPage(); setTimeout(()=>{ const a=document.getElementById('dod-edit-area'); if(a) a.focus(); },40); }
+  function openDodEdit(id){ if(prioReadOnly(findEntry(id))) return; dodEditing=id; renderPrioPage(); setTimeout(()=>{ const a=document.getElementById('dod-edit-area'); if(a) a.focus(); },40); }
   function cancelDodEdit(){ dodEditing=null; renderPrioPage(); }
   function saveDodEdit(id){
-    const e=findEntry(id); if(!e){ dodEditing=null; return; }
+    const e=findEntry(id); if(!e||prioReadOnly(e)){ dodEditing=null; return; }
     const lines=(document.getElementById('dod-edit-area').value||'').split('\n').map(s=>s.trim()).filter(Boolean);
     const oldIds=ensureDodIds(e).slice(), oldLines=dodLines(e).slice(), used=new Set(), newIds=new Array(lines.length).fill(null);
     lines.forEach((l,k)=>{ const j=oldLines.findIndex((o,x)=>o===l && !used.has(x)); if(j>=0){ newIds[k]=oldIds[j]; used.add(j); } });
@@ -8548,7 +8552,7 @@ Herd Life`;
   /* click the circle on a task row: complete it, or un-complete it back to where it was */
   function toggleTaskDone(id,i,ev){
     if(ev){ ev.stopPropagation(); ev.preventDefault(); }
-    const e=findEntry(id); if(!e) return;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return;
     syncPlan(e); const p=e.plan[i]; if(!p) return;
     const now=Number(p.pct)||0;
     // Un-ticking something the Jira sync ticked means "I don't agree" — remember that so
@@ -8747,6 +8751,20 @@ Herd Life`;
         </div>
       </div>
     `;
+    if(prioReadOnly(e)) lockPrioPage(body);
+  }
+  /* view-only version of the detail page: every field disabled, every edit control gone.
+     The edit functions refuse read-only priorities too, so this is the visible half. */
+  function lockPrioPage(body){
+    body.insertAdjacentHTML('afterbegin','<div class="card" style="margin-bottom:16px;font-size:.9rem;color:var(--muted);">👀 <b>View only.</b> You are not the PM or a task owner on this priority, so you can look but not change it.</div>');
+    body.querySelectorAll('input,select,textarea').forEach(el=>{ el.disabled=true; });
+    const EDIT=/^(openTaskModal|toggleTaskDone|setStageClick|toggleDodMet|addDodLine|startDodFromTasks|removeDodLine|openDodEdit|saveDodEdit|cancelDodEdit|confirmRemovePriority)\(/;
+    body.querySelectorAll('[onclick]').forEach(el=>{
+      if(!EDIT.test(el.getAttribute('onclick'))) return;
+      if(el.tagName==='BUTTON' && !el.classList.contains('stage-step')){ el.remove(); return; }
+      el.removeAttribute('onclick'); el.removeAttribute('onkeydown'); el.removeAttribute('title'); el.style.cursor='default';
+      if(el.tagName==='BUTTON') el.disabled=true; });
+    body.querySelectorAll('.edit-hint,.saved-flash').forEach(el=>el.remove());
   }
   let prioDetailView='tasks';
   function setPrioDetailView(v){ prioDetailView=v; renderPrioPage(); }
@@ -8769,7 +8787,7 @@ Herd Life`;
     if(sel.value==='__other') setTimeout(()=>other.focus(),40);
   }
   function openTaskModal(id, i){
-    const e=findEntry(id); if(!e) return;
+    const e=findEntry(id); if(!e||prioReadOnly(e)) return;
     syncPlan(e);
     taskModalEntry=id; taskModalIdx=(typeof i==='number')?i:null;
     const p=(taskModalIdx!=null && e.plan[taskModalIdx]) ? e.plan[taskModalIdx] : {start:'',end:'',pct:0,owner:'',dept:'',note:''};
