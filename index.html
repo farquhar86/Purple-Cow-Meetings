@@ -750,6 +750,10 @@
   .mtg-datenav .btn{padding:6px 11px;}
   .mtg-date{font-weight:700;color:var(--heading);min-width:210px;text-align:center;}
   .mtg-when{font-size:.85rem;color:var(--muted);}
+  /* jump to my other meetings on the same day */
+  .mtg-jump{margin-left:auto;display:inline-flex;align-items:center;gap:8px;font-size:.78rem;font-weight:700;color:var(--muted);}
+  .mtg-jump select{border:1.5px solid var(--ink);border-radius:10px;padding:6px 10px;font-size:12.5px;font-weight:700;background:var(--card);color:var(--ink);box-shadow:2px 2px 0 var(--ink);cursor:pointer;max-width:300px;}
+  html[data-theme="dark"] .mtg-jump select{border-color:var(--cardborder);box-shadow:var(--hard);}
   .mtg-attend{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:8px 0 16px;}
   .mtg-att{display:inline-flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:3px 10px 3px 3px;font-size:.82rem;}
   .mtg-att img,.mtg-att .tm-initials{width:22px;height:22px;border-radius:50%;}
@@ -5541,11 +5545,26 @@ Herd Life`;
   function fmtTime(t){ if(!t) return ''; const p=t.split(':'); let h=Number(p[0]); const ap=h>=12?'pm':'am'; h=h%12||12; return h+':'+p[1]+ap; }
   function tzShort(tz){ if(!tz) return ''; const p=tz.split('/'); return (p[1]||tz).replace('_',' '); }
 
-  function openMeeting(id){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
-    try{ curMtgDate=occurrenceOnOrAfter(m,new Date()); }catch(e){ curMtgDate=new Date(); }
+  function openMeeting(id,onDay){ curMtgId=id; const m=mtgsStore.find(x=>x.id===id); if(!m) return;
+    try{ if(onDay){ curMtgDate=new Date(onDay); curMtgDate.setHours(0,0,0,0); } else curMtgDate=occurrenceOnOrAfter(m,new Date()); }catch(e){ curMtgDate=new Date(); }
     if(!curMtgDate || isNaN(curMtgDate.getTime())) curMtgDate=new Date();
     renderMeetingView(); window.scrollTo({top:0}); startMtgPolling(); syncJiraTasks().catch(e=>console.warn('Jira sync',e)); }
   function backToMeetings(){ curMtgId=null; stopMtgPolling(); renderMeetingsList(); }
+  /* ── Switch to my other meetings on the same day ──────────────────────────
+     A dropdown in the meeting header lists every meeting I'm on (attendee or organizer)
+     that falls on the day being viewed, by start time. Picking one opens it on that day. */
+  function mtgOccursOn(m,day){ const k=wkKey(day);
+    if(m.type==='once'||!m.type) return (m.date||'')===k;
+    try{ const d=occurrenceOnOrAfter(m,day); return !!d && !isNaN(d.getTime()) && wkKey(d)===k; }catch(e){ return false; } }
+  function mtgByTime(a,b){ return String(a.time||'99:99').localeCompare(String(b.time||'99:99')) || String(a.title||'').localeCompare(String(b.title||'')); }
+  function mtgJumpHtml(m){ if(!curMtgDate || isNaN(curMtgDate.getTime())) return '';
+    const list=mtgsStore.filter(x=>x && (x.id===m.id || (mtgIsMine(x) && mtgOccursOn(x,curMtgDate)))).sort(mtgByTime);
+    if(list.length<2) return '';
+    const today=wkKey(curMtgDate)===wkKey(new Date());
+    return '<label class="mtg-jump no-print">'+(today?'Today’s meetings':'Meetings that day')
+      +'<select onchange="mtgJumpTo(this.value)">'+list.map(x=>'<option value="'+esc(x.id)+'"'+(x.id===m.id?' selected':'')+'>'
+        +esc((x.time?fmtTime(x.time)+' · ':'')+(x.title||'Untitled meeting'))+'</option>').join('')+'</select></label>'; }
+  function mtgJumpTo(id){ if(!id || id===curMtgId) return; openMeeting(id, new Date(curMtgDate)); }
   function mtgNav(dir){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; curMtgDate=occStep(m,curMtgDate,dir); renderMeetingView(); }
   /* clear any stale local cache and pull everything fresh from the server (in-app version of "clear cache") */
   async function recoverMeetings(){
@@ -5582,7 +5601,7 @@ Herd Life`;
       + '<div class="mtg-top"><h1 style="margin:0;color:var(--heading);font-size:1.4rem;flex:1;">'+esc(m.title)+'</h1>'
       + '<button class="btn ghost sm" onclick="openMeetingCreate(\''+m.id+'\')">⚙ Edit meeting</button>'
       + '<button class="btn ghost sm" onclick="ensureMeetingsRefresh()">↻ Refresh</button></div>'
-      + '<div class="mtg-top">'+nav+'<span class="mtg-when">'+(m.time?(esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))+' · '+esc(String(m.dur||30))+' min'):'')+'</span></div>'
+      + '<div class="mtg-top">'+nav+'<span class="mtg-when">'+(m.time?(esc(fmtTime(m.time))+' '+esc(tzShort(m.tz))+' · '+esc(String(m.dur||30))+' min'):'')+'</span>'+mtgJumpHtml(m)+'</div>'
       + attend;
     if(recurring && m.type!=='daily'){ const qt=mtgQuoteFor(curMtgDate);
       html+='<div class="mtg-quote"><div class="lead">💪 This week</div><div class="q">"'+esc(qt.q)+'"</div><div class="a">— '+esc(qt.a)+'</div></div>'; }
