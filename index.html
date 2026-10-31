@@ -852,6 +852,12 @@
   .tp-by{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;color:var(--muted);font-size:.76rem;font-weight:600;line-height:1.4;white-space:nowrap;padding-top:1px;}
   .tp-by img,.tp-by .tm-initials{width:18px;height:18px;border-radius:50%;font-size:.5rem;}
   .tp-bby{color:var(--muted);font-size:.76rem;margin-left:6px;white-space:nowrap;}
+  /* highlight text in a topic → ✅ To-Do */
+  .tp-by,.tp-bby,.tp-tools,.tp-tdchip{user-select:none;-webkit-user-select:none;}
+  .tp-todo-pop{position:absolute;z-index:590;display:none;white-space:nowrap;}
+  .tp-tdchip{display:inline-block;font-size:.68rem;font-weight:700;color:var(--heading);background:var(--lilac-2);border-radius:999px;padding:1px 8px;margin-left:8px;white-space:nowrap;vertical-align:middle;cursor:default;}
+  .tp-tdchip.done{text-decoration:line-through;opacity:.65;}
+  .tp-topic.tp-flash{background:var(--lilac-2);border-radius:8px;transition:background .6s;}
   /* "copy an answer you already gave in another meeting" picker */
   .cpa-row{display:flex;gap:10px;align-items:flex-start;padding:9px 4px;border-bottom:1px solid var(--line);}
   .cpa-row:last-child{border-bottom:none;}
@@ -5764,7 +5770,8 @@ Herd Life`;
         +'<input id="edit-'+it.id+'" class="mtg-editinp" value="'+esc(it.data.text||'')+'" onkeydown="mtgEditKey(event,\''+it.id+'\')">'
         +'<input type="date" id="editdue-'+it.id+'" class="mtg-duein" value="'+esc(it.data.due||'')+'" title="Due date (leave blank for none)">'
         +'<button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
-    const fromIss = it.data.fromIssue ? '<span class="from-issue" title="Added from an issue — click to open it" onclick="event.stopPropagation();openIssue(\''+it.data.fromIssue+'\')">🔗 from issue</span>' : '';
+    const fromIss = it.data.fromIssue ? '<span class="from-issue" title="Added from an issue — click to open it" onclick="event.stopPropagation();openIssue(\''+it.data.fromIssue+'\')">🔗 from issue</span>'
+      : it.data.fromTopic ? '<span class="from-issue" title="Added from a meeting topic — click to jump to it" onclick="event.stopPropagation();jumpToTopic(\''+it.data.fromTopic+'\')">🔗 from topic</span>' : '';
     let dueChip='';
     // only badge a due date when it's NOT the next meeting (the default) — keeps the list clean
     if(it.data.due && it.data.due!==mtgNextKey()){ const dd=parseYMD(it.data.due); if(dd){ const od=!done && endOfDay(dd)<new Date(); dueChip='<span class="pri-due'+(od?' over':'')+'" title="Due '+esc(it.data.due)+'">📅 '+fmtDue(dd)+'</span>'; } }
@@ -6454,9 +6461,9 @@ Herd Life`;
     const cs=mtgItems.filter(it=>it.section==='cmt:'+id).sort((a,b)=>((a.data&&a.data.t)||0)-((b.data&&b.data.t)||0));
     box.innerHTML = cs.length ? cs.map(c=>'<div class="iss-cmt">'+avatarHtml(c.data.author)+'<div class="cb"><div class="who">'+esc(pmName(c.data.author))+' <span class="when">'+fmtWhen(c.data.t)+'</span></div>'+esc(c.data.text||'')+'</div></div>').join('') : '<div class="mtg-empty">No comments yet.</div>'; }
   /* highlight text in an issue's notes → right-click → make it a to-do for someone this week */
-  let todoPendingText='';
-  function showTodoMenu(x,y,text){
-    todoPendingText=text;
+  let todoPendingText='', todoPendingSrc=null;   // src = {topic, bullet} when it comes from a meeting topic
+  function showTodoMenu(x,y,text,src){
+    todoPendingText=text; todoPendingSrc=src||null;
     const menu=document.getElementById('todoCtxMenu'); if(!menu) return;
     const m=mtgsStore.find(mm=>mm.id===curMtgId);
     let people=(m&&m.attendees&&m.attendees.length)?m.attendees.slice():((teamUsers||[]).map(u=>u.email));
@@ -6487,17 +6494,60 @@ Herd Life`;
     showTodoMenu(x,y,sel);
   }
   function makeTodoFromText(email){
-    const text=(todoPendingText||'').trim();
+    const text=(todoPendingText||'').trim(); const src=todoPendingSrc; todoPendingSrc=null;
     const de=document.getElementById('todoCtxDue'); const due=(de&&de.value)?de.value:'';
     hideTodoMenu(); if(!text) return;
     const m=mtgsStore.find(mm=>mm.id===curMtgId); if(!m){ return; }
     const sec=(m.sections||[]).find(s=>s.type==='priorities');
     if(!sec){ infoModal('This meeting has no To-Dos section to add to. Add one first (➕ Add section → Priorities).'); return; }
-    const data={type:'pri', text:text, done:false, author:email, assignedBy:myEmail, fromIssue:curIssueId}; if(due) data.due=due;
+    const data={type:'pri', text:text, done:false, author:email, assignedBy:myEmail};
+    if(src && src.topic){ data.fromTopic=src.topic; if(src.bullet) data.fromBullet=src.bullet; } else data.fromIssue=curIssueId;
+    if(due) data.due=due;
     addItem(sec.id, instKey(), data);
     showToast('✅ To-Do added for '+pmName(email)+(due?' · due '+due:''));
+    if(src && src.topic){ try{ window.getSelection().removeAllRanges(); }catch(_){} renderMeetingView(); return; }
     if(curIssueId && document.getElementById('issueModal').classList.contains('show')) renderIssueTodos(curIssueId);
   }
+  /* ── Highlight text in a meeting topic → ✅ To-Do ─────────────────────────
+     Same flow as the issue notes: highlight words in a topic or its bullet points, then
+     press the ✅ To-Do button that pops up over the selection (or right-click), pick who
+     it's for and a due date. It lands in this meeting's To-Dos section, linked back to
+     the topic (data.fromTopic / data.fromBullet), and a ✅ chip shows on the line. */
+  function tpSelInfo(){
+    const sel=window.getSelection&&window.getSelection(); if(!sel || !sel.rangeCount || sel.isCollapsed) return null;
+    const ae=document.activeElement; if(ae && (ae.tagName==='TEXTAREA' || ae.tagName==='INPUT') && ae.closest && ae.closest('.tp-list')) return null;
+    const text=String(sel.toString()||'').split(/\r?\n+/).map(x=>x.trim()).filter(Boolean).join('; '); if(!text) return null;
+    const r=sel.getRangeAt(0); let n=r.commonAncestorContainer; if(n && n.nodeType!==1) n=n.parentNode; if(!n || !n.closest) return null;
+    const topic=n.closest('.tp-topic[data-tpid]'); if(!topic) return null;
+    const list=topic.closest('.tp-list'); if(!list || list.getAttribute('data-todo')!=='1') return null;
+    const li=n.closest('li[data-bid]');
+    return {text:text, topic:topic.getAttribute('data-tpid'), bullet:li?li.getAttribute('data-bid'):'', rect:r.getBoundingClientRect()};
+  }
+  function tpPopEl(){ let p=document.getElementById('tpTodoPop'); if(p) return p;
+    p=document.createElement('button'); p.id='tpTodoPop'; p.type='button'; p.className='btn sm tp-todo-pop no-print';
+    p.textContent='✅ To-Do'; p.title='Turn the highlighted text into a To-Do';
+    p.addEventListener('mousedown', e=>e.preventDefault());   // keep the highlight
+    p.addEventListener('click', e=>{ e.stopPropagation(); const info=tpSelInfo(); const r=p.getBoundingClientRect(); tpHidePop(); if(!info) return;
+      showTodoMenu(window.scrollX+r.left, window.scrollY+r.bottom+6, info.text, {topic:info.topic, bullet:info.bullet}); });
+    document.body.appendChild(p); return p; }
+  function tpHidePop(){ const p=document.getElementById('tpTodoPop'); if(p) p.style.display='none'; }
+  let tpPopTimer=null, tpMouseDown=false;
+  function tpUpdatePop(){ if(tpMouseDown) return; const info=tpSelInfo(); if(!info){ tpHidePop(); return; }
+    const p=tpPopEl(); p.style.display='block'; const pw=p.offsetWidth||90, ph=p.offsetHeight||30, r=info.rect;
+    let left=window.scrollX+r.left+r.width/2-pw/2; left=Math.max(window.scrollX+8, Math.min(left, window.scrollX+document.documentElement.clientWidth-pw-8));
+    let top=window.scrollY+r.top-ph-8; if(r.top-ph-8<4) top=window.scrollY+r.bottom+8;
+    p.style.left=left+'px'; p.style.top=top+'px'; }
+  document.addEventListener('selectionchange', ()=>{ clearTimeout(tpPopTimer); tpPopTimer=setTimeout(tpUpdatePop,150); });
+  document.addEventListener('mousedown', ev=>{ if(ev.target && ev.target.closest && ev.target.closest('#tpTodoPop')) return; tpMouseDown=true; tpHidePop(); }, true);
+  document.addEventListener('mouseup', ()=>{ if(!tpMouseDown) return; tpMouseDown=false; clearTimeout(tpPopTimer); tpPopTimer=setTimeout(tpUpdatePop,30); }, true);
+  document.addEventListener('contextmenu', function(ev){
+    if(!ev.target || !ev.target.closest || !ev.target.closest('.tp-topic')) return;
+    const info=tpSelInfo(); if(!info) return;
+    ev.preventDefault(); tpHidePop(); showTodoMenu(ev.pageX, ev.pageY, info.text, {topic:info.topic, bullet:info.bullet});
+  });
+  function jumpToTopic(tid){ const el=document.querySelector('.tp-topic[data-tpid="'+tid+'"]');
+    if(!el){ showToast('That topic is from an earlier meeting'); return; }
+    el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('tp-flash'); setTimeout(()=>el.classList.remove('tp-flash'),1600); }
   document.addEventListener('contextmenu', function(ev){
     const notes=document.getElementById('iss-notes');
     if(!notes || !notes.contains(ev.target)) return;
@@ -6589,8 +6639,12 @@ Herd Life`;
     const topics=all.filter(it=>!(it.data&&it.data.type==='bullet'));
     const ids=new Set(topics.map(t=>t.id)); const kids={};
     all.forEach(it=>{ const d=it.data||{}; if(d.type==='bullet' && ids.has(d.parent)) (kids[d.parent]=kids[d.parent]||[]).push(it); });
+    // to-dos made from these topics (highlight → ✅ To-Do): keyed by the bullet they came from, else the topic
+    const bIds=new Set(); Object.keys(kids).forEach(k=>kids[k].forEach(b=>bIds.add(b.id))); const tds={};
+    mtgItems.forEach(it=>{ const d=it.data||{}; if(d.type!=='pri' || !d.fromTopic || !ids.has(d.fromTopic)) return;
+      const k=(d.fromBullet && bIds.has(d.fromBullet)) ? d.fromBullet : d.fromTopic; (tds[k]=tds[k]||[]).push(it); });
     let h = topics.length
-      ? '<div class="tp-list">'+topics.map(t=>topicHtml(t,kids[t.id]||[],canEdit)).join('')+'</div>'
+      ? '<div class="tp-list"'+(canEdit?' data-todo="1"':'')+'>'+topics.map(t=>topicHtml(t,kids[t.id]||[],canEdit,tds)).join('')+'</div>'
       : '<div class="mtg-empty">No topics yet. Add one below.</div>';
     if(canEdit) h+='<div class="mtg-addrow"><textarea id="in-'+sec.id+'" rows="1" placeholder="Add a topic…  (Enter to add · extra lines become bullets · paste an image)" onkeydown="topicKey(event,\''+sec.id+'\')" onpaste="mtgNotePaste(event,\''+sec.id+'\')"></textarea>'
       +'<button class="btn sm" onclick="addTopic(\''+sec.id+'\')">Add</button></div>';
@@ -6598,10 +6652,12 @@ Herd Life`;
   function tpEditHtml(it){
     return '<textarea id="edit-'+it.id+'" class="mtg-editta tp-editta" onkeydown="mtgEditKey(event,\''+it.id+'\')">'+esc(it.data.text||'')+'</textarea>'
       +'<div class="mtg-editbtns"><button class="btn sm" onclick="saveItemEdit(\''+it.id+'\')">Save</button><button class="btn ghost sm" onclick="cancelItemEdit()">Cancel</button></div>'; }
-  function topicHtml(t,bullets,canEdit){
+  function tpTodoChips(list){ return (list||[]).map(it=>{ const d=it.data||{}, done=!!d.done;
+    return '<span class="tp-tdchip'+(done?' done':'')+'" title="To-Do for '+esc(pmName(d.author))+': '+esc(d.text||'')+(done?' (done)':'')+'">✅ '+esc(pmName(d.author))+'</span>'; }).join(''); }
+  function topicHtml(t,bullets,canEdit,tds){ tds=tds||{};
     const head = t.id===mtgEditItemId
       ? '<div>'+tpEditHtml(t)+'</div>'
-      : '<div class="tp-head" title="Added by '+esc(pmName(t.data.author))+'"><span class="tp-title">'+esc(t.data.text||'')+'</span>'
+      : '<div class="tp-head" title="Added by '+esc(pmName(t.data.author))+'"><span class="tp-title">'+esc(t.data.text||'')+tpTodoChips(tds[t.id])+'</span>'
         +(t.data.author?'<span class="tp-by">'+avatarHtml(t.data.author)+esc(pmName(t.data.author))+'</span>':'')
         +(canEditItem(t)?'<span class="tp-tools"><span title="Edit topic" onclick="editItem(\''+t.id+'\')">✎</span><span title="Delete topic" onclick="delTopic(\''+t.id+'\')">✕</span></span>':'')
         +'</div>';
@@ -6613,12 +6669,12 @@ Herd Life`;
       : '';
     const lis=bullets.map(b=> b.id===mtgEditItemId
       ? '<li class="tp-b">'+tpEditHtml(b)+'</li>'
-      : '<li class="tp-b" title="Added by '+esc(pmName(b.data.author))+'"><span class="tp-btxt">'+esc(b.data.text||'')+'</span>'
+      : '<li class="tp-b" data-bid="'+b.id+'" title="Added by '+esc(pmName(b.data.author))+'"><span class="tp-btxt">'+esc(b.data.text||'')+'</span>'+tpTodoChips(tds[b.id])
         +((b.data.author && !sameEmail(b.data.author,t.data.author))?'<span class="tp-bby">· '+esc(pmName(b.data.author))+'</span>':'')
         +(canEditItem(b)?'<span class="tp-tools"><span title="Edit" onclick="editItem(\''+b.id+'\')">✎</span><span title="Delete" onclick="delItem(\''+b.id+'\');renderMeetingView()">✕</span></span>':'')
         +'</li>').join('');
     const add = canEdit ? '<li class="tp-b tp-add"><input id="in-b-'+t.id+'" placeholder="+ Add a point" onkeydown="bulletKey(event,\''+t.id+'\')" onpaste="bulletPaste(event,\''+t.id+'\')"></li>' : '';
-    return '<div class="tp-topic">'+head+img+((lis||add)?'<ul class="tp-bullets">'+lis+add+'</ul>':'')+'</div>'; }
+    return '<div class="tp-topic" data-tpid="'+t.id+'">'+head+img+((lis||add)?'<ul class="tp-bullets">'+lis+add+'</ul>':'')+'</div>'; }
   function tpClean(s){ return String(s||'').replace(/^\s*(?:[-*•‣◦·▪]|\d+[.)])\s+/,'').trim(); }
   function tpFocusBullet(tid){ const el=document.getElementById('in-b-'+tid); if(el) el.focus(); }
   function topicKey(ev,secId){ if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); addTopic(secId); } }
