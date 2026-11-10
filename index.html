@@ -1220,6 +1220,13 @@
   .pv-pmhd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:#1a63c4;font-weight:800;margin-bottom:7px;}
   .pv-pmrow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-bottom:6px;cursor:pointer;}
   .pv-pmrow:hover{background:var(--lilac);}
+  .pv-win{min-width:150px;}
+  .pv-wtrack{position:relative;height:8px;background:var(--lilac-2);border-radius:4px;margin-top:4px;}
+  .pv-wfill{position:absolute;top:0;bottom:0;left:0;background:var(--purple);border-radius:4px;}
+  .pv-wtoday{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--red);border-radius:1px;}
+  .pv-wlbl{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;font-variant-numeric:tabular-nums;}
+  .pv-overdue{border-top:1px solid var(--line);}
+  .pv-overdue-hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--red);font-weight:800;padding:10px 16px 2px;}
   .pv-pmrow:last-child{margin-bottom:0;}
   .pv-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 9px;border-radius:999px;background:var(--lilac-2);color:var(--heading);white-space:nowrap;}
   .pv-tag.contrib{background:#e0edff;color:#1a63c4;}
@@ -1799,6 +1806,11 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     <div id="secQuarterRow" style="display:none;margin-top:10px;">
       <label style="display:block;">Quarter</label>
       <select id="sec-quarter" style="width:100%;"></select>
+      <label style="display:block;margin-top:10px;">Show</label>
+      <select id="sec-taskfilter" style="width:100%;">
+        <option value="window">Tasks that should be in progress now (by their dates), plus overdue</option>
+        <option value="all">Every task this quarter</option>
+      </select>
     </div>
     <p class="block-desc" id="secTypeNote" style="margin-top:6px;font-size:.78rem;"></p>
     <div class="lock-err" id="secErr"></div>
@@ -6181,6 +6193,36 @@ Herd Life`;
      section is added (blank = whichever quarter is currently active). Read-only: a section can
      be pinned to a quarter that isn't the active one, and the tick handlers only ever write to
      the active quarter. ===== */
+  /* Read-only task rows for the "should be in progress now" view: dates plus a bar comparing actual %
+     to where the dates say the task should be on the reference day (the meeting's date). */
+  function pvWindowTable(tasks,ref,qid,overdue){
+    const openCall = t => qid ? `openPrioInQuarter('${esc(qid)}','${t.e.id}')` : `openPrio('${t.e.id}')`;
+    return `<div class="pv-tblwrap"><table class="pv-tbl">
+      <tr><th style="min-width:220px;">Task</th><th style="min-width:160px;">Priority</th><th>Dates</th><th>${overdue?'Ended':'Progress vs. dates'}</th><th>Status</th></tr>
+      ${tasks.map(t=>{
+        const s=parseD(t.start), en=parseD(t.end);
+        const dates=`${t.start?fmtShort(t.start):'—'} → ${t.end?fmtShort(t.end):'—'}`;
+        let prog, pill;
+        if(overdue){
+          const ago=daysBetween(en,ref);
+          prog=`<div class="pv-wtrack" title="${t.pct}% complete"><span class="pv-wfill" style="width:${t.pct}%"></span></div><div class="pv-wlbl">${t.pct}% done · ended ${ago} day${ago===1?'':'s'} ago</div>`;
+          pill='<span class="pv-pill late">⚠ Overdue</span>';
+        } else {
+          const span=daysBetween(s,en)+1, el=daysBetween(s,ref);
+          const exp=Math.round(Math.min(100,Math.max(0,el/span*100))), left=daysBetween(ref,en);
+          const behind=t.pct < exp-10;
+          prog=`<div class="pv-wtrack" title="Actual ${t.pct}%, the dates say about ${exp}%"><span class="pv-wfill" style="width:${t.pct}%"></span><span class="pv-wtoday" style="left:calc(${exp}% - 1px)"></span></div><div class="pv-wlbl">${t.pct}% done · should be ~${exp}% · ${left} day${left===1?'':'s'} left</div>`;
+          pill=behind?'<span class="pv-pill late">Behind</span>':(t.pct>0?'<span class="pv-pill done">On track</span>':'<span class="pv-pill todo">On track</span>');
+        }
+        return `<tr>
+          <td style="font-weight:600;">${esc(t.label)}${jiraChipHTML(t.label)}</td>
+          <td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>
+          <td style="white-space:nowrap;color:var(--muted);">${dates}</td>
+          <td class="pv-win">${prog}</td>
+          <td>${pill}</td>
+        </tr>`;}).join('')}
+    </table></div>`;
+  }
   function openPrioInQuarter(qid,id){ if(qid && qid!==store.activeId) switchMeeting(qid); openPrio(id); }
   function renderQuarterOwnerItems(m,sec){
     const q = sec.quarterId ? (store.meetings||[]).find(x=>x.id===sec.quarterId) : mtgQuarterForView();
@@ -6203,6 +6245,7 @@ Herd Life`;
     const owners=[...keys.values()].sort((a,b)=>String(pmName(a)).toLowerCase().localeCompare(String(pmName(b)).toLowerCase()));
     const ownerTasks=o=>tasksAll.filter(t=>t.owner && sameEmail(t.owner,o));
     const ownerPms=o=>prios.filter(e=>e.pm && sameEmail(e.pm,o));
+    if(sec.taskFilter!=='all') return renderQuarterOwnerWindow(q,sec,owners,ownerTasks,ownerPms);
 
     const cards=owners.map(o=>{
       const mine=ownerTasks(o), pms=ownerPms(o);
@@ -6238,6 +6281,54 @@ Herd Life`;
     const bar='<div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">'
       + esc(q.name||'This quarter')+(sec.quarterId?'':' (follows whichever quarter is active)')
       + ' — '+shownTasks+' task'+(shownTasks===1?'':'s')+' for the people in this meeting. Click a priority to open it.</div>';
+    return bar+cards;
+  }
+
+  /* "Should be in progress now" mode (the default): per owner, only tasks whose start → end window
+     covers the meeting's date and that aren't finished, then a small Overdue group for tasks whose end
+     date has passed unfinished. The reference day is the meeting date being viewed, so everyone looking
+     at the same meeting sees the same list whatever day they open it. */
+  function renderQuarterOwnerWindow(q,sec,owners,ownerTasks,ownerPms){
+    const ref=new Date((typeof curMtgDate!=='undefined' && curMtgDate && !isNaN(curMtgDate.getTime()))?curMtgDate:new Date()); ref.setHours(0,0,0,0);
+    const inWin=t=>{ if(t.pct>=100) return false; const s=parseD(t.start), en=parseD(t.end); return !!(s && en && s<=ref && ref<=en); };
+    const isLate=t=>{ if(t.pct>=100) return false; const en=parseD(t.end); return !!(en && en<ref); };
+    const byEnd=(a,b)=>String(a.end).localeCompare(String(b.end)) || String(a.start).localeCompare(String(b.start));
+    let nWin=0, nLate=0;
+    const cards=owners.map(o=>{
+      const mine=ownerTasks(o), pms=ownerPms(o);
+      const win=mine.filter(inWin).sort(byEnd), late=mine.filter(isLate).sort(byEnd);
+      if(!win.length && !late.length && !pms.length) return '';
+      nWin+=win.length; nLate+=late.length;
+      const behind=win.filter(t=>{ const s=parseD(t.start), en=parseD(t.end); const exp=Math.min(100,Math.max(0,daysBetween(s,ref)/(daysBetween(s,en)+1)*100)); return t.pct<exp-10; }).length;
+      const nP=new Set(win.map(t=>t.e.id)).size;
+      const pmRows=pms.map(e=>{ const pct=prioPct(e);
+        return `<div class="pv-pmrow" onclick="openPrioInQuarter('${esc(q.id)}','${e.id}')" title="Open this priority">
+          <span class="prio-link" style="font-weight:700;">🎯 ${esc(e.title||'Untitled')} ↗</span>
+          <span class="pv-tag">${esc(e.dept||'Unassigned')}</span>
+          ${isAtRisk(e)?'<span class="pv-pill late">⚠ at risk</span>':''}
+          <span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:600;"><span class="pctbar" style="display:inline-block;width:110px;margin:0;"><span class="pctbar-fill" style="display:block;height:100%;width:${pct}%"></span></span>${pct}%</span>
+        </div>`;}).join('');
+      return `<div class="pv-owcard">
+        <div class="pv-owhd">${avatarHtml(o)}
+          <div><h3>${esc(pmName(o))}</h3><div class="pv-owsub">${pms.length?`PM of ${pms.length} priorit${pms.length===1?'y':'ies'} · `:''}${win.length} task${win.length===1?'':'s'} due to be in progress on ${nP} priorit${nP===1?'y':'ies'}</div></div>
+          <div class="pv-owbadges">
+            ${pms.length?`<span class="pv-pill pm">📋 PM × ${pms.length}</span>`:''}
+            <span class="pv-pill prog">${win.length} in progress now</span>
+            ${behind?`<span class="pv-pill late">${behind} behind</span>`:''}
+            ${late.length?`<span class="pv-pill late">⚠ ${late.length} overdue</span>`:''}
+          </div>
+        </div>
+        ${pms.length?`<div class="pv-pmblock"><div class="pv-pmhd">📋 Priorities ${esc(pmName(o))} is PMing</div>${pmRows}</div>`:''}
+        ${win.length?pvWindowTable(win,ref,q.id,false):'<p class="empty" style="padding:14px 16px;">Nothing scheduled to be in progress on this date.</p>'}
+        ${late.length?`<div class="pv-overdue"><div class="pv-overdue-hd">⚠ Overdue · ${late.length}</div>${pvWindowTable(late,ref,q.id,true)}</div>`:''}
+      </div>`;
+    }).join('');
+    const day=ref.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'});
+    if(!cards) return '<div class="mtg-empty">Nobody in this meeting has a task scheduled to be in progress on '+esc(day)+' (or overdue) in '+esc(q.name||'this quarter')+'.</div>';
+    const bar='<div style="font-size:.82rem;color:var(--muted);margin-bottom:10px;">'
+      + esc(q.name||'This quarter')+(sec.quarterId?'':' (follows whichever quarter is active)')
+      + ' — '+nWin+' task'+(nWin===1?'':'s')+' that should be in progress on '+esc(day)+(nLate?(', plus '+nLate+' overdue'):'')
+      + ', for the people in this meeting. Click a priority to open it. Use ✎ to show every task instead.</div>';
     return bar+cards;
   }
 
@@ -6858,7 +6949,8 @@ Herd Life`;
   }
   /* the quarter picker only makes sense for the by-owner section, so show it only there */
   /* want = the quarter to select once the list is built; leave it out to keep what's selected now */
-  function secTypeChanged(want){
+  function secTypeChanged(want,wantFilter){
+    if(wantFilter!==undefined){ const f=document.getElementById('sec-taskfilter'); if(f) f.value=(wantFilter==='all'?'all':'window'); }
     const row=document.getElementById('secQuarterRow'); if(!row) return;
     const on=document.getElementById('sec-type').value==='qpriOwners';
     row.style.display=on?'block':'none';
@@ -6871,21 +6963,23 @@ Herd Life`;
   }
   function openAddSection(){ document.getElementById('sec-id').value=''; document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes';
     document.getElementById('secModalTitle').textContent='➕ Add a section'; document.getElementById('secSaveLabel').textContent='Add section';
-    document.getElementById('secErr').textContent=''; secTypeChanged(''); document.getElementById('mtgSecModal').classList.add('show'); }
+    document.getElementById('secErr').textContent=''; secTypeChanged('','window'); document.getElementById('mtgSecModal').classList.add('show'); }
   function openEditSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; const sec=(m.sections||[]).find(s=>s.id===sid); if(!sec) return;
     document.getElementById('sec-id').value=sid; document.getElementById('sec-title').value=sec.title||''; document.getElementById('sec-type').value=sec.type||'notes';
     document.getElementById('secModalTitle').textContent='✎ Edit section'; document.getElementById('secSaveLabel').textContent='Save changes';
-    document.getElementById('secErr').textContent=''; secTypeChanged(sec.quarterId||''); document.getElementById('mtgSecModal').classList.add('show'); }
+    document.getElementById('secErr').textContent=''; secTypeChanged(sec.quarterId||'',sec.taskFilter||'window'); document.getElementById('mtgSecModal').classList.add('show'); }
   function closeAddSection(){ document.getElementById('mtgSecModal').classList.remove('show'); }
   function saveAddSection(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const title=document.getElementById('sec-title').value.trim(); if(!title){ document.getElementById('secErr').textContent='Give the section a title.'; return; }
     const type=document.getElementById('sec-type').value; const sid=document.getElementById('sec-id').value;
     const quarterId=(type==='qpriOwners') ? (document.getElementById('sec-quarter').value||'') : null;
+    const taskFilter=(type==='qpriOwners') ? (document.getElementById('sec-taskfilter').value==='all'?'all':'window') : null;
     if(!m.sections) m.sections=[];
     if(sid){ const sec=m.sections.find(s=>s.id===sid); if(sec){ sec.title=title; sec.type=type;
-      if(quarterId===null) delete sec.quarterId; else sec.quarterId=quarterId; } }
+      if(quarterId===null) delete sec.quarterId; else sec.quarterId=quarterId;
+      if(taskFilter===null) delete sec.taskFilter; else sec.taskFilter=taskFilter; } }
     else { const sec={id:'s'+Date.now().toString(36), type, title};
-      if(quarterId!==null) sec.quarterId=quarterId; m.sections.push(sec); }
+      if(quarterId!==null) sec.quarterId=quarterId; if(taskFilter!==null) sec.taskFilter=taskFilter; m.sections.push(sec); }
     saveMtgLocal(); dbUpsertMtg(m); closeAddSection(); renderMeetingView(); }
   function deleteSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     confirmModal('Remove this section from the meeting?', ()=>{ m.sections=(m.sections||[]).filter(s=>s.id!==sid); saveMtgLocal(); dbUpsertMtg(m);
