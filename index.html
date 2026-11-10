@@ -1226,6 +1226,9 @@
   .pv-wtoday{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--red);border-radius:1px;}
   .pv-wlbl{font-size:11px;color:var(--muted);margin-top:5px;white-space:nowrap;font-variant-numeric:tabular-nums;}
   .pv-overdue{border-top:1px solid var(--line);}
+  .pv-pmline{display:flex;align-items:center;gap:5px;margin-top:5px;font-size:11.5px;color:var(--muted);white-space:nowrap;}
+  .pv-pmline img,.pv-pmline .tm-initials{width:18px;height:18px;border-radius:50%;font-size:.52rem;}
+  .pv-pmline b{color:var(--heading);font-weight:600;}
   .pv-overdue-hd{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--red);font-weight:800;padding:10px 16px 2px;}
   .pv-pmrow:last-child{margin-bottom:0;}
   .pv-tag{display:inline-block;font-size:11px;font-weight:700;padding:1px 9px;border-radius:999px;background:var(--lilac-2);color:var(--heading);white-space:nowrap;}
@@ -6216,13 +6219,16 @@ Herd Life`;
         }
         return `<tr>
           <td style="font-weight:600;">${esc(t.label)}${jiraChipHTML(t.label)}</td>
-          <td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>
+          <td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span>${pvPmLine(t.e)}</td>
           <td style="white-space:nowrap;color:var(--muted);">${dates}</td>
           <td class="pv-win">${prog}</td>
           <td>${pill}</td>
         </tr>`;}).join('')}
     </table></div>`;
   }
+  /* small "PM: <photo> name" line under a priority's name in the task tables */
+  function pvPmLine(e){ if(!e||!e.pm) return '<div class="pv-pmline">PM: <span class="pv-note">none yet</span></div>';
+    const p=resolvePerson(e.pm); return '<div class="pv-pmline" title="Project manager">PM: '+avatarHtml(p)+'<b>'+esc(pmName(p))+'</b></div>'; }
   function openPrioInQuarter(qid,id){ if(qid && qid!==store.activeId) switchMeeting(qid); openPrio(id); }
   function renderQuarterOwnerItems(m,sec){
     const q = sec.quarterId ? (store.meetings||[]).find(x=>x.id===sec.quarterId) : mtgQuarterForView();
@@ -8249,7 +8255,7 @@ Herd Life`;
         return `<tr>
         <td style="text-align:center;">${readOnly?`<span class="tick ${t.pct===100?'done':''}" title="${t.pct}% complete">${t.pct===100?'✓':''}</span>`:tickHTML(t.e.id,t.i,t.pct)}</td>
         <td style="font-weight:600;">${esc(t.label)}${jiraChipHTML(t.label)}</td>
-        ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span></td>`:''}
+        ${showPrio?`<td><span class="prio-link" style="font-size:12.5px;" onclick="${openCall(t)}">${esc(t.e.title||'Untitled')} ↗</span>${pvPmLine(t.e)}</td>`:''}
         <td><span class="pv-tag${t.dept!==homeD?' contrib':''}">${esc(t.dept)}</span></td>
         <td>${t.owner?esc(pmName(t.owner)):'<span class="pv-note">Unassigned</span>'}</td>
         <td><span class="pv-pill ${st[0]}">${st[1]}</span></td>
