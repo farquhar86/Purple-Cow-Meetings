@@ -386,6 +386,16 @@
   .home-person .hp-hd{display:flex;align-items:center;gap:10px;font-weight:800;color:var(--heading);font-size:1.05rem;margin-bottom:12px;}
   .home-person .hp-hd img,.home-person .hp-hd .tm-initials{width:30px;height:30px;border-radius:50%;}
   .home-person .home-bonus{margin-top:14px;}
+  .bonus-card{background:var(--card);border:2px solid var(--ink);box-shadow:var(--hard-lg);}
+  .bonus-hd{font-family:var(--font-display);font-weight:400;letter-spacing:.015em;font-size:1.15rem;color:var(--heading);margin-bottom:4px;}
+  .bonus-intro{font-size:.84rem;color:var(--muted);margin-bottom:12px;}
+  .bonus-grp{margin-top:12px;}
+  .bonus-grp-lbl{font-size:.8rem;font-weight:800;color:var(--heading);margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .bonus-live{font-size:.7rem;font-weight:700;color:var(--purple);background:var(--lilac-2);border-radius:999px;padding:1px 8px;}
+  .bonus-tbl{width:100%;border-collapse:collapse;}
+  .bonus-tbl td{padding:5px 8px;border-bottom:1px solid var(--line);font-size:.88rem;}
+  .bonus-tbl td.v{text-align:right;font-weight:800;color:var(--heading);white-space:nowrap;}
+  .bonus-tbl tr:last-child td{border-bottom:none;}
   /* Swimlanes */
   .swim-scroll{overflow-x:auto;padding-bottom:14px;}
   .swim-grid{display:grid;grid-template-columns:190px repeat(var(--cols),210px);gap:8px;align-items:start;min-width:min-content;}
@@ -7949,7 +7959,8 @@ Herd Life`;
   /* below the fold: the bonus placeholder, and the superadmin preview of everyone's home */
   function renderHomeExtras(){
     const wrap=document.getElementById('homeWrap'); if(!wrap) return;
-    let html=HOME_BONUS_NOTE;
+    // your own bonus (if one is set for you), else the generic placeholder
+    let html = homeBonusHtml(myEmail) || HOME_BONUS_NOTE;
     if(isSuperAdmin()){
       const owners=[]; const seen={};
       metricsStore.forEach(m=>{ const o=m.owner||''; if(!o) return; if(sameEmail(o,myEmail)) return;
@@ -7958,12 +7969,43 @@ Herd Life`;
       if(owners.length){
         html+='<div class="home-h" style="margin-top:28px;">👀 Preview — how each person’s Home will look <span style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--purple);">· only you can see this</span></div>';
         html+=owners.map(o=>{ const p=resolvePerson(o);
-          return '<div class="home-person"><div class="hp-hd">'+avatarHtml(p)+'<span>'+esc(pmName(p)||o)+'</span></div>'+homeTargetsHtml(o)+'</div>'; }).join('');
+          return '<div class="home-person"><div class="hp-hd">'+avatarHtml(p)+'<span>'+esc(pmName(p)||o)+'</span></div>'+homeTargetsHtml(o)+homeBonusHtml(o)+'</div>'; }).join('');
       }
     }
     wrap.innerHTML=html;
   }
   const HOME_BONUS_NOTE='<div class="home-bonus">💰 <b>Bonus tracker — coming soon.</b> Once the bonus is set up against these targets, this is where it shows: how much is on track for, and how far off.</div>';
+  /* Per-person bonus targets, shown only on that person's own Home and in the super-admin
+     preview. Keyed by email. Add a person here to give them a bonus card. */
+  const HOME_BONUS = {
+    'holly.carver@purplecowinternet.com': {
+      title: '2027 Bonus Targets',
+      intro: 'Your 2027 bonus is measured against these targets (from the 2027 forecast).',
+      groups: [
+        { label: 'Churn % — lower is better', metricName:'Churn %', rows: [
+            ['Q1 2027','2.50%'],['Q2 2027','3.04%'],['Q3 2027','3.10%'],['Q4 2027','2.80%'],['Full year 2027','~3.00%'] ] },
+        { label: 'Contact-centre service level — ≥80% answered within 2:00 (ASA ≤120s)', rows: [
+            ['Care','≥ 80%'],['Tech Support','≥ 80%'],['Loyalty','≥ 80%'] ] },
+        { label: 'Average handle time — operating standard', rows: [
+            ['Care','Voice 7:30 · Chat 11:18'],['Tech Support','Voice 11:40 · Chat 12:18'],['Loyalty','Voice 8:08 · Chat 7:10'] ] }
+      ]
+    }
+  };
+  function homeBonusHtml(ownerEmail){
+    const key=Object.keys(HOME_BONUS).find(k=>sameEmail(k,ownerEmail));
+    const cfg=key?HOME_BONUS[key]:null; if(!cfg) return '';
+    let h='<div class="home-bonus bonus-card"><div class="bonus-hd">💰 '+esc(cfg.title||'Bonus Targets')+'</div>';
+    if(cfg.intro) h+='<div class="bonus-intro">'+esc(cfg.intro)+'</div>';
+    (cfg.groups||[]).forEach(g=>{
+      let live='';
+      if(g.metricName){ const mm=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(g.metricName).trim().toLowerCase());
+        if(mm){ try{ const thisW=weekStarts(1,weekStartDay)[0]; const cv=cellValue(mm,colFor(thisW)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null; if(cur!=null) live='<span class="bonus-live">now: '+esc(fmtVal(mm,cur))+'</span>'; }catch(e){} } }
+      h+='<div class="bonus-grp"><div class="bonus-grp-lbl">'+esc(g.label)+live+'</div><table class="bonus-tbl">'
+        + (g.rows||[]).map(r=>'<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+'</td></tr>').join('')
+        + '</table></div>';
+    });
+    return h+'</div>';
+  }
   function homeTargetsHtml(ownerEmail){
     const mine=metricsStore.filter(m=>sameEmail(m.owner,ownerEmail));
     if(!mine.length) return '<div class="mtg-empty">No metrics with a quarterly target assigned yet.</div>';
