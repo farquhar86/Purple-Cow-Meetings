@@ -399,6 +399,16 @@
   .bonus-tbl td{padding:5px 8px;border-bottom:1px solid var(--line);font-size:.88rem;}
   .bonus-tbl td.v{text-align:right;font-weight:800;color:var(--heading);white-space:nowrap;}
   .bonus-tbl tr:last-child td{border-bottom:none;}
+  .bonus-pay{margin-top:16px;border-top:2px solid var(--line);padding-top:12px;}
+  .bonus-pay-head{font-size:.86rem;color:var(--ink);margin:2px 0 10px;}
+  .bonus-pay-wrap{overflow-x:auto;}
+  .bonus-paytbl{width:100%;border-collapse:collapse;font-size:.82rem;}
+  .bonus-paytbl th{text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);padding:4px 8px;border-bottom:1.5px solid var(--line);}
+  .bonus-paytbl td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .bonus-paytbl td.v{font-weight:800;color:var(--heading);white-space:nowrap;}
+  .bonus-paytbl td.crit{color:var(--muted);font-size:.8rem;min-width:220px;}
+  .bonus-prop{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);background:var(--gold-bg);border:1px solid var(--gold-line);border-radius:999px;padding:1px 6px;vertical-align:middle;}
+  .bonus-pay-est{margin-top:10px;font-size:.9rem;color:var(--heading);background:var(--lilac);border-radius:10px;padding:9px 12px;}
   /* Swimlanes */
   .swim-scroll{overflow-x:auto;padding-bottom:14px;}
   .swim-grid{display:grid;grid-template-columns:190px repeat(var(--cols),210px);gap:8px;align-items:start;min-width:min-content;}
@@ -7991,7 +8001,16 @@ Herd Life`;
             ['Care','≥ 80%','Care Service Level %'],['Tech Support','≥ 80%','Tech Support Service Level %'],['Loyalty','≥ 80%','Loyalty Service Level %'] ] },
         { label: 'Average handle time needed to hit ≥80% (at target headcount)', rows: [
             ['Care','Voice ≤ 7:30 · Chat ≤ 11:18'],['Tech Support','Voice ≤ 11:40 · Chat ≤ 12:18'],['Loyalty','Voice ≤ 8:08 · Chat ≤ 7:10'] ] }
-      ]
+      ],
+      payout: {
+        base:77000, pct:10, annual:7700, perQuarter:1925,
+        note:'Each quarter is scored on its own and paid within 30 days after the quarter ends. Some parts are still proposals (marked).',
+        parts: [
+          { label:'Churn', weight:60, max:1155, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
+          { label:'Service level', weight:20, max:385, proposed:true, criteria:'Contacts answered within 120s meet the 80% target. Proposed: voice and chat each count.', metricNames:['Care Service Level %','Tech Support Service Level %','Loyalty Service Level %'], slTarget:80 },
+          { label:'Company growth', weight:20, max:385, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
+        ]
+      }
     }
   };
   /* a live chip for a bonus row: this week's number plus the benchmark it needs to beat
@@ -8015,6 +8034,25 @@ Herd Life`;
       return '<span class="bonus-live '+cls+'">now '+esc(fmtVal(mm,cur))+(benchTxt?' · '+esc(benchTxt):'')+'</span>';
     }catch(e){ return ''; }
   }
+  /* whether a bonus part is currently on pace to be earned (best-effort, from live
+     metric pace): 'on' | 'off' | null (unknown / no data yet). */
+  function bonusPartStatus(part){
+    try{
+      if(part.metricName){ const m=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(part.metricName).trim().toLowerCase());
+        if(!m) return null; normalizeMetric(m); const tw=weekStarts(1,weekStartDay)[0];
+        const qi=metricQuarterInfo(m,tw); if(qi) return qi.onTrack?'on':'off';
+        const g=goalForDate(m,tw); const cv=cellValue(m,colFor(tw)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null;
+        if(cur==null||g===''||g==null||isNaN(Number(g))) return null;
+        return ((m.direction==='lower')?cur<=Number(g):cur>=Number(g))?'on':'off';
+      }
+      if(part.metricNames){ let any=false, allOk=true; const tgt=Number(part.slTarget||80);
+        part.metricNames.forEach(nm=>{ const m=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(nm).trim().toLowerCase()); if(!m) return;
+          const tw=weekStarts(1,weekStartDay)[0]; const cv=cellValue(m,colFor(tw)); const c=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null; if(c!=null){ any=true; if(c<tgt) allOk=false; } });
+        return any?(allOk?'on':'off'):null;
+      }
+    }catch(e){}
+    return null;
+  }
   function homeBonusHtml(ownerEmail){
     const key=Object.keys(HOME_BONUS).find(k=>sameEmail(k,ownerEmail));
     const cfg=key?HOME_BONUS[key]:null; if(!cfg) return '';
@@ -8027,6 +8065,23 @@ Herd Life`;
             return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+ex+'</td></tr>'; }).join('')
         + '</table></div>';
     });
+    if(cfg.payout){ const p=cfg.payout; const money=n=>'$'+Number(n||0).toLocaleString();
+      h+='<div class="bonus-pay"><div class="bonus-grp-lbl">How the bonus is earned</div>';
+      h+='<div class="bonus-pay-head">Up to <b>'+money(p.annual)+'/yr</b> ('+p.pct+'% of '+money(p.base)+' base) · paid quarterly, up to <b>'+money(p.perQuarter)+'/quarter</b></div>';
+      let earning=0, known=false;
+      const rows=(p.parts||[]).map(part=>{ const st=bonusPartStatus(part);
+        let chip='<span class="bonus-live">—</span>';
+        if(st==='on'){ chip='<span class="bonus-live ok">on pace</span>'; earning+=Number(part.max||0); known=true; }
+        else if(st==='off'){ chip='<span class="bonus-live bad">off pace</span>'; known=true; }
+        return '<tr><td>'+esc(part.label)+(part.proposed?' <span class="bonus-prop">proposed</span>':'')+'</td>'
+          +'<td>'+esc(String(part.weight))+'%</td><td class="v">'+money(part.max)+'</td>'
+          +'<td class="crit">'+esc(part.criteria||'')+'</td><td>'+chip+'</td></tr>';
+      }).join('');
+      h+='<div class="bonus-pay-wrap"><table class="bonus-paytbl"><tr><th>Part</th><th>Weight</th><th>Max / qtr</th><th>Earns it when…</th><th>Now</th></tr>'+rows+'</table></div>';
+      if(known) h+='<div class="bonus-pay-est">Tracking to about <b>'+money(earning)+'</b> of '+money(p.perQuarter)+' this quarter <span class="bonus-prop">estimate · current pace</span></div>';
+      if(p.note) h+='<div class="bonus-intro" style="margin-top:8px;">'+esc(p.note)+'</div>';
+      h+='</div>';
+    }
     return h+'</div>';
   }
   function homeTargetsHtml(ownerEmail){
