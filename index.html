@@ -391,7 +391,10 @@
   .bonus-intro{font-size:.84rem;color:var(--muted);margin-bottom:12px;}
   .bonus-grp{margin-top:12px;}
   .bonus-grp-lbl{font-size:.8rem;font-weight:800;color:var(--heading);margin-bottom:5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .bonus-live{font-size:.7rem;font-weight:700;color:var(--purple);background:var(--lilac-2);border-radius:999px;padding:1px 8px;}
+  .bonus-live{font-size:.7rem;font-weight:700;color:var(--purple);background:var(--lilac-2);border-radius:999px;padding:1px 8px;white-space:nowrap;}
+  .bonus-live.ok{color:#1c7a4e;background:#e3f5ec;}
+  .bonus-live.bad{color:#c9302c;background:#fbe6e5;}
+  .bonus-tbl td.v .bonus-live{margin-left:8px;}
   .bonus-tbl{width:100%;border-collapse:collapse;}
   .bonus-tbl td{padding:5px 8px;border-bottom:1px solid var(--line);font-size:.88rem;}
   .bonus-tbl td.v{text-align:right;font-weight:800;color:var(--heading);white-space:nowrap;}
@@ -7986,24 +7989,41 @@ Herd Life`;
             ['Q1 2027','2.50%'],['Q2 2027','3.04%'],['Q3 2027','3.10%'],['Q4 2027','2.80%'],['Avg. per quarter','2.86%'],['Full year 2027 (sum)','≈ 11.4%'] ] },
         { label: 'Contact-centre service level — ≥80% answered within 2:00 (ASA ≤120s)', rows: [
             ['Care','≥ 80%','Care Service Level %'],['Tech Support','≥ 80%','Tech Support Service Level %'],['Loyalty','≥ 80%','Loyalty Service Level %'] ] },
-        { label: 'Average handle time — operating standard', rows: [
-            ['Care','Voice 7:30 · Chat 11:18'],['Tech Support','Voice 11:40 · Chat 12:18'],['Loyalty','Voice 8:08 · Chat 7:10'] ] }
+        { label: 'Average handle time needed to hit ≥80% (at target headcount)', rows: [
+            ['Care','Voice ≤ 7:30 · Chat ≤ 11:18'],['Tech Support','Voice ≤ 11:40 · Chat ≤ 12:18'],['Loyalty','Voice ≤ 8:08 · Chat ≤ 7:10'] ] }
       ]
     }
   };
+  /* a live chip for a bonus row: this week's number plus the benchmark it needs to beat
+     (weekly pace for a weekly-total metric, the level itself for a rate), green if it's
+     clearing the bar, red if not. */
+  function bonusLive(metricName){
+    const mm=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(metricName||'').trim().toLowerCase());
+    if(!mm) return '';
+    try{ normalizeMetric(mm);
+      const tw=weekStarts(1,weekStartDay)[0];
+      const cv=cellValue(mm,colFor(tw)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null;
+      const g=goalForDate(mm,tw); const hasGoal=!(g===''||g==null||isNaN(Number(g)));
+      let bench=null, suf='';
+      if(mm.goalKind==='level'||mm.goalKind==='cumulative'){ bench=hasGoal?Number(g):null; }
+      else { bench=hasGoal?Number(g)/weeksInQuarter(weekQuarter(tw)):null; suf='/wk'; }
+      const lower=(mm.direction==='lower');
+      const benchTxt = bench!=null ? ('aim '+(lower?'≤':'≥')+fmtVal(mm,bench)+suf) : '';
+      if(cur==null) return benchTxt?'<span class="bonus-live">'+esc(benchTxt)+'</span>':'';
+      const ok = bench!=null ? (lower?cur<=bench:cur>=bench) : null;
+      const cls = ok==null?'':(ok?'ok':'bad');
+      return '<span class="bonus-live '+cls+'">now '+esc(fmtVal(mm,cur))+(benchTxt?' · '+esc(benchTxt):'')+'</span>';
+    }catch(e){ return ''; }
+  }
   function homeBonusHtml(ownerEmail){
     const key=Object.keys(HOME_BONUS).find(k=>sameEmail(k,ownerEmail));
     const cfg=key?HOME_BONUS[key]:null; if(!cfg) return '';
     let h='<div class="home-bonus bonus-card"><div class="bonus-hd">💰 '+esc(cfg.title||'Bonus Targets')+'</div>';
     if(cfg.intro) h+='<div class="bonus-intro">'+esc(cfg.intro)+'</div>';
     (cfg.groups||[]).forEach(g=>{
-      let live='';
-      if(g.metricName){ const mm=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(g.metricName).trim().toLowerCase());
-        if(mm){ try{ const thisW=weekStarts(1,weekStartDay)[0]; const cv=cellValue(mm,colFor(thisW)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null; if(cur!=null) live='<span class="bonus-live">now: '+esc(fmtVal(mm,cur))+'</span>'; }catch(e){} } }
+      const live = g.metricName ? bonusLive(g.metricName) : '';
       h+='<div class="bonus-grp"><div class="bonus-grp-lbl">'+esc(g.label)+live+'</div><table class="bonus-tbl">'
-        + (g.rows||[]).map(r=>{ let ex='';
-            if(r[2]){ const mm2=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(r[2]).trim().toLowerCase());
-              if(mm2){ try{ const tw=weekStarts(1,weekStartDay)[0]; const cv2=cellValue(mm2,colFor(tw)); const c2=(cv2&&cv2.eff!=null&&!isNaN(cv2.eff))?cv2.eff:null; if(c2!=null) ex=' <span class="bonus-live">now '+esc(fmtVal(mm2,c2))+'</span>'; }catch(e){} } }
+        + (g.rows||[]).map(r=>{ const ex = r[2] ? (' '+bonusLive(r[2])) : '';
             return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+ex+'</td></tr>'; }).join('')
         + '</table></div>';
     });
