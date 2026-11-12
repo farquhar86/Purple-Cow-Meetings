@@ -7982,10 +7982,10 @@ Herd Life`;
       title: '2027 Bonus Targets',
       intro: 'Your 2027 bonus is measured against these targets (from the 2027 forecast).',
       groups: [
-        { label: 'Churn % — lower is better', metricName:'Churn %', rows: [
-            ['Q1 2027','2.50%'],['Q2 2027','3.04%'],['Q3 2027','3.10%'],['Q4 2027','2.80%'],['Full year 2027','~3.00%'] ] },
+        { label: 'Churn % per quarter — lower is better', metricName:'Churn %', rows: [
+            ['Q1 2027','2.50%'],['Q2 2027','3.04%'],['Q3 2027','3.10%'],['Q4 2027','2.80%'],['Avg. per quarter','2.86%'],['Full year 2027 (sum)','≈ 11.4%'] ] },
         { label: 'Contact-centre service level — ≥80% answered within 2:00 (ASA ≤120s)', rows: [
-            ['Care','≥ 80%'],['Tech Support','≥ 80%'],['Loyalty','≥ 80%'] ] },
+            ['Care','≥ 80%','Care Service Level %'],['Tech Support','≥ 80%','Tech Support Service Level %'],['Loyalty','≥ 80%','Loyalty Service Level %'] ] },
         { label: 'Average handle time — operating standard', rows: [
             ['Care','Voice 7:30 · Chat 11:18'],['Tech Support','Voice 11:40 · Chat 12:18'],['Loyalty','Voice 8:08 · Chat 7:10'] ] }
       ]
@@ -8001,7 +8001,10 @@ Herd Life`;
       if(g.metricName){ const mm=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(g.metricName).trim().toLowerCase());
         if(mm){ try{ const thisW=weekStarts(1,weekStartDay)[0]; const cv=cellValue(mm,colFor(thisW)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null; if(cur!=null) live='<span class="bonus-live">now: '+esc(fmtVal(mm,cur))+'</span>'; }catch(e){} } }
       h+='<div class="bonus-grp"><div class="bonus-grp-lbl">'+esc(g.label)+live+'</div><table class="bonus-tbl">'
-        + (g.rows||[]).map(r=>'<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+'</td></tr>').join('')
+        + (g.rows||[]).map(r=>{ let ex='';
+            if(r[2]){ const mm2=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(r[2]).trim().toLowerCase());
+              if(mm2){ try{ const tw=weekStarts(1,weekStartDay)[0]; const cv2=cellValue(mm2,colFor(tw)); const c2=(cv2&&cv2.eff!=null&&!isNaN(cv2.eff))?cv2.eff:null; if(c2!=null) ex=' <span class="bonus-live">now '+esc(fmtVal(mm2,c2))+'</span>'; }catch(e){} } }
+            return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+ex+'</td></tr>'; }).join('')
         + '</table></div>';
     });
     return h+'</div>';
