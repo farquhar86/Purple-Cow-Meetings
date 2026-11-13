@@ -8006,7 +8006,8 @@ Herd Life`;
         base:77000, pct:10, annual:7700, perQuarter:1925,
         note:'Each quarter is scored on its own and paid within 30 days after the quarter ends. Some parts are still proposals (marked).',
         parts: [
-          { label:'Churn', weight:60, max:1155, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
+          { label:'Churn', weight:40, max:770, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
+          { label:'NPS', weight:20, max:385, proposed:true, criteria:'NPS hits its target. Metric and target still to be set.' },
           { label:'Service level', weight:20, max:385, proposed:true, criteria:'Contacts answered within 120s meet the 80% target. Proposed: voice and chat each count.', metricNames:['Care Service Level %','Tech Support Service Level %','Loyalty Service Level %'], slTarget:80 },
           { label:'Company growth', weight:20, max:385, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
         ]
