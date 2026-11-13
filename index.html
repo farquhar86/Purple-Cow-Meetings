@@ -7997,6 +7997,8 @@ Herd Life`;
       groups: [
         { label: 'Churn % per quarter — lower is better', metricName:'Churn %', rows: [
             ['Q1 2027','2.50%'],['Q2 2027','3.04%'],['Q3 2027','3.10%'],['Q4 2027','2.80%'],['Avg. per quarter','2.86%'],['Full year 2027 (sum)','≈ 11.4%'] ] },
+        { label: 'NPS — higher is better', metricName:'NPS', rows: [
+            ['Q1 2027','55'],['Q2 2027','60'],['Q3 2027','60'],['Q4 2027','60'] ] },
         { label: 'Contact-centre service level — ≥80% answered within 2:00 (ASA ≤120s)', rows: [
             ['Care','≥ 80%','Care Service Level %'],['Tech Support','≥ 80%','Tech Support Service Level %'],['Loyalty','≥ 80%','Loyalty Service Level %'] ] },
         { label: 'Average handle time needed to hit ≥80% (at target headcount)', rows: [
@@ -8007,7 +8009,7 @@ Herd Life`;
         note:'Each quarter is scored on its own and paid within 30 days after the quarter ends. Some parts are still proposals (marked).',
         parts: [
           { label:'Churn', weight:40, max:770, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
-          { label:'NPS', weight:20, max:385, proposed:true, criteria:'NPS hits its target. Metric and target still to be set.' },
+          { label:'NPS', weight:20, max:385, proposed:true, criteria:'NPS is at or above the quarterly target (Q1 2027: 55, then 60).', metricName:'NPS' },
           { label:'Service level', weight:20, max:385, proposed:true, criteria:'Contacts answered within 120s meet the 80% target. Proposed: voice and chat each count.', metricNames:['Care Service Level %','Tech Support Service Level %','Loyalty Service Level %'], slTarget:80 },
           { label:'Company growth', weight:20, max:385, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
         ]
