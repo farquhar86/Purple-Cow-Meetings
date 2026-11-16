@@ -8005,13 +8005,12 @@ Herd Life`;
             ['Care','Voice ≤ 7:30 · Chat ≤ 11:18'],['Tech Support','Voice ≤ 11:40 · Chat ≤ 12:18'],['Loyalty','Voice ≤ 8:08 · Chat ≤ 7:10'] ] }
       ],
       payout: {
-        base:77000, pct:10, annual:7700, perQuarter:1925,
-        note:'Each quarter is scored on its own and paid within 30 days after the quarter ends. Some parts are still proposals (marked).',
+        note:'Paid within 30 days after each quarter ends. Some parts are still proposals (marked).',
         parts: [
-          { label:'Churn', weight:40, max:770, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
-          { label:'NPS', weight:20, max:385, proposed:true, criteria:'NPS is at or above the quarterly target (Q1 2027: 55, then 60).', metricName:'NPS' },
-          { label:'Service level', weight:20, max:385, proposed:true, criteria:'Contacts answered within 120s meet the 80% target. Proposed: voice and chat each count.', metricNames:['Care Service Level %','Tech Support Service Level %','Loyalty Service Level %'], slTarget:80 },
-          { label:'Company growth', weight:20, max:385, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
+          { label:'Churn', weight:40, criteria:'Quarterly churn is at or below that quarter’s target (live disconnects, incl. first 30 days, per the Churn Last Week report).', metricName:'Churn %' },
+          { label:'NPS', weight:20, proposed:true, criteria:'NPS is at or above the quarterly target (Q1 2027: 55, then 60).', metricName:'NPS' },
+          { label:'Service level', weight:20, proposed:true, criteria:'Contacts answered within 120s meet the 80% target. Proposed: voice and chat each count.', metricNames:['Care Service Level %','Tech Support Service Level %','Loyalty Service Level %'], slTarget:80 },
+          { label:'Company growth', weight:20, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
         ]
       }
     },
@@ -8024,11 +8023,10 @@ Herd Life`;
         { label: 'Company growth — Active internet customers (higher is better)', metricName:'Active Herd Members', quarters:['2027-Q1','2027-Q2','2027-Q3','2027-Q4'] }
       ],
       payout: {
-        annual:10000, perQuarter:2500,
-        note:'Each quarter is scored on its own and paid quarterly.',
+        note:'Paid quarterly; each quarter is scored on its own.',
         parts: [
-          { label:'Breakage Reduction', weight:60, max:1500, criteria:'Reducing the share of customers who sign up but never activate service.', metricName:'Breakage %' },
-          { label:'Company Customer Growth', weight:40, max:1000, criteria:'Hitting the quarterly active internet customer growth targets.', metricName:'Active Herd Members' }
+          { label:'Breakage Reduction', weight:60, criteria:'Reducing the share of customers who sign up but never activate service.', metricName:'Breakage %' },
+          { label:'Company Customer Growth', weight:40, criteria:'Hitting the quarterly active internet customer growth targets.', metricName:'Active Herd Members' }
         ]
       }
     }
@@ -8095,21 +8093,20 @@ Herd Life`;
             return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+ex+'</td></tr>'; }).join('')
         + '</table></div>';
     });
-    if(cfg.payout){ const p=cfg.payout; const money=n=>'$'+Number(n||0).toLocaleString();
+    if(cfg.payout){ const p=cfg.payout;
       h+='<div class="bonus-pay"><div class="bonus-grp-lbl">How the bonus is earned</div>';
-      const pctPart=(p.pct&&p.base)?(' ('+p.pct+'% of '+money(p.base)+' base)'):'';
-      h+='<div class="bonus-pay-head">Up to <b>'+money(p.annual)+'/yr</b>'+pctPart+' · paid quarterly, up to <b>'+money(p.perQuarter)+'/quarter</b></div>';
-      let earning=0, known=false;
+      h+='<div class="bonus-pay-head">Paid quarterly · each quarter is scored on its own.</div>';
+      let onW=0, known=false;
       const rows=(p.parts||[]).map(part=>{ const st=bonusPartStatus(part);
         let chip='<span class="bonus-live">—</span>';
-        if(st==='on'){ chip='<span class="bonus-live ok">on pace</span>'; earning+=Number(part.max||0); known=true; }
+        if(st==='on'){ chip='<span class="bonus-live ok">on pace</span>'; onW+=Number(part.weight||0); known=true; }
         else if(st==='off'){ chip='<span class="bonus-live bad">off pace</span>'; known=true; }
         return '<tr><td>'+esc(part.label)+(part.proposed?' <span class="bonus-prop">proposed</span>':'')+'</td>'
-          +'<td>'+esc(String(part.weight))+'%</td><td class="v">'+money(part.max)+'</td>'
+          +'<td>'+esc(String(part.weight))+'%</td>'
           +'<td class="crit">'+esc(part.criteria||'')+'</td><td>'+chip+'</td></tr>';
       }).join('');
-      h+='<div class="bonus-pay-wrap"><table class="bonus-paytbl"><tr><th>Part</th><th>Weight</th><th>Max / qtr</th><th>Earns it when…</th><th>Now</th></tr>'+rows+'</table></div>';
-      if(known) h+='<div class="bonus-pay-est">Tracking to about <b>'+money(earning)+'</b> of '+money(p.perQuarter)+' this quarter <span class="bonus-prop">estimate · current pace</span></div>';
+      h+='<div class="bonus-pay-wrap"><table class="bonus-paytbl"><tr><th>Part</th><th>Weight</th><th>Earns it when…</th><th>Now</th></tr>'+rows+'</table></div>';
+      if(known) h+='<div class="bonus-pay-est">On pace for about <b>'+onW+'%</b> of this quarter’s bonus <span class="bonus-prop">estimate · current pace</span></div>';
       if(p.note) h+='<div class="bonus-intro" style="margin-top:8px;">'+esc(p.note)+'</div>';
       h+='</div>';
     }
