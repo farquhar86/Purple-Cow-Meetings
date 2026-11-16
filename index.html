@@ -1838,6 +1838,14 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
         <option value="all">Every task this quarter</option>
       </select>
     </div>
+    <div id="secPeopleRow" style="display:none;margin-top:10px;">
+      <label style="display:block;">Whose priorities to show</label>
+      <select id="sec-people-mode" style="width:100%;" onchange="secPeopleModeChanged()">
+        <option value="attendees">The people in this meeting (default)</option>
+        <option value="custom">Choose specific people…</option>
+      </select>
+      <div id="secPeopleList" style="display:none;margin-top:8px;max-height:170px;overflow:auto;border:1px solid var(--line);border-radius:10px;padding:8px;"></div>
+    </div>
     <p class="block-desc" id="secTypeNote" style="margin-top:6px;font-size:.78rem;"></p>
     <div class="lock-err" id="secErr"></div>
     <div class="modal-actions" style="justify-content:flex-end;gap:8px;">
@@ -6173,16 +6181,24 @@ Herd Life`;
     }catch(e){}
     return (typeof cur==='function')?cur():null;
   }
+  /* who a quarterly-priority section shows: its explicit people list, else the meeting's
+     attendees (the default). null = everyone (meeting has no attendees). */
+  function rockScopeEmails(m, sec){
+    if(sec && Array.isArray(sec.people) && sec.people.length) return sec.people.slice();
+    const att=(m&&m.attendees)?m.attendees.filter(Boolean):[];
+    return att.length?att:null;
+  }
   function renderQuarterRocks(secId){
     const q=mtgQuarterForView();
     if(!q){ return '<div class="mtg-empty">No quarter loaded.</div>'; }
     let rocks=(q.entries||[]).filter(e=>e.type==='priority' && (e.committed || stageOf(e)==='scheduled' || stageOf(e)==='complete' || isComplete(e)));
     const mtg=mtgsStore.find(x=>x.id===curMtgId);
-    const scope=mtgScopeEmails(mtg);
-    if(scope!==null) rocks=rocks.filter(e=>
-      mtgInScope(scope,e.pm) || (e.plan||[]).some(pp=>pp && mtgInScope(scope,pp.owner)));
+    const sec=((mtg&&mtg.sections)||[]).find(s=>s.id===secId);
+    const scope=rockScopeEmails(mtg, sec);
+    // scope by the priority's OWNER (PM) — "whose priorities", not who holds a task on one
+    if(scope!==null) rocks=rocks.filter(e=>mtgInScope(scope,e.pm));
     if(!rocks.length) return '<div class="mtg-empty">'
-      +(scope!==null?'Nobody in this meeting is PMing a priority or holding a task on one this quarter.'
+      +(scope!==null?'No priorities owned by the people shown in this section this quarter. Use ✎ Edit section to change whose priorities appear.'
                     :'No scheduled or completed priorities this quarter yet. Add them in the Priorities section.')+'</div>';
     rocks=sortRocks(rocks);
     const opt=(v,l)=>'<option value="'+v+'"'+(rockSort===v?' selected':'')+'>'+l+'</option>';
@@ -6258,7 +6274,7 @@ Herd Life`;
     if(!q) return '<div class="mtg-empty">'+(sec.quarterId
       ? 'The quarter this section was set to no longer exists. Use ✎ to pick another one.'
       : 'No quarter loaded.')+'</div>';
-    const attendees=(m.attendees||[]).filter(Boolean);
+    const attendees=(rockScopeEmails(m,sec)||(m.attendees||[])).filter(Boolean);
     if(!attendees.length) return '<div class="mtg-empty">Nobody is on this meeting yet — add attendees and their priorities will show up here.</div>';
 
     /* same set of rocks the Quarterly Priorities section shows: things actually committed to */
@@ -6979,9 +6995,12 @@ Herd Life`;
   /* the quarter picker only makes sense for the by-owner section, so show it only there */
   /* want = the quarter to select once the list is built; leave it out to keep what's selected now */
   function secTypeChanged(want,wantFilter){
+    const type=document.getElementById('sec-type').value;
+    // "whose priorities" picker shows for the two quarterly-priority section types
+    const pr=document.getElementById('secPeopleRow'); if(pr) pr.style.display=(type==='qpriorities'||type==='qpriOwners')?'block':'none';
     if(wantFilter!==undefined){ const f=document.getElementById('sec-taskfilter'); if(f) f.value=(wantFilter==='all'?'all':'window'); }
     const row=document.getElementById('secQuarterRow'); if(!row) return;
-    const on=document.getElementById('sec-type').value==='qpriOwners';
+    const on=(type==='qpriOwners');
     row.style.display=on?'block':'none';
     if(!on) return;
     const sel=document.getElementById('sec-quarter');
@@ -6990,12 +7009,34 @@ Herd Life`;
       + quartersNewestFirst().map(q=>'<option value="'+esc(q.id)+'">'+esc(q.name||'Untitled quarter')+'</option>').join('');
     sel.value=keep; if(sel.selectedIndex<0) sel.value='';
   }
+  /* the "whose priorities to show" picker: a checkbox list of people, defaulting to the
+     meeting's attendees. Stored on the section as sec.people (absent = follow attendees). */
+  function secPeoplePopulate(checkedEmails){
+    const box=document.getElementById('secPeopleList'); if(!box) return;
+    const m=mtgsStore.find(x=>x.id===curMtgId);
+    let people=(teamUsers&&teamUsers.length)?teamUsers.map(u=>u.email).filter(Boolean):[];
+    (m&&m.attendees||[]).forEach(e=>{ if(e && !people.some(p=>sameEmail(p,e))) people.push(e); });
+    const checkSet=new Set((checkedEmails||[]).map(e=>String(resolvePerson(e)).toLowerCase()));
+    box.innerHTML=people.map(e=>{ const on=checkSet.has(String(resolvePerson(e)).toLowerCase());
+      return '<label style="display:flex;align-items:center;gap:8px;padding:3px 2px;font-size:.9rem;cursor:pointer;"><input type="checkbox" class="sec-person" value="'+esc(e)+'"'+(on?' checked':'')+'>'+avatarHtml(resolvePerson(e))+esc(pmName(resolvePerson(e))||e)+'</label>';
+    }).join('') || '<div class="mtg-empty sm">No people found.</div>';
+  }
+  function secPeopleModeChanged(){
+    const mode=(document.getElementById('sec-people-mode')||{}).value;
+    const list=document.getElementById('secPeopleList'); if(!list) return;
+    list.style.display=(mode==='custom')?'block':'none';
+    if(mode==='custom' && !list.querySelector('input.sec-person')){ const m=mtgsStore.find(x=>x.id===curMtgId); secPeoplePopulate((m&&m.attendees)||[]); }
+  }
   function openAddSection(){ document.getElementById('sec-id').value=''; document.getElementById('sec-title').value=''; document.getElementById('sec-type').value='notes';
     document.getElementById('secModalTitle').textContent='➕ Add a section'; document.getElementById('secSaveLabel').textContent='Add section';
+    const pm=document.getElementById('sec-people-mode'); if(pm) pm.value='attendees'; const pl=document.getElementById('secPeopleList'); if(pl){ pl.style.display='none'; pl.innerHTML=''; }
     document.getElementById('secErr').textContent=''; secTypeChanged('','window'); document.getElementById('mtgSecModal').classList.add('show'); }
   function openEditSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return; const sec=(m.sections||[]).find(s=>s.id===sid); if(!sec) return;
     document.getElementById('sec-id').value=sid; document.getElementById('sec-title').value=sec.title||''; document.getElementById('sec-type').value=sec.type||'notes';
     document.getElementById('secModalTitle').textContent='✎ Edit section'; document.getElementById('secSaveLabel').textContent='Save changes';
+    const pm=document.getElementById('sec-people-mode'); const pl=document.getElementById('secPeopleList');
+    if(Array.isArray(sec.people) && sec.people.length){ if(pm) pm.value='custom'; if(pl) pl.style.display='block'; secPeoplePopulate(sec.people); }
+    else { if(pm) pm.value='attendees'; if(pl){ pl.style.display='none'; pl.innerHTML=''; } }
     document.getElementById('secErr').textContent=''; secTypeChanged(sec.quarterId||'',sec.taskFilter||'window'); document.getElementById('mtgSecModal').classList.add('show'); }
   function closeAddSection(){ document.getElementById('mtgSecModal').classList.remove('show'); }
   function saveAddSection(){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
@@ -7003,12 +7044,18 @@ Herd Life`;
     const type=document.getElementById('sec-type').value; const sid=document.getElementById('sec-id').value;
     const quarterId=(type==='qpriOwners') ? (document.getElementById('sec-quarter').value||'') : null;
     const taskFilter=(type==='qpriOwners') ? (document.getElementById('sec-taskfilter').value==='all'?'all':'window') : null;
+    // "whose priorities" — null means follow the meeting's attendees (the default)
+    let people=null;
+    if(type==='qpriorities'||type==='qpriOwners'){ const mode=(document.getElementById('sec-people-mode')||{}).value;
+      if(mode==='custom'){ const sel=Array.from(document.querySelectorAll('#secPeopleList input.sec-person:checked')).map(c=>c.value); people=sel.length?sel:null; } }
     if(!m.sections) m.sections=[];
     if(sid){ const sec=m.sections.find(s=>s.id===sid); if(sec){ sec.title=title; sec.type=type;
       if(quarterId===null) delete sec.quarterId; else sec.quarterId=quarterId;
-      if(taskFilter===null) delete sec.taskFilter; else sec.taskFilter=taskFilter; } }
+      if(taskFilter===null) delete sec.taskFilter; else sec.taskFilter=taskFilter;
+      if(people===null) delete sec.people; else sec.people=people; } }
     else { const sec={id:'s'+Date.now().toString(36), type, title};
-      if(quarterId!==null) sec.quarterId=quarterId; if(taskFilter!==null) sec.taskFilter=taskFilter; m.sections.push(sec); }
+      if(quarterId!==null) sec.quarterId=quarterId; if(taskFilter!==null) sec.taskFilter=taskFilter;
+      if(people!==null) sec.people=people; m.sections.push(sec); }
     saveMtgLocal(); dbUpsertMtg(m); closeAddSection(); renderMeetingView(); }
   function deleteSection(sid){ const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     confirmModal('Remove this section from the meeting?', ()=>{ m.sections=(m.sections||[]).filter(s=>s.id!==sid); saveMtgLocal(); dbUpsertMtg(m);
