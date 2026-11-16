@@ -8020,7 +8020,8 @@ Herd Life`;
       intro: 'Your bonus is measured against these two targets.',
       groups: [
         { label: 'Breakage % — lower is better', metricName:'Breakage %', rows: [
-            ['Q1 2027','10%'],['Q2 2027','10%'],['Q3 2027','10%'],['Q4 2027','10%'] ] }
+            ['Q1 2027','10%'],['Q2 2027','10%'],['Q3 2027','10%'],['Q4 2027','10%'] ] },
+        { label: 'Company growth — Active internet customers (higher is better)', metricName:'Active Herd Members', quarters:['2027-Q1','2027-Q2','2027-Q3','2027-Q4'] }
       ],
       payout: {
         annual:10000, perQuarter:2500,
@@ -8082,8 +8083,15 @@ Herd Life`;
     if(cfg.intro) h+='<div class="bonus-intro">'+esc(cfg.intro)+'</div>';
     (cfg.groups||[]).forEach(g=>{
       const live = g.metricName ? bonusLive(g.metricName) : '';
+      let rows = g.rows||[];
+      // a group can pull its target rows live from a metric's quarter targets
+      if(g.quarters && g.metricName){ const gm=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(g.metricName).trim().toLowerCase());
+        rows = g.quarters.map(qk=>{ let v='— (set later)';
+          if(gm){ const qg=gm.quarterGoals||{}; const raw=qg[qk]; if(raw!=null && String(raw).trim()!==''){ v=fmtVal(gm, Number(raw)); } }
+          return [quarterLabel(qk), v]; });
+      }
       h+='<div class="bonus-grp"><div class="bonus-grp-lbl">'+esc(g.label)+live+'</div><table class="bonus-tbl">'
-        + (g.rows||[]).map(r=>{ const ex = r[2] ? (' '+bonusLive(r[2])) : '';
+        + rows.map(r=>{ const ex = r[2] ? (' '+bonusLive(r[2])) : '';
             return '<tr><td>'+esc(r[0])+'</td><td class="v">'+esc(r[1])+ex+'</td></tr>'; }).join('')
         + '</table></div>';
     });
