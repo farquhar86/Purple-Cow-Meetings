@@ -8014,6 +8014,18 @@ Herd Life`;
           { label:'Company growth', weight:20, max:385, criteria:'Active internet customers hit the company’s quarterly growth target (same target as Krystina’s plan).', metricName:'Active Herd Members' }
         ]
       }
+    },
+    'krystina@purplecowinternet.com': {
+      title: 'Bonus Plan',
+      intro: 'Your bonus is measured against these two targets.',
+      payout: {
+        annual:10000, perQuarter:2500,
+        note:'Each quarter is scored on its own and paid quarterly.',
+        parts: [
+          { label:'Breakage Reduction', weight:60, max:1500, criteria:'Reducing the share of customers who sign up but never activate service.', metricName:'Breakage %' },
+          { label:'Company Customer Growth', weight:40, max:1000, criteria:'Hitting the quarterly active internet customer growth targets.', metricName:'Active Herd Members' }
+        ]
+      }
     }
   };
   /* a live chip for a bonus row: this week's number plus the benchmark it needs to beat
@@ -8070,7 +8082,8 @@ Herd Life`;
     });
     if(cfg.payout){ const p=cfg.payout; const money=n=>'$'+Number(n||0).toLocaleString();
       h+='<div class="bonus-pay"><div class="bonus-grp-lbl">How the bonus is earned</div>';
-      h+='<div class="bonus-pay-head">Up to <b>'+money(p.annual)+'/yr</b> ('+p.pct+'% of '+money(p.base)+' base) · paid quarterly, up to <b>'+money(p.perQuarter)+'/quarter</b></div>';
+      const pctPart=(p.pct&&p.base)?(' ('+p.pct+'% of '+money(p.base)+' base)'):'';
+      h+='<div class="bonus-pay-head">Up to <b>'+money(p.annual)+'/yr</b>'+pctPart+' · paid quarterly, up to <b>'+money(p.perQuarter)+'/quarter</b></div>';
       let earning=0, known=false;
       const rows=(p.parts||[]).map(part=>{ const st=bonusPartStatus(part);
         let chip='<span class="bonus-live">—</span>';
