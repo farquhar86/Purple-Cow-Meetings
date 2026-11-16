@@ -8018,6 +8018,10 @@ Herd Life`;
     'krystina@purplecowinternet.com': {
       title: 'Bonus Plan',
       intro: 'Your bonus is measured against these two targets.',
+      groups: [
+        { label: 'Breakage % — lower is better', metricName:'Breakage %', rows: [
+            ['Q1 2027','10%'],['Q2 2027','10%'],['Q3 2027','10%'],['Q4 2027','10%'] ] }
+      ],
       payout: {
         annual:10000, perQuarter:2500,
         note:'Each quarter is scored on its own and paid quarterly.',
@@ -8051,20 +8055,23 @@ Herd Life`;
   }
   /* whether a bonus part is currently on pace to be earned (best-effort, from live
      metric pace): 'on' | 'off' | null (unknown / no data yet). */
+  /* true / false / null for one metric, using the SAME quarter pace logic as the
+     scorecard & Company Targets (handles balances, rates, weekly totals, cumulatives
+     correctly) rather than re-deriving it. */
+  function bonusMetricOk(m){
+    try{ normalizeMetric(m); const r=mxRangeFor('q','');
+      const t=cgTarget(m,r); const a=(r&&r.future)?null:cgActual(m,r); const ok=cgHit(m,t,a);
+      return (ok===true)?true:(ok===false)?false:null;
+    }catch(e){ return null; }
+  }
   function bonusPartStatus(part){
     try{
       if(part.metricName){ const m=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(part.metricName).trim().toLowerCase());
-        if(!m) return null; normalizeMetric(m); const tw=weekStarts(1,weekStartDay)[0];
-        const qi=metricQuarterInfo(m,tw); if(qi) return qi.onTrack?'on':'off';
-        const g=goalForDate(m,tw); const cv=cellValue(m,colFor(tw)); const cur=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null;
-        if(cur==null||g===''||g==null||isNaN(Number(g))) return null;
-        return ((m.direction==='lower')?cur<=Number(g):cur>=Number(g))?'on':'off';
-      }
-      if(part.metricNames){ let any=false, allOk=true; const tgt=Number(part.slTarget||80);
+        if(!m) return null; const ok=bonusMetricOk(m); return ok==null?null:(ok?'on':'off'); }
+      if(part.metricNames){ let any=false, allOk=true;
         part.metricNames.forEach(nm=>{ const m=(metricsStore||[]).find(x=>String(x.name||'').trim().toLowerCase()===String(nm).trim().toLowerCase()); if(!m) return;
-          const tw=weekStarts(1,weekStartDay)[0]; const cv=cellValue(m,colFor(tw)); const c=(cv&&cv.eff!=null&&!isNaN(cv.eff))?cv.eff:null; if(c!=null){ any=true; if(c<tgt) allOk=false; } });
-        return any?(allOk?'on':'off'):null;
-      }
+          const ok=bonusMetricOk(m); if(ok!=null){ any=true; if(ok===false) allOk=false; } });
+        return any?(allOk?'on':'off'):null; }
     }catch(e){}
     return null;
   }
