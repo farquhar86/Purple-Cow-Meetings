@@ -1485,7 +1485,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   @media (hover:none) and (pointer:coarse){
     input,select,textarea,[contenteditable="true"]{font-size:16px !important;}
   }
-  /* ---- Active Herd Members: live product breakdown (herd-products function) ---- */
+  /* ---- Active Herd Members: product breakdown (filled Sundays) ---- */
   .hp{border:1.5px solid var(--cardborder);border-radius:14px;background:var(--lilac);padding:14px 16px 16px;box-shadow:var(--hard);margin:0 0 20px;}
   .hp-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
   .hp-hd h4{margin:0;font-size:1.2rem;color:var(--heading);}
@@ -1519,6 +1519,8 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   .hp-kdot{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid var(--cardborder);}
   .hp-kid-num{font-size:1.2rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
   .hp-kid-sub{font-size:.7rem;color:var(--muted);}
+  .hp-chg{font-size:.72rem;font-weight:700;color:var(--muted);margin-top:3px;}
+  .hp-chg.up{color:var(--green);} .hp-chg.down{color:var(--red);}
   @media(max-width:760px){ .hp-grid{grid-template-columns:1fr 1fr;} .hp-card.wide{grid-template-columns:1fr;} }
   @media(max-width:440px){ .hp-grid{grid-template-columns:1fr;} .hp-split{grid-template-columns:1fr;} }
 </style>
@@ -4704,96 +4706,66 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(open){ const md=hxModel(m);   /* ids only */ md.Q.forEach(q=>{ chOpen[q.id]=1; }); md.M.forEach(x=>{ chOpen[x.id]=1; }); }
     hxRedraw();
   }
-  /* ================= Active Herd Members: live product breakdown =================
-     The herd-products Edge Function pulls internet (cable and Purple Fibre), mobile, TV and
-     home phone counts from Salesforce every 15 minutes, and when someone presses Refresh, into
-     herd_product_counts. The popup shows the newest good pull and re-reads every minute while
-     it's open. It turns amber when the newest pull failed or the newest good one is over an hour
-     old, so a stopped feed is obvious instead of quietly showing old numbers.
+  /* ================= Active Herd Members: product breakdown =================
+     Five metrics on the Growth scorecard hold the weekly product counts: Internet Subs,
+     Purple Fibre Subs, Mobile Lines, TV Subs and Home Phone Subs. Krystina's Sunday scheduled
+     task ("Weekly Ops metrics for Round Up") pulls them from Salesforce and fills them each
+     Sunday morning, like the herd number itself. Cable (TPIA) = Internet minus Purple Fibre.
      Shares are of internet subs, not the herd: the herd counts subscriptions (mobile is its own
-     subscription), so it isn't the right base for a product's share. */
-  let hpRows=null, hpBusy=false, hpErr='', hpHerdVal=null, hpTimer=null;
-  const HP_STALE_MS=60*60*1000;
+     subscription), so it isn't the right base for a product's share. The panel turns amber when
+     the newest numbers are more than 8 days old, so a Sunday that didn't fill is obvious.
+     A live version is planned from the new billing system's reporting. */
+  const HP_IDS={ internet:'mwl979h1errjb', fibre:'mwl97aphckcqn', mobile:'mwl97bxuqk2qq', tv:'mwl97d65m9e1p', phone:'mwl97eejtziu0' };
+  const HP_NAMES={ internet:'Internet Subs', fibre:'Purple Fibre Subs', mobile:'Mobile Lines', tv:'TV Subs', phone:'Home Phone Subs' };
+  const HP_STALE_DAYS=8;
+  let hpHerdVal=null;
   function isHerdMetric(m){ return !!m && /^active herd members?$/i.test(String(m.name||'').trim()); }
   function hpLatestValue(m){ const V=weekValues(m), ks=Object.keys(V).sort(); return ks.length?V[ks[ks.length-1]]:null; }
+  function hpMetric(k){ return metricsStore.find(x=>x.id===HP_IDS[k]) || metricsStore.find(x=>String(x.name||'').trim().toLowerCase()===HP_NAMES[k].toLowerCase()) || null; }
+  function hpVals(k){ const m=hpMetric(k); if(!m) return {}; const V=weekValues(m)||{}, out={};
+    Object.keys(V).forEach(w=>{ const v=V[w]; if(v!==null && v!=='' && v!==undefined && !isNaN(Number(v))) out[w]=Number(v); }); return out; }
   function hpFmt(n){ return (n===null||n===undefined||isNaN(n))?'—':Number(n).toLocaleString('en-CA'); }
   function hpPct(a,b){ return (a===null||a===undefined||!b)?null:Math.round(a/b*1000)/10; }
-  function hpWhen(t){ const d=new Date(t), now=new Date();
-    const tm=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-    return d.toDateString()===now.toDateString() ? tm : d.toLocaleDateString([], {month:'short',day:'numeric'})+', '+tm; }
+  function hpWeekLabel(k){ const d=new Date(k+'T12:00:00'); return d.toLocaleDateString('en-CA',{month:'short',day:'numeric'}); }
+  function hpChange(cur,prev){ if(cur===null||cur===undefined||prev===null||prev===undefined) return '';
+    const d=cur-prev; if(!d) return '<div class="hp-chg">no change vs last week</div>';
+    return '<div class="hp-chg '+(d>0?'up':'down')+'">'+(d>0?'▲ ':'▼ ')+hpFmt(Math.abs(d))+' vs last week</div>'; }
   function hpShare(n,base,label){ const p=hpPct(n,base);
     if(p===null) return '';
     return '<div class="hp-att"><div class="hp-att-lbl"><b>'+p.toFixed(1)+'%</b> '+esc(label)+'</div>'
       + '<div class="hp-bar"><span style="width:'+Math.min(100,p)+'%"></span></div></div>'; }
   function hpHtml(){
-    const rows=hpRows||[], latest=rows[0]||null, good=rows.find(r=>r.ok)||null;
-    let st='Live', cls='live', tip='Updates from Salesforce every 15 minutes.';
-    if(hpBusy){ st='Refreshing…'; }
-    else if(hpRows===null){ st='Loading…'; }
-    else if(!good){ st=latest?'Last pull failed':'No counts yet'; cls='stale'; tip=latest?(latest.error||'The pull from Salesforce failed.'):'Nothing has been pulled from Salesforce yet.'; }
-    else if(latest && !latest.ok){ st='Last pull failed · showing '+hpWhen(good.taken_at); cls='stale'; tip=latest.error||'The pull from Salesforce failed.'; }
-    else if(Date.now()-new Date(good.taken_at).getTime()>HP_STALE_MS){ st='Not updated since '+hpWhen(good.taken_at); cls='stale'; tip='The 15-minute pull from Salesforce has stopped. Press Refresh; if it keeps happening, the scheduled pull needs a look.'; }
-    else st='Live · updated '+hpWhen(good.taken_at);
-    const btn='<button type="button" class="btn ghost sm" onclick="hpRefresh()"'+(hpBusy?' disabled':'')+' title="Pull the counts from Salesforce now">↻ Refresh</button>';
+    const V={}; Object.keys(HP_IDS).forEach(k=>{ V[k]=hpVals(k); });
+    const weeks=Object.keys(V.internet).sort();
+    const wk=weeks.length?weeks[weeks.length-1]:null;
+    const prevWk=wk?weeks.filter(w=>w<wk).pop()||null:null;
+    const cur=k=>wk&&V[k][wk]!==undefined?V[k][wk]:null, prev=k=>prevWk&&V[k][prevWk]!==undefined?V[k][prevWk]:null;
+    let st, cls='ok', tip='Filled from Salesforce every Sunday morning by the weekly metrics task.';
+    if(!wk){ st='No counts yet'; cls='stale'; tip='Nothing has been filled yet. The Sunday task fills these every Sunday morning.'; }
+    else if((Date.now()-new Date(wk+'T00:00:00').getTime())/86400000>HP_STALE_DAYS){ st='Not updated since the week of '+hpWeekLabel(wk); cls='stale'; tip='The Sunday task should have filled a newer week. Check its Sunday DM.'; }
+    else st='Updated Sundays · week of '+hpWeekLabel(wk);
     let h='<div class="hp" id="hpBox"><div class="hp-hd"><h4>By product</h4><div class="hp-right">'
-      + '<span class="hp-st '+cls+'" title="'+esc(tip)+'"><span class="hp-dot"></span>'+esc(st)+'</span>'+btn+'</div></div>';
-    if(hpErr) h+='<p class="hp-err">'+esc(hpErr)+'</p>';
-    if(!good){
-      h+='<p class="hp-empty">'+(hpRows===null?'Loading the product counts…':'No product counts yet. Press ↻ Refresh to pull them from Salesforce.')+'</p></div>';
-      return h;
-    }
-    const g=good, inet=g.internet;
+      + '<span class="hp-st '+cls+'" title="'+esc(tip)+'"><span class="hp-dot"></span>'+esc(st)+'</span></div></div>';
+    if(!wk){ h+='<p class="hp-empty">No product counts yet. They fill in from Salesforce every Sunday morning.</p></div>'; return h; }
+    const inet=cur('internet'), fib=cur('fibre');
+    const cable=(inet!==null&&fib!==null)?inet-fib:null, pcable=(prev('internet')!==null&&prev('fibre')!==null)?prev('internet')-prev('fibre'):null;
     h+='<p class="hp-note">Each product counts its own subscribers, so a Herd Member with internet and TV is in both and these don\'t add up to '
       + (hpHerdVal!==null&&hpHerdVal!==undefined?'the '+esc(hpFmt(hpHerdVal)):'the herd')+'. Shares are of internet subs.</p>';
-    const fp=hpPct(g.fibre,inet);
+    const fp=hpPct(fib,inet);
     h+='<div class="hp-grid">'
-      + '<div class="hp-card wide"><div><div class="hp-name">🌐 Internet</div><div class="hp-num">'+hpFmt(inet)+'<span class="hp-unit">subs</span></div></div>'
+      + '<div class="hp-card wide"><div><div class="hp-name">🌐 Internet</div><div class="hp-num">'+hpFmt(inet)+'<span class="hp-unit">subs</span></div>'+hpChange(inet,prev('internet'))+'</div>'
       +   '<div class="hp-split">'
-      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--purple)"></span>Cable (TPIA)</div><div class="hp-kid-num">'+hpFmt(g.cable)+'</div><div class="hp-kid-sub">Eastlink and Bell</div></div>'
-      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--accent)"></span>Purple Fibre</div><div class="hp-kid-num">'+hpFmt(g.fibre)+'</div><div class="hp-kid-sub">'+(fp===null?'':fp.toFixed(1)+'% of internet')+'</div></div>'
+      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--purple)"></span>Cable (TPIA)</div><div class="hp-kid-num">'+hpFmt(cable)+'</div><div class="hp-kid-sub">Eastlink and Bell</div>'+hpChange(cable,pcable)+'</div>'
+      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--accent)"></span>Purple Fibre</div><div class="hp-kid-num">'+hpFmt(fib)+'</div><div class="hp-kid-sub">'+(fp===null?'':fp.toFixed(1)+'% of internet')+'</div>'+hpChange(fib,prev('fibre'))+'</div>'
       +   '</div></div>'
-      + '<div class="hp-card"><div class="hp-name">📱 Mobile</div><div class="hp-num">'+hpFmt(g.mobile_lines)+'<span class="hp-unit">lines</span></div>'
-      +   '<div class="hp-sub">'+hpFmt(g.mobile_members)+' Herd Members · '+hpFmt(g.mobile_only)+' mobile only</div>'+hpShare(g.mobile_lines,inet,'of internet subs')+'</div>'
-      + '<div class="hp-card"><div class="hp-name">📺 TV</div><div class="hp-num">'+hpFmt(g.tv)+'<span class="hp-unit">subs</span></div>'
-      +   '<div class="hp-sub">Purple Cow TV</div>'+hpShare(g.tv,inet,'of internet subs')+'</div>'
-      + '<div class="hp-card"><div class="hp-name">☎️ Home Phone</div><div class="hp-num">'+hpFmt(g.phone)+'<span class="hp-unit">subs</span></div>'
-      +   '<div class="hp-sub">Live lines</div>'+hpShare(g.phone,inet,'of internet subs')+'</div>'
+      + '<div class="hp-card"><div class="hp-name">📱 Mobile</div><div class="hp-num">'+hpFmt(cur('mobile'))+'<span class="hp-unit">lines</span></div>'
+      +   '<div class="hp-sub">Purple Mobile</div>'+hpChange(cur('mobile'),prev('mobile'))+hpShare(cur('mobile'),inet,'of internet subs')+'</div>'
+      + '<div class="hp-card"><div class="hp-name">📺 TV</div><div class="hp-num">'+hpFmt(cur('tv'))+'<span class="hp-unit">subs</span></div>'
+      +   '<div class="hp-sub">Purple Cow TV</div>'+hpChange(cur('tv'),prev('tv'))+hpShare(cur('tv'),inet,'of internet subs')+'</div>'
+      + '<div class="hp-card"><div class="hp-name">☎️ Home Phone</div><div class="hp-num">'+hpFmt(cur('phone'))+'<span class="hp-unit">subs</span></div>'
+      +   '<div class="hp-sub">Live lines</div>'+hpChange(cur('phone'),prev('phone'))+hpShare(cur('phone'),inet,'of internet subs')+'</div>'
       + '</div></div>';
     return h;
-  }
-  function hpPaint(){ const box=document.getElementById('hpBox'); if(box) box.outerHTML=hpHtml(); }
-  async function hpLoad(){
-    if(!USE_DB){ hpRows=[]; hpPaint(); return; }
-    try{
-      const {data,error}=await sb.from('herd_product_counts').select('*').order('taken_at',{ascending:false}).limit(20);
-      if(error) throw error;
-      hpRows=data||[];
-      if(hpErr && hpErr.indexOf('load')>=0) hpErr='';
-    }catch(e){ console.warn('herd product counts load failed', e); if(hpRows===null) hpRows=[];
-      hpErr='Couldn’t load the product counts'+(e&&e.message?': '+e.message:'.'); }
-    hpPaint();
-    if(!hpTimer) hpTimer=setInterval(()=>{   // re-read once a minute while the popup is showing it
-      if(!document.getElementById('hpBox')||!document.getElementById('chartModal').classList.contains('show')){ clearInterval(hpTimer); hpTimer=null; return; }
-      if(!hpBusy) hpLoad();
-    },60000);
-  }
-  async function hpRefresh(){
-    if(hpBusy) return;
-    hpBusy=true; hpErr=''; hpPaint();
-    try{
-      if(!USE_DB) throw new Error('Not connected to the database.');
-      const {data}=await sb.auth.getSession();
-      const token=data && data.session && data.session.access_token;
-      if(!token) throw new Error('Please log in again.');
-      const res=await fetch(SUPABASE_URL+'/functions/v1/herd-products',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:'{}'});
-      let j=null; try{ j=await res.json(); }catch(e){ j=null; }
-      if(res.status===404) throw new Error('Refresh isn’t set up yet: the herd-products function needs to be deployed.');
-      if(!j) throw new Error('Refresh failed (status '+res.status+').');
-      if(j.row && j.row.ok===false) throw new Error('Salesforce pull failed: '+(j.row.error||'unknown error'));
-      if(j.error) throw new Error(typeof j.error==='string'?j.error:JSON.stringify(j.error));
-    }catch(e){ hpErr=String(e && e.message || e); }
-    hpBusy=false;
-    await hpLoad();
   }
   function openMetricChart(id){
     const m=metricsStore.find(x=>x.id===id); if(!m) return;
@@ -4825,7 +4797,6 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
       + (canTypeMetric(m) ? '. Type in a week to add or correct it, and add a comment to any week.' : (canEditMetric(m) ? '. Add a comment to any week.' : '.'))+'</p>'
       + '<div id="hxBox">'+histHtml+'</div>';
     modal.classList.add('show');
-    if(herd && (!same || hpRows===null)) hpLoad();
     document.querySelectorAll('#chBody textarea.mx-note-in').forEach(noteGrow);
     if(same&&scroller) scroller.scrollTop=keepTop;
   }
