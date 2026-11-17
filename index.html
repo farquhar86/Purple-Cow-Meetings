@@ -1485,6 +1485,42 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   @media (hover:none) and (pointer:coarse){
     input,select,textarea,[contenteditable="true"]{font-size:16px !important;}
   }
+  /* ---- Active Herd Members: live product breakdown (herd-products function) ---- */
+  .hp{border:1.5px solid var(--cardborder);border-radius:14px;background:var(--lilac);padding:14px 16px 16px;box-shadow:var(--hard);margin:0 0 20px;}
+  .hp-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .hp-hd h4{margin:0;font-size:1.2rem;color:var(--heading);}
+  .hp-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .hp-st{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--muted);}
+  .hp-dot{width:9px;height:9px;border-radius:50%;background:var(--green);flex:0 0 auto;}
+  .hp-st.live .hp-dot{animation:hpPulse 2s infinite;}
+  .hp-st.stale{color:#9a6b00;} html[data-theme="dark"] .hp-st.stale{color:var(--amber);}
+  .hp-st.stale .hp-dot{background:var(--amber);}
+  @keyframes hpPulse{0%{box-shadow:0 0 0 0 rgba(46,158,107,.55);}70%{box-shadow:0 0 0 7px rgba(46,158,107,0);}100%{box-shadow:0 0 0 0 rgba(46,158,107,0);}}
+  @media (prefers-reduced-motion:reduce){ .hp-st.live .hp-dot{animation:none;} }
+  .hp-note{font-size:12.5px;color:var(--muted);margin:4px 0 12px;text-align:left;}
+  .hp-err{font-size:12.5px;color:var(--red);font-weight:600;margin:-6px 0 10px;text-align:left;}
+  .hp-empty{font-size:13px;color:var(--muted);padding:6px 0 2px;text-align:left;}
+  .hp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px;text-align:left;}
+  .hp-card{background:var(--card);border:1.5px solid var(--cardborder);border-radius:12px;padding:12px 14px 13px;box-shadow:2px 2px 0 var(--cardborder);display:flex;flex-direction:column;min-width:0;}
+  html[data-theme="dark"] .hp-card{box-shadow:var(--hard);}
+  .hp-card.wide{grid-column:1/-1;display:grid;grid-template-columns:minmax(200px,1fr) 1.3fr;gap:6px 18px;align-items:center;}
+  .hp-name{font-weight:800;font-size:.92rem;color:var(--heading);}
+  .hp-num{font-size:1.75rem;font-weight:800;line-height:1.15;margin-top:6px;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .hp-unit{font-size:.8rem;font-weight:600;color:var(--muted);margin-left:4px;}
+  .hp-sub{font-size:.76rem;color:var(--muted);margin-top:2px;}
+  .hp-att{margin-top:auto;padding-top:10px;}
+  .hp-att-lbl{font-size:.72rem;color:var(--muted);font-weight:600;margin-bottom:4px;}
+  .hp-att-lbl b{color:var(--ink);}
+  .hp-bar{height:8px;border-radius:999px;background:var(--lilac-2);overflow:hidden;}
+  .hp-bar span{display:block;height:100%;background:var(--purple);}
+  .hp-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .hp-kid{border:1px solid var(--line);border-radius:9px;padding:7px 10px;background:var(--bg);}
+  .hp-kid-name{font-size:.72rem;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:6px;}
+  .hp-kdot{width:9px;height:9px;border-radius:50%;display:inline-block;border:1px solid var(--cardborder);}
+  .hp-kid-num{font-size:1.2rem;font-weight:800;font-variant-numeric:tabular-nums;color:var(--ink);}
+  .hp-kid-sub{font-size:.7rem;color:var(--muted);}
+  @media(max-width:760px){ .hp-grid{grid-template-columns:1fr 1fr;} .hp-card.wide{grid-template-columns:1fr;} }
+  @media(max-width:440px){ .hp-grid{grid-template-columns:1fr;} .hp-split{grid-template-columns:1fr;} }
 </style>
 </head>
 <body>
@@ -4668,6 +4704,97 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     if(open){ const md=hxModel(m);   /* ids only */ md.Q.forEach(q=>{ chOpen[q.id]=1; }); md.M.forEach(x=>{ chOpen[x.id]=1; }); }
     hxRedraw();
   }
+  /* ================= Active Herd Members: live product breakdown =================
+     The herd-products Edge Function pulls internet (cable and Purple Fibre), mobile, TV and
+     home phone counts from Salesforce every 15 minutes, and when someone presses Refresh, into
+     herd_product_counts. The popup shows the newest good pull and re-reads every minute while
+     it's open. It turns amber when the newest pull failed or the newest good one is over an hour
+     old, so a stopped feed is obvious instead of quietly showing old numbers.
+     Shares are of internet subs, not the herd: the herd counts subscriptions (mobile is its own
+     subscription), so it isn't the right base for a product's share. */
+  let hpRows=null, hpBusy=false, hpErr='', hpHerdVal=null, hpTimer=null;
+  const HP_STALE_MS=60*60*1000;
+  function isHerdMetric(m){ return !!m && /^active herd members?$/i.test(String(m.name||'').trim()); }
+  function hpLatestValue(m){ const V=weekValues(m), ks=Object.keys(V).sort(); return ks.length?V[ks[ks.length-1]]:null; }
+  function hpFmt(n){ return (n===null||n===undefined||isNaN(n))?'—':Number(n).toLocaleString('en-CA'); }
+  function hpPct(a,b){ return (a===null||a===undefined||!b)?null:Math.round(a/b*1000)/10; }
+  function hpWhen(t){ const d=new Date(t), now=new Date();
+    const tm=d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+    return d.toDateString()===now.toDateString() ? tm : d.toLocaleDateString([], {month:'short',day:'numeric'})+', '+tm; }
+  function hpShare(n,base,label){ const p=hpPct(n,base);
+    if(p===null) return '';
+    return '<div class="hp-att"><div class="hp-att-lbl"><b>'+p.toFixed(1)+'%</b> '+esc(label)+'</div>'
+      + '<div class="hp-bar"><span style="width:'+Math.min(100,p)+'%"></span></div></div>'; }
+  function hpHtml(){
+    const rows=hpRows||[], latest=rows[0]||null, good=rows.find(r=>r.ok)||null;
+    let st='Live', cls='live', tip='Updates from Salesforce every 15 minutes.';
+    if(hpBusy){ st='Refreshing…'; }
+    else if(hpRows===null){ st='Loading…'; }
+    else if(!good){ st=latest?'Last pull failed':'No counts yet'; cls='stale'; tip=latest?(latest.error||'The pull from Salesforce failed.'):'Nothing has been pulled from Salesforce yet.'; }
+    else if(latest && !latest.ok){ st='Last pull failed · showing '+hpWhen(good.taken_at); cls='stale'; tip=latest.error||'The pull from Salesforce failed.'; }
+    else if(Date.now()-new Date(good.taken_at).getTime()>HP_STALE_MS){ st='Not updated since '+hpWhen(good.taken_at); cls='stale'; tip='The 15-minute pull from Salesforce has stopped. Press Refresh; if it keeps happening, the scheduled pull needs a look.'; }
+    else st='Live · updated '+hpWhen(good.taken_at);
+    const btn='<button type="button" class="btn ghost sm" onclick="hpRefresh()"'+(hpBusy?' disabled':'')+' title="Pull the counts from Salesforce now">↻ Refresh</button>';
+    let h='<div class="hp" id="hpBox"><div class="hp-hd"><h4>By product</h4><div class="hp-right">'
+      + '<span class="hp-st '+cls+'" title="'+esc(tip)+'"><span class="hp-dot"></span>'+esc(st)+'</span>'+btn+'</div></div>';
+    if(hpErr) h+='<p class="hp-err">'+esc(hpErr)+'</p>';
+    if(!good){
+      h+='<p class="hp-empty">'+(hpRows===null?'Loading the product counts…':'No product counts yet. Press ↻ Refresh to pull them from Salesforce.')+'</p></div>';
+      return h;
+    }
+    const g=good, inet=g.internet;
+    h+='<p class="hp-note">Each product counts its own subscribers, so a Herd Member with internet and TV is in both and these don\'t add up to '
+      + (hpHerdVal!==null&&hpHerdVal!==undefined?'the '+esc(hpFmt(hpHerdVal)):'the herd')+'. Shares are of internet subs.</p>';
+    const fp=hpPct(g.fibre,inet);
+    h+='<div class="hp-grid">'
+      + '<div class="hp-card wide"><div><div class="hp-name">🌐 Internet</div><div class="hp-num">'+hpFmt(inet)+'<span class="hp-unit">subs</span></div></div>'
+      +   '<div class="hp-split">'
+      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--purple)"></span>Cable (TPIA)</div><div class="hp-kid-num">'+hpFmt(g.cable)+'</div><div class="hp-kid-sub">Eastlink and Bell</div></div>'
+      +     '<div class="hp-kid"><div class="hp-kid-name"><span class="hp-kdot" style="background:var(--accent)"></span>Purple Fibre</div><div class="hp-kid-num">'+hpFmt(g.fibre)+'</div><div class="hp-kid-sub">'+(fp===null?'':fp.toFixed(1)+'% of internet')+'</div></div>'
+      +   '</div></div>'
+      + '<div class="hp-card"><div class="hp-name">📱 Mobile</div><div class="hp-num">'+hpFmt(g.mobile_lines)+'<span class="hp-unit">lines</span></div>'
+      +   '<div class="hp-sub">'+hpFmt(g.mobile_members)+' Herd Members · '+hpFmt(g.mobile_only)+' mobile only</div>'+hpShare(g.mobile_lines,inet,'of internet subs')+'</div>'
+      + '<div class="hp-card"><div class="hp-name">📺 TV</div><div class="hp-num">'+hpFmt(g.tv)+'<span class="hp-unit">subs</span></div>'
+      +   '<div class="hp-sub">Purple Cow TV</div>'+hpShare(g.tv,inet,'of internet subs')+'</div>'
+      + '<div class="hp-card"><div class="hp-name">☎️ Home Phone</div><div class="hp-num">'+hpFmt(g.phone)+'<span class="hp-unit">subs</span></div>'
+      +   '<div class="hp-sub">Live lines</div>'+hpShare(g.phone,inet,'of internet subs')+'</div>'
+      + '</div></div>';
+    return h;
+  }
+  function hpPaint(){ const box=document.getElementById('hpBox'); if(box) box.outerHTML=hpHtml(); }
+  async function hpLoad(){
+    if(!USE_DB){ hpRows=[]; hpPaint(); return; }
+    try{
+      const {data,error}=await sb.from('herd_product_counts').select('*').order('taken_at',{ascending:false}).limit(20);
+      if(error) throw error;
+      hpRows=data||[];
+      if(hpErr && hpErr.indexOf('load')>=0) hpErr='';
+    }catch(e){ console.warn('herd product counts load failed', e); if(hpRows===null) hpRows=[];
+      hpErr='Couldn’t load the product counts'+(e&&e.message?': '+e.message:'.'); }
+    hpPaint();
+    if(!hpTimer) hpTimer=setInterval(()=>{   // re-read once a minute while the popup is showing it
+      if(!document.getElementById('hpBox')||!document.getElementById('chartModal').classList.contains('show')){ clearInterval(hpTimer); hpTimer=null; return; }
+      if(!hpBusy) hpLoad();
+    },60000);
+  }
+  async function hpRefresh(){
+    if(hpBusy) return;
+    hpBusy=true; hpErr=''; hpPaint();
+    try{
+      if(!USE_DB) throw new Error('Not connected to the database.');
+      const {data}=await sb.auth.getSession();
+      const token=data && data.session && data.session.access_token;
+      if(!token) throw new Error('Please log in again.');
+      const res=await fetch(SUPABASE_URL+'/functions/v1/herd-products',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token,'apikey':SUPABASE_ANON_KEY},body:'{}'});
+      let j=null; try{ j=await res.json(); }catch(e){ j=null; }
+      if(res.status===404) throw new Error('Refresh isn’t set up yet: the herd-products function needs to be deployed.');
+      if(!j) throw new Error('Refresh failed (status '+res.status+').');
+      if(j.row && j.row.ok===false) throw new Error('Salesforce pull failed: '+(j.row.error||'unknown error'));
+      if(j.error) throw new Error(typeof j.error==='string'?j.error:JSON.stringify(j.error));
+    }catch(e){ hpErr=String(e && e.message || e); }
+    hpBusy=false;
+    await hpLoad();
+  }
   function openMetricChart(id){
     const m=metricsStore.find(x=>x.id===id); if(!m) return;
     const modal=document.getElementById('chartModal'), scroller=modal.querySelector('.modal');
@@ -4689,13 +4816,16 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     catch(e){ console.warn('metric chart failed', id, e); chartHtml='<p class="empty">The graph couldn’t render for this metric — its data may need a fix. You can still edit it above.</p>'; }
     try{ histHtml = model ? hxTableHtml(m,model) : editableHistoryTable(m); }
     catch(e){ console.warn('metric history failed', id, e); try{ histHtml=editableHistoryTable(m); }catch(_){ histHtml=''; } }
+    const herd=isHerdMetric(m);
+    if(herd){ try{ hpHerdVal=hpLatestValue(m); }catch(e){ hpHerdVal=null; } }
     _wvc=null;
-    document.getElementById('chBody').innerHTML='<div class="hx-bar">'+seg+tools+'</div>'+chartHtml
+    document.getElementById('chBody').innerHTML=(herd?hpHtml():'')+'<div class="hx-bar">'+seg+tools+'</div>'+chartHtml
       + '<div class="hx-hd"><h4>History</h4><div class="hx-btns"><button type="button" class="btn ghost sm" onclick="hxAll(true)">Expand all</button><button type="button" class="btn ghost sm" onclick="hxAll(false)">Collapse all</button></div></div>'
       + '<p class="hx-note">Open a quarter for its months and a month for its weeks. A week counts in the month where most of its days fall'
       + (canTypeMetric(m) ? '. Type in a week to add or correct it, and add a comment to any week.' : (canEditMetric(m) ? '. Add a comment to any week.' : '.'))+'</p>'
       + '<div id="hxBox">'+histHtml+'</div>';
     modal.classList.add('show');
+    if(herd && (!same || hpRows===null)) hpLoad();
     document.querySelectorAll('#chBody textarea.mx-note-in').forEach(noteGrow);
     if(same&&scroller) scroller.scrollTop=keepTop;
   }
