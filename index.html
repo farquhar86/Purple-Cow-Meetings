@@ -903,9 +903,12 @@
   .mtg-prigroup-hd img,.mtg-prigroup-hd .tm-initials{width:24px;height:24px;border-radius:50%;}
   .mtg-prigroup-hd .nm{font-weight:700;font-size:.86rem;color:var(--heading);}
   .mtg-prigroup-hd .cnt{margin-left:auto;font-size:.72rem;font-weight:700;color:var(--muted);background:var(--lilac);border-radius:999px;padding:1px 9px;}
-  .mx-ord{display:inline-flex;flex-direction:column;gap:0;margin-right:5px;flex:none;}
-  .mx-ordbtn{border:none;background:none;cursor:pointer;color:var(--muted);font-size:.58rem;line-height:1;padding:0 2px;}
-  .mx-ordbtn:hover{color:var(--purple);}
+  .mx-grip{cursor:grab;color:var(--muted);margin-right:6px;font-size:.85rem;flex:none;user-select:none;}
+  .mx-grip:hover{color:var(--purple);}
+  .mx-grip:active{cursor:grabbing;}
+  .mx-row.dragging{opacity:.45;}
+  .mx-row.drop-above{box-shadow:inset 0 2px 0 var(--purple);}
+  .mx-row.drop-below{box-shadow:inset 0 -2px 0 var(--purple);}
   .mtg-prigroup .mtg-pri{padding-left:8px;}
   .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
   .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
@@ -5771,6 +5774,7 @@ Herd Life`;
     if(focusId){ const el=document.getElementById(focusId); if(el){ el.focus(); if(caret!=null && el.setSelectionRange){ try{ el.setSelectionRange(caret,caret); }catch(_){} } } }
     if(canEdit) enableSectionDrag();
     enableIssueDrag();
+    enableMetricDrag();
   }
   async function ensureMeetingsRefresh(){ mtgLoaded=false; await dbLoadMeetings(); renderMeetingView(); }
   /* pull the latest for ONE section without disturbing the rest of the page */
@@ -5785,7 +5789,7 @@ Herd Life`;
     const fresh=document.createElement('div'); fresh.innerHTML=renderSection(m,sec,canEdit);
     const node=fresh.firstElementChild;
     const cur=document.querySelector('.mtg-sec[data-sid="'+secId+'"]');
-    if(cur && node){ cur.replaceWith(node); if(canEdit) enableSectionDrag(); enableIssueDrag(); }
+    if(cur && node){ cur.replaceWith(node); if(canEdit) enableSectionDrag(); enableIssueDrag(); enableMetricDrag(); }
     else renderMeetingView();
   }
   /* live sync — quietly pull others' additions every few seconds while you're in a meeting */
@@ -6194,12 +6198,27 @@ Herd Life`;
     }
     return list;
   }
-  function mxMoveMetric(secId,id,dir){
+  let mxDragId=null, mxDragSec=null;
+  function enableMetricDrag(){
+    const cont=document.getElementById('mtgSections'); if(!cont) return;
+    cont.querySelectorAll('.mx-grip').forEach(h=>{ if(h.dataset.dnd) return; h.dataset.dnd='1';
+      h.addEventListener('dragstart', e=>{ const row=h.closest('.mx-row'); if(!row) return; mxDragId=row.getAttribute('data-mid'); mxDragSec=row.getAttribute('data-secid'); e.dataTransfer.effectAllowed='move'; try{e.dataTransfer.setData('text/plain',mxDragId);}catch(_){} setTimeout(()=>row.classList.add('dragging'),0); e.stopPropagation(); });
+      h.addEventListener('dragend', ()=>{ mxDragId=null; mxDragSec=null; cont.querySelectorAll('.mx-row').forEach(r=>r.classList.remove('dragging','drop-above','drop-below')); });
+    });
+    cont.querySelectorAll('.mx-row').forEach(row=>{ if(row.dataset.dropz) return; row.dataset.dropz='1';
+      row.addEventListener('dragover', e=>{ if(!mxDragId || row.getAttribute('data-secid')!==mxDragSec) return; e.preventDefault(); e.dataTransfer.dropEffect='move';
+        const r=row.getBoundingClientRect(); const below=(e.clientY-r.top)>r.height/2; row.classList.toggle('drop-below',below); row.classList.toggle('drop-above',!below); });
+      row.addEventListener('dragleave', ()=>{ row.classList.remove('drop-above','drop-below'); });
+      row.addEventListener('drop', e=>{ if(!mxDragId || row.getAttribute('data-secid')!==mxDragSec) return; e.preventDefault(); const below=row.classList.contains('drop-below'); reorderMetric(mxDragSec, mxDragId, row.getAttribute('data-mid'), below); });
+    });
+  }
+  function reorderMetric(secId, fromId, toId, below){
+    if(fromId===toId) return;
     const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
     const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
     const ids=metricSnapshotList(sec).map(x=>x.id);
-    const i=ids.indexOf(id); if(i<0) return; const j=i+dir; if(j<0||j>=ids.length) return;
-    ids.splice(j,0,ids.splice(i,1)[0]);
+    const fi=ids.indexOf(fromId); if(fi<0) return; ids.splice(fi,1);
+    let ti=ids.indexOf(toId); if(ti<0) ids.push(fromId); else ids.splice(below?ti+1:ti,0,fromId);
     sec.metricOrder=ids; saveMtgLocal(); dbUpsertMtg(m); renderMeetingView();
   }
   function renderMetricSnapshot(sec){
@@ -6234,12 +6253,10 @@ Herd Life`;
         dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
         valHtml=mtgBreakdown(m);
       }
-      const mv = canCreate() ? '<span class="mx-ord">'
-        +'<button class="mx-ordbtn" title="Move up" onclick="event.stopPropagation();mxMoveMetric(\''+sec.id+'\',\''+m.id+'\',-1)">▲</button>'
-        +'<button class="mx-ordbtn" title="Move down" onclick="event.stopPropagation();mxMoveMetric(\''+sec.id+'\',\''+m.id+'\',1)">▼</button></span>' : '';
-      return '<div class="rock-row">'
+      const grip = canCreate() ? '<span class="mx-grip" title="Drag to reorder" draggable="true" onclick="event.stopPropagation()">⠿</span>' : '';
+      return '<div class="rock-row mx-row" data-mid="'+esc(m.id)+'" data-secid="'+esc(sec.id)+'">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
-        +mv+'<span class="caret">▶</span>'
+        +grip+'<span class="caret">▶</span>'
         +'<span class="rk-title">'+dot+esc(m.name)+noteBadge(m,noteKeysNow())+'</span>'
         +av
         +'<span class="v" style="font-weight:700;">'+valHtml+'</span>'
