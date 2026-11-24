@@ -903,6 +903,9 @@
   .mtg-prigroup-hd img,.mtg-prigroup-hd .tm-initials{width:24px;height:24px;border-radius:50%;}
   .mtg-prigroup-hd .nm{font-weight:700;font-size:.86rem;color:var(--heading);}
   .mtg-prigroup-hd .cnt{margin-left:auto;font-size:.72rem;font-weight:700;color:var(--muted);background:var(--lilac);border-radius:999px;padding:1px 9px;}
+  .mx-ord{display:inline-flex;flex-direction:column;gap:0;margin-right:5px;flex:none;}
+  .mx-ordbtn{border:none;background:none;cursor:pointer;color:var(--muted);font-size:.58rem;line-height:1;padding:0 2px;}
+  .mx-ordbtn:hover{color:var(--purple);}
   .mtg-prigroup .mtg-pri{padding-left:8px;}
   .mtg-pri .x{border:none;background:none;color:var(--muted);cursor:pointer;font-size:1rem;}
   .mtg-empty{color:var(--muted);font-size:.88rem;font-style:italic;}
@@ -6171,7 +6174,11 @@ Herd Life`;
       + (dropped?dropped+'<span style="color:var(--muted);">organizer, left out by this meeting&rsquo;s settings</span>':'')
       + '</div>';
   }
-  function renderMetricSnapshot(sec){
+  /* the ordered list of metrics a meeting scorecard shows: the chosen set (or the
+     company/scoped default), arranged into the section's saved display order if one
+     exists. metricOrder is just a display order — it never changes which metrics show,
+     so newly-added metrics still appear (at the end). */
+  function metricSnapshotList(sec){
     const ids = sec && Array.isArray(sec.metricIds) ? sec.metricIds : null;
     const custom = ids && ids.length;
     const mtg = mtgsStore.find(x=>x.id===curMtgId);
@@ -6179,12 +6186,27 @@ Herd Life`;
     let list = custom
       ? ids.map(id=>metricsStore.find(m=>m.id===id)).filter(Boolean).filter(metricVisible)
       : metricsStore.filter(metricVisible).filter(m=>m.company);
-    /* company goals belong to everyone, so they stay whoever owns them */
-    /* Scope only decides the DEFAULT set. Once someone has picked metrics for this
-       meeting, that list is the answer — filtering it again would silently drop a
-       metric they went out of their way to choose. */
     if(scope!==null && !custom) list = list.concat(
       metricsStore.filter(metricVisible).filter(m=>!m.company && mtgInScope(scope,m.owner)));
+    if(sec && Array.isArray(sec.metricOrder) && sec.metricOrder.length){
+      const ord=sec.metricOrder; const pos=m=>{ const k=ord.indexOf(m.id); return k<0?1e9:k; };
+      list=list.slice().sort((a,b)=>pos(a)-pos(b));
+    }
+    return list;
+  }
+  function mxMoveMetric(secId,id,dir){
+    const m=mtgsStore.find(x=>x.id===curMtgId); if(!m) return;
+    const sec=(m.sections||[]).find(s=>s.id===secId); if(!sec) return;
+    const ids=metricSnapshotList(sec).map(x=>x.id);
+    const i=ids.indexOf(id); if(i<0) return; const j=i+dir; if(j<0||j>=ids.length) return;
+    ids.splice(j,0,ids.splice(i,1)[0]);
+    sec.metricOrder=ids; saveMtgLocal(); dbUpsertMtg(m); renderMeetingView();
+  }
+  function renderMetricSnapshot(sec){
+    const custom = !!(sec && Array.isArray(sec.metricIds) && sec.metricIds.length);
+    const mtg = mtgsStore.find(x=>x.id===curMtgId);
+    const scope = mtgScopeEmails(mtg);
+    const list = metricSnapshotList(sec);
     const chooseBtn = (canCreate() && sec) ? '<button class="btn ghost sm" onclick="event.stopPropagation();openMetricPicker(\''+sec.id+'\')">⚙ Choose metrics</button>' : '';
     const topBar = '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;">'
       + '<span style="font-size:.8rem;color:var(--muted);">'+(custom?'Showing the metrics picked for this meeting.':(scope!==null?'Company goals plus the metrics owned by the people here.':'Company metrics — latest week vs goal.'))+' Click a metric for its graph.</span>'+chooseBtn+'</div>';
@@ -6212,9 +6234,12 @@ Herd Life`;
         dot=t?'<span style="color:'+(TIER_COLORS[t]||'#999')+'">●</span> ':'<span style="color:#ccc">●</span> ';
         valHtml=mtgBreakdown(m);
       }
+      const mv = canCreate() ? '<span class="mx-ord">'
+        +'<button class="mx-ordbtn" title="Move up" onclick="event.stopPropagation();mxMoveMetric(\''+sec.id+'\',\''+m.id+'\',-1)">▲</button>'
+        +'<button class="mx-ordbtn" title="Move down" onclick="event.stopPropagation();mxMoveMetric(\''+sec.id+'\',\''+m.id+'\',1)">▼</button></span>' : '';
       return '<div class="rock-row">'
         +'<div class="rock-hd" id="'+cid+'" onclick="toggleRock(\''+cid+'\')">'
-        +'<span class="caret">▶</span>'
+        +mv+'<span class="caret">▶</span>'
         +'<span class="rk-title">'+dot+esc(m.name)+noteBadge(m,noteKeysNow())+'</span>'
         +av
         +'<span class="v" style="font-weight:700;">'+valHtml+'</span>'
