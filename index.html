@@ -3715,7 +3715,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
-      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?(TIER_LABEL[tier]||'No goal yet'):'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
       +'<div class="sc-foot">'+(calcFoot||trend)+'<span class="sc-open">History &amp; graph →</span></div>'
       +'</div>';
@@ -3754,13 +3754,15 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const open=!rollClosed[m.id];
     const kidCards = kids.length
       ? '<div class="sc-cards">'+kids.map(k=>{ const h=scCardHtml(k,lastW,thisW,depth+1);
-          const share=rollShareHtml(k,m,thisW); return share ? h.replace('<div class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<div class="sc-meta">'+share) : h; }).join('')+'</div>'
+          /* a nested roll-up (Mobile Sales inside Total Sales Number) keeps its meta in a span, a plain card in a div */
+          const share=rollShareHtml(k,m,thisW); const tag=(isRollup(k)&&depth+1<=3)?'span':'div';
+          return share ? h.replace('<'+tag+' class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<'+tag+' class="sc-meta">'+share) : h; }).join('')+'</div>'
       : '<div class="sc-kids-empty">Nothing rolls up into this yet. Open a metric and set its <b>Rolls up into</b> to '+esc(m.name||'this metric')+'.</div>';
     return '<div class="sc-card sc-roll'+(open?' open':'')+'" id="roll-'+esc(m.id)+'" style="border-left-color:'+color+'">'
       +'<div class="sc-head" onclick="toggleRoll(\''+m.id+'\',event)">'
       +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap"><span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span><span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
-      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?(TIER_LABEL[tier]||'No goal yet'):'This week')+'</span></div>'
       +'<div class="sc-side"><span class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></span>'
       +'<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'</div>'
