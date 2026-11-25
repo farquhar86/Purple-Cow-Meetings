@@ -409,6 +409,7 @@
   .bonus-paytbl td.crit{color:var(--muted);font-size:.8rem;min-width:220px;}
   .bonus-prop{font-size:.62rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--amber);background:var(--gold-bg);border:1px solid var(--gold-line);border-radius:999px;padding:1px 6px;vertical-align:middle;}
   .bonus-pay-est{margin-top:10px;font-size:.9rem;color:var(--heading);background:var(--lilac);border-radius:10px;padding:9px 12px;}
+  .bonus-noprorate{margin-top:8px;font-size:.78rem;color:var(--muted);line-height:1.45;}
   /* Swimlanes */
   .swim-scroll{overflow-x:auto;padding-bottom:14px;}
   .swim-grid{display:grid;grid-template-columns:190px repeat(var(--cols),210px);gap:8px;align-items:start;min-width:min-content;}
@@ -8297,6 +8298,7 @@ Herd Life`;
       }).join('');
       h+='<div class="bonus-pay-wrap"><table class="bonus-paytbl"><tr><th>Part</th><th>Weight</th><th>Earns it when…</th><th>Now</th></tr>'+rows+'</table></div>';
       if(known) h+='<div class="bonus-pay-est">On pace for about <b>'+onW+'%</b> of this quarter’s bonus <span class="bonus-prop">estimate · current pace</span></div>';
+      h+='<div class="bonus-noprorate">No proration — each part is all-or-nothing: hit the quarter’s target and it pays in full, miss it and that part is $0.</div>';
       if(p.note) h+='<div class="bonus-intro" style="margin-top:8px;">'+esc(p.note)+'</div>';
       h+='</div>';
     }
