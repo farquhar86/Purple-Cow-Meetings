@@ -2661,7 +2661,105 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
   function dbDeleteMeeting(id){ if(!USE_DB) return; sb.from('meetings').delete().eq('id',id).then(r=>{ if(r.error) console.warn('meeting delete',r.error); }); }
   function dbDeleteEntriesForMeeting(mid){ if(!USE_DB) return; sb.from('entries').delete().eq('meeting_id',mid).then(r=>{ if(r.error) console.warn('entries delete',r.error); }); }
   // Save just ONE entry to the database (never the whole quarter — so no one clobbers others' work)
-  function dbUpsertEntry(mid, e){ if(!USE_DB) return; sb.from('entries').upsert({id:e.id,meeting_id:mid,data:e}).then(r=>{ if(r.error) console.warn('entry upsert',r.error); }); }
+  function dbUpsertEntry(mid, e){ if(!USE_DB||!e) return; return queueFreshSave('entries', e, {meeting_id:mid}); }
+
+  /* ---------- never let an older copy overwrite newer work ----------
+     A priority (or special project) is saved as one whole record. A tab that was opened a
+     while ago used to write its old copy back over anything changed since (a teammate,
+     Claude, the Jira sync), e.g. un-ticking a task Claude had just ticked.
+     Now every save reads the newest copy first and applies only what THIS tab changed on
+     top of it: field by field, task by task (matched by title), DoD tick by DoD tick. */
+  const entryBase=new WeakMap();   // entry object -> canon JSON of the copy it was loaded / last saved as
+  function canon(v){ if(v===undefined) return 'null';
+    return JSON.stringify(v, function(k,x){ if(x&&typeof x==='object'&&!Array.isArray(x)){ const o={}; Object.keys(x).sort().forEach(kk=>{ o[kk]=x[kk]; }); return o; } return x; }); }
+  function markBase(e){ if(e&&typeof e==='object'){ try{ entryBase.set(e, canon(e)); }catch(_){} } }
+  // blank, 0, false, [] and {} all count as "not set", so a field the app only filled in with a default isn't treated as an edit
+  function blankish(v){ return v===undefined||v===null||v===''||v===0||v===false||(Array.isArray(v)&&!v.length)||(typeof v==='object'&&!Array.isArray(v)&&!Object.keys(v).length); }
+  const numLike=v=>typeof v==='number' || (typeof v==='string' && v.trim()!=='' && !isNaN(Number(v)));
+  function sameVal(a,b){ if(blankish(a)&&blankish(b)) return true; if(numLike(a)&&numLike(b)) return Number(a)===Number(b); return canon(a)===canon(b); }
+  function mergeFields(base, mine, theirs, skip){
+    base=base||{}; mine=mine||{}; theirs=theirs||{}; const out={};
+    new Set([...Object.keys(theirs),...Object.keys(mine),...Object.keys(base)]).forEach(k=>{
+      if(skip && skip.indexOf(k)>=0) return;
+      const v = sameVal(mine[k], base[k]) ? theirs[k] : mine[k];   // this tab changed it → keep it; otherwise the newest copy
+      if(v!==undefined) out[k]=v;
+    });
+    return out;
+  }
+  function taskIndex(e){ const seen={}, keys=[], m={};
+    (e.done||[]).forEach((t,i)=>{ const title=(t==null?'':String(t)); seen[title]=(seen[title]||0)+1; const k=title+'\u0001'+seen[title];
+      keys.push(k); m[k]={title:(e.done||[])[i], plan:((e.plan||[])[i]&&typeof e.plan[i]==='object')?e.plan[i]:{}}; });
+    return {keys, m}; }
+  function mergeEntry(base, mine, theirs){
+    const out=mergeFields(base, mine, theirs, ['done','plan','dodMet']);
+    // tasks: done[] (titles) and plan[] are index-aligned; line them up by title
+    const B=taskIndex(base), M=taskIndex(mine), T=taskIndex(theirs);
+    const keep={};
+    T.keys.forEach(k=>{ if(k in M.m || !(k in B.m)) keep[k]=true; });   // drop what this tab deleted
+    M.keys.forEach(k=>{ if(k in T.m || !(k in B.m)) keep[k]=true; });   // add what this tab added; drop what was deleted elsewhere
+    const common=x=>x.keys.filter(k=>(k in B.m)&&(k in M.m));
+    const iReordered = common(B).join('\u0002') !== common(M).join('\u0002');
+    let order=(iReordered?M.keys:T.keys).filter(k=>keep[k]);
+    const place=(src)=>{ src.keys.forEach((k,i)=>{ if(!keep[k]||order.indexOf(k)>=0) return;
+      let at=0; for(let j=i-1;j>=0;j--){ const q=order.indexOf(src.keys[j]); if(q>=0){ at=q+1; break; } } order.splice(at,0,k); }); };
+    place(M); place(T);
+    const plans={}; order.forEach(k=>{
+      if((k in M.m)&&(k in T.m)) plans[k]=mergeFields((B.m[k]||{}).plan, M.m[k].plan, T.m[k].plan);
+      else plans[k]=Object.assign({}, ((k in M.m)?M.m[k]:T.m[k]).plan);
+    });
+    if(iReordered){ // a task finished elsewhere still drops to the bottom, as it would have there
+      const sunk=order.filter(k=>(k in B.m)&&(k in T.m)&&Number(B.m[k].plan.pct)<100&&Number(T.m[k].plan.pct)>=100&&Number(plans[k].pct)>=100);
+      if(sunk.length) order=order.filter(k=>sunk.indexOf(k)<0).concat(sunk);
+    }
+    out.done=order.map(k=>((k in M.m)?M.m[k]:T.m[k]).title);
+    out.plan=order.map(k=>plans[k]);
+    // Definition of Done ticks: start from the newest copy, then apply this tab's ticks and un-ticks
+    const obj=x=>(x&&typeof x==='object'&&!Array.isArray(x))?x:{};
+    const bm=obj(base.dodMet), mm=obj(mine.dodMet), dm=Object.assign({}, obj(theirs.dodMet));
+    Object.keys(mm).forEach(id=>{ if(!(id in bm)) dm[id]=mm[id]; });
+    Object.keys(bm).forEach(id=>{ if(!(id in mm)) delete dm[id]; });
+    if(Object.keys(dm).length || mine.dodMet || theirs.dodMet) out.dodMet=dm;
+    try{ syncPlan(out); autoStage(out); }catch(_){}
+    return out;
+  }
+  const _freshQ={};
+  function queueFreshSave(table, e, extra){ const key=table+':'+e.id; const run=()=>saveFresh(table, e, extra);
+    const p=(_freshQ[key]||Promise.resolve()).then(run, run); _freshQ[key]=p.catch(()=>{}); return p; }
+  async function saveFresh(table, e, extra){
+    const base=entryBase.get(e); const mine=JSON.parse(JSON.stringify(e)); let data=mine, merged=false;
+    if(base){
+      try{ const fr=await sb.from(table).select('data').eq('id',e.id).limit(1);
+        if(fr.error) throw fr.error;
+        const fresh=fr.data&&fr.data[0]&&fr.data[0].data;
+        if(fresh && canon(fresh)!==base){ data=mergeEntry(JSON.parse(base), mine, fresh); merged=true; }
+      }catch(err){ console.warn('read before save ('+table+')', err); }
+    }
+    const r=await sb.from(table).upsert(Object.assign({id:e.id, data:data}, extra||{}));
+    if(r.error){ console.warn(table+' save', r.error); return; }
+    if(merged){
+      const edited = canon(e)!==canon(mine);   // typed more while this save was running: leave that to the next save
+      if(!edited){ Object.keys(e).forEach(k=>{ delete e[k]; }); Object.assign(e, JSON.parse(JSON.stringify(data))); }
+      const other=(table==='special_projects'?spProjects:cur().entries).find(x=>x.id===e.id);   // a refresh may have swapped in a new copy
+      if(other && other!==e && canon(other)===entryBase.get(other)){ Object.keys(other).forEach(k=>{ delete other[k]; }); Object.assign(other, JSON.parse(JSON.stringify(data))); markBase(other); }
+      if(table==='special_projects') saveSpLocal(); else save();
+      if(!edited){ entryBase.set(e, canon(data)); afterFreshMerge(); }   // if still being edited, keep the old base so the next save merges again
+    } else entryBase.set(e, canon(data));
+  }
+  function afterFreshMerge(){
+    const ae=document.activeElement; if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable)) return;   // don't interrupt typing
+    if(document.querySelector('.modal-ov.show')) return;
+    try{ if(screen==='prio' && prioOpenId) renderPrioPage(); else if(screen==='dash') renderDash(); else if(screen==='special') renderSpBoard(); }catch(_){}
+  }
+  /* coming back to a tab that's been sitting open: pull the latest so what you see (and click) is current */
+  let lastDataLoad=0;
+  document.addEventListener('visibilitychange', ()=>{
+    if(document.visibilityState!=='visible' || !USE_DB || !reviewUnlocked) return;
+    if(Date.now()-lastDataLoad < 30000) return;
+    const ae=document.activeElement; if(ae && (ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'||ae.isContentEditable)) return;
+    if(document.querySelector('.modal-ov.show')) return;
+    if(screen!=='dash' && screen!=='prio' && screen!=='special') return;
+    refreshData(); if(spLoaded && screen==='special') refreshSp();
+  });
   function dbUpsertMeeting(m){ if(!USE_DB) return; sb.from('meetings').upsert({id:m.id,data:{name:m.name,theme:m.theme,goal:m.goal}}).then(r=>{ if(r.error) console.warn('meeting upsert',r.error); }); }
   function persist(e){ if(e&&e.special){ saveSpLocal(); dbUpsertSp(e); return; } save(); dbUpsertEntry(cur().id, e); }
   let _noteT={};
@@ -2680,8 +2778,9 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     }
     const meetings=ms.map(r=>({id:r.id,name:r.data&&r.data.name,theme:r.data&&r.data.theme,goal:r.data&&r.data.goal,entries:[]}));
     const byId={}; meetings.forEach(m=>byId[m.id]=m);
-    (er.data||[]).forEach(r=>{ const m=byId[r.meeting_id]; if(m&&r.data) m.entries.push(r.data); });
+    (er.data||[]).forEach(r=>{ const m=byId[r.meeting_id]; if(m&&r.data){ markBase(r.data); m.entries.push(r.data); } });
     store={ activeId: byId[store.activeId]?store.activeId:meetings[0].id, meetings };
+    lastDataLoad=Date.now();
   }
   async function refreshData(){
     if(!USE_DB) return;
@@ -3617,7 +3716,7 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     return '<div class="sc-card" style="border-left-color:'+color+'" onclick="openMetricChart(\''+m.id+'\')">'
       +'<div class="sc-top"><span class="sc-name">'+esc(m.name)+badge+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span><span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap">'+big+'<span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
-      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?(TIER_LABEL[tier]||'No goal yet'):'This week')+'</span></div>'
       +'<div class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></div>'
       +'<div class="sc-foot">'+(calcFoot||trend)+'<span class="sc-open">History &amp; graph →</span></div>'
       +'</div>';
@@ -3656,13 +3755,15 @@ html[data-theme="dark"] .dod-link.warn,html[data-theme="dark"] .dod-ready,html[d
     const open=!rollClosed[m.id];
     const kidCards = kids.length
       ? '<div class="sc-cards">'+kids.map(k=>{ const h=scCardHtml(k,lastW,thisW,depth+1);
-          const share=rollShareHtml(k,m,thisW); return share ? h.replace('<div class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<div class="sc-meta">'+share) : h; }).join('')+'</div>'
+          /* a nested roll-up (Mobile Sales inside Total Sales Number) keeps its meta in a span, a plain card in a div */
+          const share=rollShareHtml(k,m,thisW); const tag=(isRollup(k)&&depth+1<=3)?'span':'div';
+          return share ? h.replace('<'+tag+' class="sc-meta"><span>'+esc(goalLabelShort(k))+'</span>','<'+tag+' class="sc-meta">'+share) : h; }).join('')+'</div>'
       : '<div class="sc-kids-empty">Nothing rolls up into this yet. Open a metric and set its <b>Rolls up into</b> to '+esc(m.name||'this metric')+'.</div>';
     return '<div class="sc-card sc-roll'+(open?' open':'')+'" id="roll-'+esc(m.id)+'" style="border-left-color:'+color+'">'
       +'<div class="sc-head" onclick="toggleRoll(\''+m.id+'\',event)">'
       +'<div class="sc-top"><span class="sc-caret">›</span><span class="sc-name">'+esc(m.name)+metricSrcBadge(m)+coBadge+noteBadge(m,[wkKey(thisW),wkKey(lastW)])+'</span></div>'
       +'<div class="sc-num-row"><span class="sc-big-wrap"><span class="sc-big">'+(hasT?esc(fmtVal(m,cvT.eff)):'—')+'</span><span class="sc-goalunit">/ '+(gT===''||gT==null?'—':esc(fmtTgt(m,gT)))+'</span></span>'
-      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?TIER_LABEL[tier]:'This week')+'</span></div>'
+      +'<span class="sc-tier" style="background:'+color+'">'+(hasT?(TIER_LABEL[tier]||'No goal yet'):'This week')+'</span></div>'
       +'<div class="sc-side"><span class="sc-meta"><span>'+esc(goalLabelShort(m))+'</span><span>Last week: <b>'+(hasL?esc(fmtVal(m,cvL.eff)):'—')+'</b></span></span>'
       +'<span title="'+esc(pmName(m.owner))+'">'+avatarHtml(resolvePerson(m.owner))+'</span></div>'
       +'</div>'
@@ -7309,11 +7410,11 @@ Herd Life`;
   let spProjects=[], spLoaded=false, spDragId=null;
   function loadSpLocal(){ try{ spProjects=JSON.parse(localStorage.getItem(KEY+'_special')||'[]'); if(!Array.isArray(spProjects)) spProjects=[]; }catch(e){ spProjects=[]; } }
   function saveSpLocal(){ try{ localStorage.setItem(KEY+'_special',JSON.stringify(spProjects)); }catch(e){} }
-  function dbUpsertSp(e){ if(!USE_DB) return; sb.from('special_projects').upsert({id:e.id,data:e}).then(r=>{ if(r.error) console.warn('special project save',r.error); }); }
+  function dbUpsertSp(e){ if(!USE_DB||!e) return; return queueFreshSave('special_projects', e); }
   function dbDeleteSp(id){ if(!USE_DB) return; sb.from('special_projects').delete().eq('id',id).then(r=>{ if(r.error) console.warn('special project delete',r.error); }); }
   async function dbLoadSp(){ if(!USE_DB){ spLoaded=true; return; }
     try{ const r=await sbSelectAll('special_projects','id,data','id'); if(r.error) throw r.error;
-      spProjects=(r.data||[]).map(x=>x.data).filter(Boolean); saveSpLocal();
+      spProjects=(r.data||[]).map(x=>x.data).filter(Boolean); spProjects.forEach(markBase); saveSpLocal();
     }catch(e){ console.warn('special projects load',e); loadSpLocal(); }
     spLoaded=true; }
   async function ensureSp(){ if(!spLoaded){ loadSpLocal(); await dbLoadSp(); } if(USE_DB && !teamUsers.length) loadTeamUsersCache(); }
